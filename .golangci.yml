@@ -1,0 +1,17 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosec
+    - ineffassign
+
+  exclusions:
+    rules:
+      # Tests read fixtures found by glob; the "unsanitised path" is testdata.
+      - path: _test\.go
+        linters: [gosec]

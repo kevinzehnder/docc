@@ -1,0 +1,65 @@
+---
+version: "3"
+
+includes:
+  core: ./taskfiles/core.yaml
+  test: ./taskfiles/test.yaml
+
+tasks:
+  default:
+    desc: run CI
+    cmds:
+      - task: ci
+
+  # ── Build ────────────────────────────────────────────────────────────────────
+
+  build:
+    desc: build ./bin/docc
+    cmds:
+      - task: core:build
+
+  install:
+    desc: go install docc into $GOBIN
+    cmds:
+      - task: core:install
+
+  # ── Quality ──────────────────────────────────────────────────────────────────
+
+  fmt:
+    desc: format Go code with gofumpt
+    cmds:
+      - task: core:fmt
+
+  fmt:check:
+    desc: check Go formatting with gofumpt
+    cmds:
+      - task: core:fmt:check
+
+  vet:
+    desc: run go vet
+    cmds:
+      - task: core:vet
+
+  lint:
+    desc: run golangci-lint
+    cmds:
+      - task: core:lint
+
+  test:
+    desc: run unit tests
+    cmds:
+      - task: test:unit
+
+  hooks:install:
+    desc: install local git hooks from .githooks
+    cmds:
+      - task: core:hooks:install
+
+  ci:
+    desc: run CI checks
+    cmds:
+      - task: fmt:check
+      - task: core:vet
+      - task: core:lint
+      - task: test:unit
+      - task: build

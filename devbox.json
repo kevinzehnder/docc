@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.11.1/.schema/devbox.schema.json",
+  "packages": [
+    "go@latest",
+    "gotest@latest",
+    "gopls@latest",
+    "go-task@latest",
+    "gofumpt@latest",
+    "gh@latest"
+  ],
+  "env": {
+    "GOPRIVATE": "github.com/kevinzehnder"
+  },
+  "shell": {
+    "init_hook": ["echo 'docc devbox' > /dev/null"]
+  }
+}

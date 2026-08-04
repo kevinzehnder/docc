@@ -1,0 +1,80 @@
+---
+version: "3"
+
+vars:
+  BUILD_VERSION:
+    sh: |
+      if command -v git >/dev/null 2>&1 && git describe --tags --dirty --always >/dev/null 2>&1; then
+        git describe --tags --dirty --always
+      else
+        echo "0.0.0-dev"
+      fi
+  VERSION_LDFLAGS: '-X main.buildVersion={{.BUILD_VERSION}}'
+
+tasks:
+  hooks:install:
+    internal: true
+    cmds:
+      - mkdir -p .githooks
+      - chmod +x .githooks/pre-commit
+      - git config core.hooksPath .githooks
+      - echo "✅ git hooks installed (core.hooksPath=.githooks)"
+
+  fmt:
+    internal: true
+    silent: true
+    cmds:
+      - command -v gofumpt >/dev/null 2>&1 || GOBIN=/tmp go install mvdan.cc/gofumpt@latest
+      - sh -c 'if command -v gofumpt >/dev/null 2>&1; then gofumpt -w .; else /tmp/gofumpt -w .; fi'
+      - echo "✅ gofumpt formatting complete"
+
+  fmt:check:
+    internal: true
+    silent: true
+    cmds:
+      - command -v gofumpt >/dev/null 2>&1 || GOBIN=/tmp go install mvdan.cc/gofumpt@latest
+      - |
+        sh -c '
+          if command -v gofumpt >/dev/null 2>&1; then
+            gofumpt_cmd="gofumpt"
+          else
+            gofumpt_cmd="/tmp/gofumpt"
+          fi
+
+          files="$($gofumpt_cmd -l .)"
+          if [ -n "$files" ]; then
+            echo "❌ gofumpt found formatting errors in the following files:"
+            echo "$files"
+            echo "run \"task fmt\" to fix formatting"
+            exit 1
+          fi
+
+          echo "✅ gofumpt check passed: all Go files are properly formatted"
+        '
+
+  build:
+    internal: true
+    cmds:
+      - go build -ldflags "{{.VERSION_LDFLAGS}}" -o ./bin/docc ./cmd/docc
+    sources:
+      - "**/*.go"
+    generates:
+      - ./bin/docc
+
+  install:
+    internal: true
+    cmds:
+      - go install -ldflags "{{.VERSION_LDFLAGS}}" ./cmd/docc
+
+  vet:
+    internal: true
+    cmds:
+      - go vet ./...
+
+  lint:
+    internal: true
+    cmds:
+      # v2 lives at a /v2 module path; the old path still resolves to v1, which
+      # cannot read a version: "2" config.
+      - command -v golangci-lint >/dev/null 2>&1 || GOBIN=/tmp go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+      - sh -c 'if command -v golangci-lint >/dev/null 2>&1; then golangci-lint run ./...; else /tmp/golangci-lint run ./...; fi'

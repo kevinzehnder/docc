@@ -1,0 +1,29 @@
+---
+version: "3"
+
+vars:
+  GOTEST:
+    { sh: "command -v gotest >/dev/null 2>&1 && echo gotest || echo go test" }
+
+tasks:
+  unit:
+    desc: run unit tests
+    cmds:
+      - "{{.GOTEST}} ./..."
+
+  race:
+    desc: run tests with race detector
+    cmds:
+      - "{{.GOTEST}} -race ./..."
+
+  cover:
+    desc: run tests with coverage → ./tmp/coverage/unit.out
+    cmds:
+      - mkdir -p ./tmp/coverage
+      - "go test -coverprofile=./tmp/coverage/unit.out ./..."
+      - "go tool cover -func=./tmp/coverage/unit.out"
+
+  golden:update:
+    desc: regenerate golden fixtures in testdata/
+    cmds:
+      - "go test ./internal/sema/ -run Golden -update"

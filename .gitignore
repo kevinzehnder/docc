@@ -1,0 +1,33 @@
+# ── Build output ─────────────────────────────────────────────────────────────
+bin/
+tmp/
+temp/
+dist/
+*.exe
+*.exe~
+
+# ── Test & coverage ───────────────────────────────────────────────────────────
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# ── Go workspace ─────────────────────────────────────────────────────────────
+go.work
+go.work.sum
+
+# ── Task / tooling cache ──────────────────────────────────────────────────────
+.task/
+.devbox/
+.venv/
+
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude Code worktrees
+.claude/worktrees/

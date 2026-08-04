@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -eu
+
+echo "🔎 pre-commit: running gofumpt check"
+task fmt:check
