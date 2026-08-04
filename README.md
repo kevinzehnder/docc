@@ -161,7 +161,52 @@ checked against `testdata/schemas/` and its rendered diagnostics compared to a
 committed `.golden` file, so any change to a message or a rule shows up as a
 diff rather than as a surprise in a real document.
 
+## Writing Word documents
+
+`pkg/docx` writes `.docx` from scratch — no template to fill, no dependencies
+beyond the standard library. It is importable on its own:
+
+```go
+d := &docx.Document{
+    Section: docx.Section{
+        Page:    docx.A4,
+        Margins: docx.Margins{Top: docx.Mm(20), Bottom: docx.Mm(20), Left: docx.Mm(26), Right: docx.Mm(15)},
+    },
+    Defaults: docx.Defaults{Run: docx.RunProps{Font: "Arial", Size: docx.FontPt(11)}},
+    Styles:   []docx.Style{{ID: "Standard", Name: "Standard", Default: true}},
+    Body:     []docx.Block{docx.P("Standard", "Sehr geehrte Damen und Herren,")},
+}
+err := d.Write("letter.docx")
+```
+
+Supports styles, numbered and bulleted lists, tables with spans and borders,
+headers and footers (including a distinct first page), embedded images, and
+absolutely positioned frames — which is how the address block lands in the
+envelope window.
+
+Output is **deterministic**: identical input produces byte-identical output.
+Archive timestamps are fixed, parts are written in sorted order, and identifiers
+are assigned by position. A rebuild that changes bytes changed something real.
+
+Units are separate types so they cannot be mixed by accident — `Twips` for
+layout, `EMU` for drawings, `HalfPt` for font size, `Eighth` for border widths.
+Build them with `Mm`, `Pt`, `Cm`, `MmEMU`, `FontPt`, `BorderPt`.
+
+### Verifying output
+
+Unit tests check structure. What they cannot check is whether a real renderer
+accepts the file, so a build-tagged round-trip test converts a generated
+document through LibreOffice:
+
+```bash
+task test:roundtrip     # needs soffice on PATH
+```
+
+It asserts on the produced PDF, not on the exit code: `soffice` exits 0 even
+when it produces nothing.
+
 ## Status
 
-`docc check` is implemented. The `.docx` emitter is not yet — `pkg/docx` is a
-placeholder. Until it lands, rendering still runs through the existing pipeline.
+`docc check` and `pkg/docx` are implemented. Not yet wired together — the
+markdown-to-WordprocessingML emitter and `docc build` are next, along with the
+`.dotx`-free theme definitions in `.docc/themes/`.

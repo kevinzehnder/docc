@@ -15,7 +15,7 @@ internal/parse/      goldmark wrapper: frontmatter split, block tree, positions
 internal/schema/     doc-type spec loading and `extends` resolution
 internal/sema/       validation passes → diagnostics
 internal/project/    .docc directory discovery
-pkg/docx/            .docx emitter (placeholder)
+pkg/docx/            .docx writer — stdlib only, no template, deterministic
 testdata/            golden corpus: schemas/, good/, bad/
 ```
 
@@ -60,6 +60,28 @@ that is the check working.
   Walk to the leaves rather than assuming a depth.
 - Fenced divs (`::: beweis`) are a local block parser in `internal/parse/fences.go`;
   goldmark has no built-in support.
+
+## Working on pkg/docx
+
+No dependencies. `archive/zip` and `encoding/xml` cover the container; XML is
+written through the `xw` helper rather than `encoding/xml` marshalling, because
+OOXML needs exact namespace prefixes and, in places, a specific attribute order.
+
+- **Output must stay deterministic.** Fixed archive timestamps, sorted parts,
+  identifiers assigned by position. Never introduce a counter whose state
+  survives across calls, or a timestamp read from the clock.
+- **Word rejects rather than degrades.** An empty table cell, a header part with
+  no paragraph, or a body without `sectPr` produces a repair prompt, not an
+  error message. The writer fills these in; keep it that way.
+- **Unbalanced XML panics at construction.** `xw.bytes` refuses to return a part
+  with an open element, because the alternative is finding out in Word.
+- **Units are distinct types.** `Twips`, `EMU`, `HalfPt`, `Eighth`. Do not add a
+  plain-int measurement parameter.
+- **Numbering is a two-level indirection.** A paragraph names a `numId`, which
+  names an `abstractNumId`. Two lists sharing a `numId` continue each other's
+  numbering. Use `Numbering.AddList` / `NewInstance`.
+- **`task test:roundtrip` before trusting a structural change.** Unit tests
+  check strings; only a real renderer proves the file opens.
 
 ## Positions
 

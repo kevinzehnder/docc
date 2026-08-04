@@ -11,6 +11,11 @@ tasks:
     cmds:
       - "{{.GOTEST}} ./..."
 
+  roundtrip:
+    desc: convert generated .docx through LibreOffice (needs soffice on PATH)
+    cmds:
+      - "{{.GOTEST}} -tags roundtrip -run LibreOffice ./pkg/docx/ -v"
+
   race:
     desc: run tests with race detector
     cmds:
