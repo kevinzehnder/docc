@@ -120,8 +120,8 @@ func merge(parent, child *Schema) *Schema {
 	if len(child.Rules) == 0 {
 		out.Rules = parent.Rules
 	}
-	if child.Template == "" {
-		out.Template = parent.Template
+	if child.Theme == "" {
+		out.Theme = parent.Theme
 	}
 
 	out.Styles = map[string]string{}

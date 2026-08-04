@@ -17,9 +17,9 @@ type Schema struct {
 	Extends     string `yaml:"extends"`
 	Description string `yaml:"description"`
 
-	// Template is the .dotx/.docx path, relative to the project root, that the
-	// emitter fills. Empty means the type is check-only and cannot be built.
-	Template string `yaml:"template"`
+	// Theme names the visual definition in .docc/themes used to render this
+	// type. Empty means the type is check-only and cannot be built.
+	Theme string `yaml:"theme"`
 
 	// Types declares reusable object shapes referenced by Field.Type.
 	Types map[string]Fields `yaml:"types"`
@@ -27,7 +27,7 @@ type Schema struct {
 	Frontmatter Fields `yaml:"frontmatter"`
 	// Body declares the required heading structure, in document order.
 	Body []BodyRule `yaml:"body"`
-	// Styles maps markdown constructs to style names in Template.
+	// Styles maps markdown constructs to style ids defined by the theme.
 	Styles map[string]string `yaml:"styles"`
 	// Rules lists named cross-cutting checks to run.
 	Rules []Rule `yaml:"rules"`

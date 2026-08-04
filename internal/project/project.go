@@ -28,8 +28,8 @@ type Project struct {
 // SchemaDir returns the directory holding schema YAML files.
 func (p *Project) SchemaDir() string { return filepath.Join(p.Dir, "schemas") }
 
-// TemplateDir returns the directory holding Word templates.
-func (p *Project) TemplateDir() string { return filepath.Join(p.Dir, "templates") }
+// ThemeDir returns the directory holding theme definitions and their assets.
+func (p *Project) ThemeDir() string { return filepath.Join(p.Dir, "themes") }
 
 // Resolve walks up from start looking for a .docc directory, the way git finds
 // .git. start may be a file or a directory.

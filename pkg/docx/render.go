@@ -162,10 +162,10 @@ func writeParaProps(w *xw, p ParaProps, inBody bool) {
 	}
 	if sp := p.Spacing; sp != (Spacing{}) {
 		attrs := []attr{}
-		if sp.Before != 0 {
+		if sp.Before != 0 || sp.ExplicitBefore {
 			attrs = append(attrs, ai("w:before", sp.Before))
 		}
-		if sp.After != 0 {
+		if sp.After != 0 || sp.ExplicitAfter {
 			attrs = append(attrs, ai("w:after", sp.After))
 		}
 		if sp.Line != 0 {

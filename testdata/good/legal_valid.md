@@ -16,7 +16,7 @@ klaeger:
   street: "Musterstrasse 1"
   postal_code: "5000"
   city: "Aarau"
-klaeger_vertreter: "lic. iur. Kevin Zehnder, Rechtsanwalt, Baden"
+klaeger_vertreter: "lic. iur. David Muster, Rechtsanwalt, Aarau"
 beklagter:
   name: "Beispiel AG"
   role: "Beklagte"

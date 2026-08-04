@@ -127,10 +127,17 @@ const (
 )
 
 // Spacing is vertical paragraph spacing.
+//
+// ExplicitBefore and ExplicitAfter force the value to be written even when it
+// is zero. Without them a style could never override an inherited spacing back
+// to nothing: an omitted attribute inherits, and zero is indistinguishable from
+// absent in a plain int.
 type Spacing struct {
-	Before, After Twips
-	Line          Twips
-	LineRule      LineRule
+	Before, After  Twips
+	Line           Twips
+	LineRule       LineRule
+	ExplicitBefore bool
+	ExplicitAfter  bool
 }
 
 // Indent is horizontal paragraph indentation. FirstLine and Hanging are

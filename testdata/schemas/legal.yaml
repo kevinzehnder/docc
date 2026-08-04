@@ -1,7 +1,7 @@
 type: legal
 extends: base
 description: Formal legal brief (Klageschrift, Klageantwort, Rechtsschrift).
-template: templates/legal.dotx
+theme: zbp-legal
 
 frontmatter:
   legal_doc_type:
@@ -112,7 +112,10 @@ styles:
   h2: Ueberschrift2
   h3: Ueberschrift3
   paragraph: Standard
-  ordered_list: Rechtsbegehren
+  quote: Zitat
+  code: Code
+  ordered_list: Rechtsbegehrensliste
+  bullet_list: Aufzaehlung
   "div.beweis": Beweismittel
 
 rules:

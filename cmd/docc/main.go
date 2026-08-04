@@ -1,5 +1,5 @@
-// Command docc compiles structured markdown documents: it checks them against
-// a schema and (once the emitter lands) builds them into Word documents.
+// Command docc compiles structured markdown documents: it checks them against a
+// schema and renders them to Word documents through a theme.
 package main
 
 import (
@@ -11,10 +11,13 @@ import (
 	"strings"
 
 	"github.com/kevinzehnder/docc/internal/diag"
+	"github.com/kevinzehnder/docc/internal/emit"
+	"github.com/kevinzehnder/docc/internal/ir"
 	"github.com/kevinzehnder/docc/internal/parse"
 	"github.com/kevinzehnder/docc/internal/project"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/sema"
+	"github.com/kevinzehnder/docc/internal/theme"
 )
 
 // buildVersion is stamped by the build via -ldflags.
@@ -24,20 +27,29 @@ const usage = `docc — a compiler for structured documents
 
 usage:
   docc check [flags] <file.md>...   validate documents against their schema
+  docc build [flags] <file.md>      validate, then render to .docx or .pdf
   docc types [flags]                list known document types
+  docc themes [flags]               list available themes
   docc explain <CODE>               describe a diagnostic code
   docc version
 
 flags:
   --schema-dir <dir>   schema directory (default: nearest .docc/schemas)
+  --theme-dir <dir>    theme directory (default: nearest .docc/themes)
   --type <type>        override the frontmatter document_type
   --json               machine-readable output
   --strict             treat warnings as errors
   --no-color           disable coloured output
 
+build flags:
+  --to docx|pdf        output format (default: docx)
+  --output <path>      output path (default: input with the new extension)
+  --theme <name>       theme to render with (default: the schema's own)
+  --force              render despite validation errors
+
 exit codes:
   0  no errors
-  1  diagnostics reported
+  1  diagnostics reported, or the build failed
   2  usage or configuration error
 `
 
@@ -55,8 +67,12 @@ func run(args []string) int {
 	switch cmd {
 	case "check":
 		return cmdCheck(rest)
+	case "build":
+		return cmdBuild(rest)
 	case "types":
 		return cmdTypes(rest)
+	case "themes":
+		return cmdThemes(rest)
 	case "explain":
 		return cmdExplain(rest)
 	case "version":
@@ -73,6 +89,7 @@ func run(args []string) int {
 
 type commonFlags struct {
 	schemaDir string
+	themeDir  string
 	docType   string
 	jsonOut   bool
 	strict    bool
@@ -81,6 +98,7 @@ type commonFlags struct {
 
 func (c *commonFlags) bind(fs *flag.FlagSet) {
 	fs.StringVar(&c.schemaDir, "schema-dir", "", "schema directory (default: nearest .docc/schemas)")
+	fs.StringVar(&c.themeDir, "theme-dir", "", "theme directory (default: nearest .docc/themes)")
 	fs.StringVar(&c.docType, "type", "", "override the frontmatter document_type")
 	fs.BoolVar(&c.jsonOut, "json", false, "machine-readable output")
 	fs.BoolVar(&c.strict, "strict", false, "treat warnings as errors")
@@ -179,10 +197,149 @@ func cmdTypes(args []string) int {
 	for _, t := range set.Types() {
 		sc, _ := set.Get(t)
 		if cf.jsonOut {
-			fmt.Printf("{\"type\":%q,\"description\":%q,\"template\":%q}\n", sc.Type, sc.Description, sc.Template)
+			fmt.Printf("{\"type\":%q,\"description\":%q,\"theme\":%q}\n", sc.Type, sc.Description, sc.Theme)
 			continue
 		}
 		fmt.Printf("%-14s %s\n", sc.Type, sc.Description)
+	}
+	return 0
+}
+
+func cmdThemes(args []string) int {
+	fs := flag.NewFlagSet("themes", flag.ContinueOnError)
+	var cf commonFlags
+	cf.bind(fs)
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	start := "."
+	if fs.NArg() > 0 {
+		start = fs.Arg(0)
+	}
+	set, _, err := loadThemes(cf.themeDir, start)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 2
+	}
+	for _, name := range set.Names() {
+		th, _ := set.Get(name)
+		if cf.jsonOut {
+			fmt.Printf("{\"name\":%q,\"description\":%q,\"styles\":%d}\n", th.Name, th.Description, len(th.Styles))
+			continue
+		}
+		fmt.Printf("%-14s %s\n", th.Name, th.Description)
+	}
+	return 0
+}
+
+func cmdBuild(args []string) int {
+	fs := flag.NewFlagSet("build", flag.ContinueOnError)
+	var cf commonFlags
+	cf.bind(fs)
+	var (
+		to        = fs.String("to", "docx", "output format: docx or pdf")
+		output    = fs.String("output", "", "output path")
+		themeName = fs.String("theme", "", "theme to render with")
+		force     = fs.Bool("force", false, "render despite validation errors")
+	)
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if fs.NArg() != 1 {
+		fmt.Fprintln(os.Stderr, "docc build: expects exactly one input file")
+		return 2
+	}
+	if *to != "docx" && *to != "pdf" {
+		fmt.Fprintf(os.Stderr, "docc build: unknown format %q — use docx or pdf\n", *to)
+		return 2
+	}
+
+	input := fs.Arg(0)
+	src, err := os.ReadFile(input) //nolint:gosec // the user's own argument
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 2
+	}
+	name := displayPath(input)
+
+	schemas, err := loadSchemas(cf.schemaDir, input)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 2
+	}
+	themes, themeDir, err := loadThemes(cf.themeDir, input)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 2
+	}
+
+	f, parseDiags := parse.Parse(name, src)
+	res := sema.Check(f, schemas, parseDiags, cf.docType)
+
+	// Validation gates the build. Reporting the diagnostics and stopping is the
+	// whole point: a document that fails its schema should not reach a court.
+	if res.Diagnostics.HasErrors() && !*force {
+		_ = res.Diagnostics.Render(os.Stderr, func(string) string { return string(src) }, cf.color())
+		fmt.Fprintln(os.Stderr, "\nrefusing to build — fix the errors above, or pass --force")
+		return 1
+	}
+	if len(res.Diagnostics) > 0 {
+		_ = res.Diagnostics.Render(os.Stderr, func(string) string { return string(src) }, cf.color())
+	}
+	if res.Schema == nil {
+		fmt.Fprintln(os.Stderr, "docc: no schema resolved; cannot build")
+		return 1
+	}
+
+	wanted := *themeName
+	if wanted == "" {
+		wanted = res.Schema.Theme
+	}
+	if wanted == "" {
+		fmt.Fprintf(os.Stderr, "docc: schema %q declares no theme and none was given (--theme)\n", res.Schema.Type)
+		return 2
+	}
+	th, err := themes.Get(wanted)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 2
+	}
+
+	doc := ir.Build(f, res.DocType, res.Meta.Values)
+	built, err := emit.Build(doc, res.Schema, th, emit.Options{ThemeDir: themeDir})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 1
+	}
+
+	outPath := *output
+	if outPath == "" {
+		outPath = strings.TrimSuffix(input, filepath.Ext(input)) + "." + *to
+	}
+
+	docxPath := outPath
+	if *to == "pdf" {
+		docxPath = strings.TrimSuffix(outPath, filepath.Ext(outPath)) + ".docx"
+	}
+	if err := built.Write(docxPath); err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 1
+	}
+
+	if *to == "pdf" {
+		if err := emit.ToPDF(docxPath, outPath, emit.PDFOptions{Retries: 1}); err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 1
+		}
+		// The intermediate .docx is not what was asked for.
+		_ = os.Remove(docxPath)
+	}
+
+	if cf.jsonOut {
+		fmt.Printf("{\"ok\":true,\"type\":%q,\"theme\":%q,\"format\":%q,\"output\":%q}\n",
+			res.DocType, th.Name, *to, outPath)
+	} else {
+		fmt.Println(outPath)
 	}
 	return 0
 }
@@ -236,6 +393,25 @@ func loadSchemas(schemaDir, start string) (*schema.Set, error) {
 		return nil, err
 	}
 	return schema.Load(proj.SchemaDir())
+}
+
+// loadThemes resolves the theme directory the same way loadSchemas resolves the
+// schema directory, and returns it so theme-relative image paths can be found.
+func loadThemes(themeDir, start string) (*theme.Set, string, error) {
+	if themeDir != "" {
+		set, err := theme.Load(themeDir)
+		return set, themeDir, err
+	}
+	proj, err := project.Resolve(start)
+	if err != nil {
+		if errors.Is(err, project.ErrNotFound) {
+			return nil, "", fmt.Errorf("%w\n  create %s/themes/ in your project, or pass --theme-dir", err, project.DirName)
+		}
+		return nil, "", err
+	}
+	dir := proj.ThemeDir()
+	set, err := theme.Load(dir)
+	return set, dir, err
 }
 
 // displayPath shortens an absolute path to a working-directory-relative one so
