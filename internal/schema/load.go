@@ -124,6 +124,16 @@ func merge(parent, child *Schema) *Schema {
 		out.Theme = parent.Theme
 	}
 
+	// Each render rule is inherited on its own. A base that numbers paragraphs
+	// and a child that adds a heading outline is the useful case; making the
+	// child restate both to change one is not.
+	if child.Render.HeadingNumbering == nil {
+		out.Render.HeadingNumbering = parent.Render.HeadingNumbering
+	}
+	if child.Render.ParagraphNumbering == nil {
+		out.Render.ParagraphNumbering = parent.Render.ParagraphNumbering
+	}
+
 	out.Styles = map[string]string{}
 	for k, v := range parent.Styles {
 		out.Styles[k] = v

@@ -91,14 +91,14 @@ func TestHeadingsIgnoreCodeBlocks(t *testing.T) {
 }
 
 func TestDivs(t *testing.T) {
-	src := "---\ntitle: x\n---\n\n::: beweis\n- one\n- two\n:::\n\nafter\n"
+	src := "---\ntitle: x\n---\n\n::: evidence\n- one\n- two\n:::\n\nafter\n"
 	f, _ := Parse("t.md", []byte(src))
 	divs := f.Divs()
 	if len(divs) != 1 {
 		t.Fatalf("got %d divs, want 1", len(divs))
 	}
-	if divs[0].Name != "beweis" {
-		t.Errorf("div name = %q, want \"beweis\"", divs[0].Name)
+	if divs[0].Name != "evidence" {
+		t.Errorf("div name = %q, want \"evidence\"", divs[0].Name)
 	}
 	if n := divs[0].ChildCount(); n != 1 {
 		t.Errorf("div children = %d, want 1 (the list)", n)

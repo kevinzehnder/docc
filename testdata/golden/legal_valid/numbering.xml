@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<w:abstractNum w:abstractNumId="0">
+<w:multiLevelType w:val="multilevel"/>
+<w:name w:val="LegalHeadingNumbering"/>
+<w:lvl w:ilvl="0">
+<w:start w:val="1"/>
+<w:numFmt w:val="upperRoman"/>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:lvlText w:val="%1."/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="0" w:hanging="567"/>
+</w:pPr>
+</w:lvl>
+<w:lvl w:ilvl="1">
+<w:start w:val="1"/>
+<w:numFmt w:val="upperLetter"/>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:lvlText w:val="%2."/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="0" w:hanging="567"/>
+</w:pPr>
+</w:lvl>
+<w:lvl w:ilvl="2">
+<w:start w:val="1"/>
+<w:numFmt w:val="decimal"/>
+<w:pStyle w:val="Ueberschrift3"/>
+<w:lvlText w:val="%3."/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="0" w:hanging="567"/>
+</w:pPr>
+</w:lvl>
+</w:abstractNum>
+<w:abstractNum w:abstractNumId="1">
+<w:multiLevelType w:val="singleLevel"/>
+<w:name w:val="Rechtsbegehrensliste"/>
+<w:lvl w:ilvl="0">
+<w:start w:val="1"/>
+<w:numFmt w:val="decimal"/>
+<w:pStyle w:val="Rechtsbegehren"/>
+<w:lvlText w:val="%1."/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="567" w:hanging="567"/>
+</w:pPr>
+</w:lvl>
+</w:abstractNum>
+<w:abstractNum w:abstractNumId="2">
+<w:multiLevelType w:val="singleLevel"/>
+<w:name w:val="Randziffer"/>
+<w:lvl w:ilvl="0">
+<w:start w:val="1"/>
+<w:numFmt w:val="decimal"/>
+<w:pStyle w:val="Standard"/>
+<w:lvlText w:val="%1"/>
+<w:suff w:val="tab"/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="0" w:hanging="567"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="16"/>
+<w:szCs w:val="16"/>
+</w:rPr>
+</w:lvl>
+</w:abstractNum>
+<w:abstractNum w:abstractNumId="3">
+<w:multiLevelType w:val="multilevel"/>
+<w:name w:val="Aufzaehlung"/>
+<w:lvl w:ilvl="0">
+<w:start w:val="1"/>
+<w:numFmt w:val="bullet"/>
+<w:pStyle w:val="Listenabsatz"/>
+<w:lvlText w:val="–"/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="397" w:hanging="397"/>
+</w:pPr>
+</w:lvl>
+<w:lvl w:ilvl="1">
+<w:start w:val="1"/>
+<w:numFmt w:val="bullet"/>
+<w:pStyle w:val="Listenabsatz"/>
+<w:lvlText w:val="–"/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="794" w:hanging="397"/>
+</w:pPr>
+</w:lvl>
+</w:abstractNum>
+<w:num w:numId="1">
+<w:abstractNumId w:val="0"/>
+</w:num>
+<w:num w:numId="2">
+<w:abstractNumId w:val="1"/>
+</w:num>
+<w:num w:numId="3">
+<w:abstractNumId w:val="2"/>
+</w:num>
+<w:num w:numId="4">
+<w:abstractNumId w:val="3"/>
+</w:num>
+</w:numbering>

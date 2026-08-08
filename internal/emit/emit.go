@@ -7,11 +7,13 @@
 package emit
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/kevinzehnder/docc/internal/ir"
 	"github.com/kevinzehnder/docc/internal/schema"
@@ -33,6 +35,7 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 
 	e := &emitter{
 		doc:    doc,
+		meta:   typedMeta(sc.Frontmatter, sc.Types, doc.Meta),
 		schema: sc,
 		theme:  th,
 		opts:   opts,
@@ -66,7 +69,7 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 	if err := e.buildFurniture(th.Prologue, &e.out.Body); err != nil {
 		return nil, fmt.Errorf("prologue: %w", err)
 	}
-	e.blocks(doc.Blocks, &e.out.Body, 0)
+	e.body(doc.Blocks, &e.out.Body)
 	if err := e.buildFurniture(th.Epilogue, &e.out.Body); err != nil {
 		return nil, fmt.Errorf("epilogue: %w", err)
 	}
@@ -75,10 +78,103 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 	return e.out, nil
 }
 
-// Validate reports style-map entries that name a style the theme does not
-// define. Word renders an unknown style as body text without complaint, which
-// is precisely the silent failure this compiler exists to remove.
+// Validate checks a schema and a theme against each other before anything is
+// rendered: every style the schema maps must exist in the theme, and every
+// field the theme interpolates must be declared by the schema.
+//
+// Both failures are silent at render time. Word shows an unknown style as body
+// text without complaint, and a placeholder naming a field that does not exist
+// expands to nothing — which, because a furniture line whose fields are all
+// empty is dropped, deletes the line. A typo in an address block therefore
+// posts a letter with no city on it. Catching that here is the point.
 func Validate(sc *schema.Schema, th *theme.Theme) error {
+	var errs []error
+	if err := validateStyles(sc, th); err != nil {
+		errs = append(errs, err)
+	}
+	if err := validateFields(sc, th); err != nil {
+		errs = append(errs, err)
+	}
+	if err := validateRender(sc, th); err != nil {
+		errs = append(errs, err)
+	}
+	if err := validateNumbering(th); err != nil {
+		errs = append(errs, err)
+	}
+	return errors.Join(errs...)
+}
+
+// validateRender checks that each render rule names a list definition the theme
+// actually defines, and that it says where numbering starts exactly once.
+func validateRender(sc *schema.Schema, th *theme.Theme) error {
+	var errs []error
+	for _, r := range []struct {
+		key  string
+		rule *schema.NumberingRule
+	}{
+		{"heading_numbering", sc.Render.HeadingNumbering},
+		{"paragraph_numbering", sc.Render.ParagraphNumbering},
+	} {
+		if r.rule == nil {
+			continue
+		}
+		if r.rule.Definition == "" {
+			errs = append(errs, fmt.Errorf("schema %q: render.%s names no definition", sc.Type, r.key))
+			continue
+		}
+		if _, ok := th.Numbering[r.rule.Definition]; !ok {
+			errs = append(errs, fmt.Errorf(
+				"schema %q: render.%s names definition %q, which the theme %q does not define\ntheme defines: %s",
+				sc.Type, r.key, r.rule.Definition, th.Name, strings.Join(sortedKeys(th.Numbering), ", "),
+			))
+		}
+		if r.rule.StartAtHeading != "" && r.rule.StartAfterHeading != "" {
+			errs = append(errs, fmt.Errorf(
+				"schema %q: render.%s sets both start_at_heading and start_after_heading; keep one",
+				sc.Type, r.key,
+			))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateNumbering rejects list definitions Word cannot render as written.
+//
+// A suffix outside the enumeration produces a repair prompt rather than a
+// differently separated label; a tenth level exceeds what the format has; and a
+// level that declares levels of its own is a theme author expecting a tree,
+// which this is not — the entries under `levels:` are already the deeper ones.
+func validateNumbering(th *theme.Theme) error {
+	var bad []string
+	for _, name := range sortedKeys(th.Numbering) {
+		def := th.Numbering[name]
+		if total := len(def.Levels) + 1; total > theme.MaxNumLevels {
+			bad = append(bad, fmt.Sprintf("%s: %d levels, the maximum is %d", name, total, theme.MaxNumLevels))
+		}
+		for i, lvl := range def.Flatten() {
+			where := name
+			if i > 0 {
+				where = fmt.Sprintf("%s level %d", name, i)
+			}
+			switch lvl.Suffix {
+			case "", "tab", "space", "nothing":
+			default:
+				bad = append(bad, fmt.Sprintf("%s: unknown suffix %q — use tab, space or nothing", where, lvl.Suffix))
+			}
+			if i > 0 && len(lvl.Levels) > 0 {
+				bad = append(bad, fmt.Sprintf(
+					"%s: declares levels of its own; `levels:` is a flat list, so move them up beside it", where))
+			}
+		}
+	}
+	if len(bad) == 0 {
+		return nil
+	}
+	return fmt.Errorf("theme %q defines numbering Word cannot render:\n  %s",
+		th.Name, strings.Join(bad, "\n  "))
+}
+
+func validateStyles(sc *schema.Schema, th *theme.Theme) error {
 	var missing []string
 	for key, styleID := range sc.Styles {
 		if styleID == "" {
@@ -109,8 +205,119 @@ func Validate(sc *schema.Schema, th *theme.Theme) error {
 	)
 }
 
+// validateFields resolves every {{ path }} in the theme's furniture against the
+// schema's frontmatter and named types.
+func validateFields(sc *schema.Schema, th *theme.Theme) error {
+	var missing []string
+	for _, path := range th.Fields() {
+		if reason := resolveField(sc, path); reason != "" {
+			missing = append(missing, fmt.Sprintf("{{ %s }} — %s", path, reason))
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"theme %q interpolates fields the schema %q does not declare:\n  %s\nschema declares: %s",
+		th.Name, sc.Type, strings.Join(missing, "\n  "), strings.Join(sortedKeys(sc.Frontmatter), ", "),
+	)
+}
+
+// resolveField walks a dotted path through the schema, returning why it does
+// not resolve, or "" when it does.
+func resolveField(sc *schema.Schema, path string) string {
+	segments := strings.Split(path, ".")
+	fields := schema.Fields(sc.Frontmatter)
+	owner := "the frontmatter"
+
+	for i, seg := range segments {
+		f, ok := fields[seg]
+		if !ok {
+			return fmt.Sprintf("%s declares no field %q", owner, seg)
+		}
+		if i == len(segments)-1 {
+			return ""
+		}
+		next, isObject := sc.Types[f.Type]
+		if !isObject {
+			return fmt.Sprintf("field %q is a %s and has no member %q",
+				strings.Join(segments[:i+1], "."), f.Type, segments[i+1])
+		}
+		fields = next
+		owner = fmt.Sprintf("type %q", f.Type)
+	}
+	return ""
+}
+
+// isoDate is the layout a `date` field is written in. It is the schema's
+// contract, checked in sema; this is the other end of it.
+const isoDate = "2006-01-02"
+
+// typedMeta returns a copy of meta with values reinterpreted according to the
+// type the schema declares for them.
+//
+// YAML hands back a string for a date, so without this a theme's `formats.date`
+// would never fire and a letterhead would print 2026-08-04 under a theme that
+// asked for "4. August 2026" — configuration that is silently dead, which is
+// the failure mode this compiler exists to remove. The schema is what knows a
+// field is a date, and emit is the only place holding both schema and theme.
+//
+// A value that does not parse is left alone. sema has already reported it, and
+// `--force` still has to render something.
+func typedMeta(fields schema.Fields, types map[string]schema.Fields, meta map[string]any) map[string]any {
+	out := make(map[string]any, len(meta))
+	for key, value := range meta {
+		f, declared := fields[key]
+		if !declared {
+			out[key] = value
+			continue
+		}
+		out[key] = typedValue(f.Type, types, value)
+	}
+	return out
+}
+
+func typedValue(declared string, types map[string]schema.Fields, value any) any {
+	if inner, isList := strings.CutPrefix(declared, "list<"); isList {
+		items, ok := value.([]any)
+		if !ok {
+			return value
+		}
+		elem := strings.TrimSuffix(inner, ">")
+		converted := make([]any, 0, len(items))
+		for _, item := range items {
+			converted = append(converted, typedValue(elem, types, item))
+		}
+		return converted
+	}
+
+	if declared == "date" {
+		s, ok := value.(string)
+		if !ok {
+			return value
+		}
+		t, err := time.Parse(isoDate, s)
+		if err != nil {
+			return value
+		}
+		return t
+	}
+
+	if members, isObject := types[declared]; isObject {
+		nested, ok := value.(map[string]any)
+		if !ok {
+			return value
+		}
+		return typedMeta(members, types, nested)
+	}
+	return value
+}
+
 type emitter struct {
-	doc    *ir.Document
+	doc *ir.Document
+	// meta is doc.Meta with values reinterpreted according to their declared
+	// type. Furniture interpolates from here, never from doc.Meta.
+	meta   map[string]any
 	schema *schema.Schema
 	theme  *theme.Theme
 	opts   Options
@@ -137,6 +344,135 @@ func (e *emitter) blocks(blocks []ir.Block, out *[]docx.Block, depth int) {
 	for _, b := range blocks {
 		e.blockTo(b, out, depth)
 	}
+}
+
+// body renders the top level of the document, which is the only level the
+// schema's render numbering applies to.
+//
+// Eligibility is decided here rather than inside blockTo on purpose. A
+// paragraph reached recursively is a list item, a table cell, a quotation or
+// the contents of a fenced div — content that already carries its own label, or
+// belongs to a structure that owns it. Numbering every ir.Para the emitter
+// happens to reach would put a marginal number on each Rechtsbegehren and each
+// Beweismittel entry.
+func (e *emitter) body(blocks []ir.Block, out *[]docx.Block) {
+	headings := e.renderRule(e.schema.Render.HeadingNumbering)
+	paragraphs := e.renderRule(e.schema.Render.ParagraphNumbering)
+
+	for _, b := range blocks {
+		headings.arrive(b)
+		paragraphs.arrive(b)
+
+		start := len(*out)
+		e.blockTo(b, out, 0)
+		produced := (*out)[start:]
+
+		switch v := b.(type) {
+		case ir.Heading:
+			if headings.active {
+				// Markdown level 1 is the definition's level 0.
+				headings.apply(e, produced, v.Level-1)
+			}
+		case ir.Para:
+			if paragraphs.active {
+				paragraphs.apply(e, produced, 0)
+			}
+		}
+
+		headings.depart(b)
+		paragraphs.depart(b)
+	}
+}
+
+// renderState tracks one render numbering rule as the body is walked.
+type renderState struct {
+	rule *schema.NumberingRule
+	// marker is the heading numbering keys off, lowercased for comparison.
+	marker string
+	// inclusive reports that the marker heading is itself numbered.
+	inclusive bool
+	// active reports that numbering has started.
+	active bool
+	// numID is the single instance every numbered block in this rule shares.
+	// One instance is the whole point: a fresh one per block would restart the
+	// count, so every heading would be I. and every paragraph 1.
+	numID int
+	// levels is how many levels the definition declares. A heading deeper than
+	// that gets no label rather than a fabricated one.
+	levels int
+}
+
+func (e *emitter) renderRule(rule *schema.NumberingRule) *renderState {
+	s := &renderState{rule: rule}
+	if rule == nil {
+		return s
+	}
+	heading, inclusive := rule.Marker()
+	s.marker = normalizeHeading(heading)
+	s.inclusive = inclusive
+	// No marker means the rule covers the body from its first block.
+	s.active = s.marker == ""
+	return s
+}
+
+// arrive runs before a block is numbered, and starts an inclusive rule so that
+// `start_at_heading: RECHTSBEGEHREN` numbers RECHTSBEGEHREN itself.
+func (s *renderState) arrive(b ir.Block) {
+	if s.inclusive {
+		s.startIfMarker(b)
+	}
+}
+
+// depart runs after a block is numbered, and starts an exclusive rule so that
+// `start_after_heading: RECHTSBEGEHREN` leaves that heading unnumbered and
+// begins with what follows it.
+func (s *renderState) depart(b ir.Block) {
+	if !s.inclusive {
+		s.startIfMarker(b)
+	}
+}
+
+func (s *renderState) startIfMarker(b ir.Block) {
+	if s.rule == nil || s.active || s.marker == "" {
+		return
+	}
+	if h, isHeading := b.(ir.Heading); isHeading && normalizeHeading(ir.Text(h.Inlines)) == s.marker {
+		s.active = true
+	}
+}
+
+// apply attaches the rule's numbering instance to the first paragraph a block
+// produced, allocating the instance on first use so a document that never
+// reaches the marker carries no definition it does not use.
+func (s *renderState) apply(e *emitter, produced []docx.Block, level int) {
+	if level < 0 {
+		return
+	}
+	if s.numID == 0 {
+		s.numID, s.levels = e.sharedNumID(s.rule.Definition)
+		if s.numID == 0 {
+			return
+		}
+	}
+	if level >= s.levels {
+		return
+	}
+	for i, blk := range produced {
+		p, isPara := blk.(docx.Paragraph)
+		if !isPara || p.Props.Numbering != nil {
+			continue
+		}
+		p.Props.Numbering = &docx.NumRef{ID: s.numID, Level: level}
+		produced[i] = p
+		return
+	}
+}
+
+// normalizeHeading matches heading text the way the body checks do: ignoring
+// case and surrounding space, so a schema does not have to reproduce the
+// document's capitalisation exactly.
+func normalizeHeading(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
 }
 
 func (e *emitter) blockTo(b ir.Block, out *[]docx.Block, depth int) {
@@ -321,6 +657,28 @@ func (e *emitter) numID(numName string, l ir.List) int {
 	return e.numbering.NewInstance(abstractID)
 }
 
+// sharedNumID allocates one numbering instance for a render rule and reports
+// how many levels its definition declares.
+//
+// It shares the abstract definition with any list that names the same theme
+// entry — same appearance, one definition — but takes its own instance, because
+// an instance is what carries the count. Call it once per rule and keep the id.
+func (e *emitter) sharedNumID(defName string) (numID, levels int) {
+	themeDef, ok := e.theme.Numbering[defName]
+	if !ok {
+		return 0, 0 // Validate rejects this before a build reaches here.
+	}
+	def := themeDef.AbstractNum()
+
+	if abstractID, known := e.abstractByName[defName]; known {
+		return e.numbering.NewInstance(abstractID), len(def.Levels)
+	}
+	def.Name = defName
+	numID = e.numbering.AddList(def)
+	e.abstractByName[defName] = e.numbering.Abstract[len(e.numbering.Abstract)-1].ID
+	return numID, len(def.Levels)
+}
+
 func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 	style := e.style("div."+d.Name, "paragraph")
 
@@ -334,7 +692,7 @@ func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 			continue
 		}
 		// A div's style applies to its paragraphs unless a list already claimed
-		// one, since a Beweismittel entry is styled by the div, not the list.
+		// one: an item inside a div is styled by the div, not by the list.
 		if p.Props.Numbering == nil || e.style("div."+d.Name) != "" {
 			p.Props.Style = style
 		}
@@ -499,7 +857,7 @@ func (e *emitter) buildFurniture(lines []theme.Line, out *[]docx.Block) error {
 			}
 			continue
 		}
-		if err := e.furnitureLine(line, e.doc.Meta, out); err != nil {
+		if err := e.furnitureLine(line, e.meta, out); err != nil {
 			return err
 		}
 	}
@@ -510,7 +868,7 @@ func (e *emitter) buildFurniture(lines []theme.Line, out *[]docx.Block) error {
 // absent or empty emits nothing, so a letter without enclosures has no
 // enclosures section.
 func (e *emitter) repeatLine(line theme.Line, out *[]docx.Block) error {
-	raw, found := lookupMeta(e.doc.Meta, line.Repeat)
+	raw, found := lookupMeta(e.meta, line.Repeat)
 	if !found {
 		return nil
 	}
@@ -520,7 +878,7 @@ func (e *emitter) repeatLine(line theme.Line, out *[]docx.Block) error {
 	}
 	for _, item := range items {
 		scope := map[string]any{"item": item}
-		for k, v := range e.doc.Meta {
+		for k, v := range e.meta {
 			if k != "item" {
 				scope[k] = v
 			}
@@ -537,7 +895,7 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, out *[]doc
 		return e.furnitureRunLine(line, meta, out)
 	}
 
-	expanded := theme.Expand(line.Text, meta)
+	expanded := e.theme.Expand(line.Text, meta)
 
 	// A line whose every field is empty is dropped: a recipient with no
 	// organisation should not leave a blank line in the address block.
@@ -608,7 +966,7 @@ func (e *emitter) furnitureRunLine(line theme.Line, meta map[string]any, out *[]
 	// than keeping a dangling label.
 	fieldRuns, filledRuns, anyText := 0, 0, false
 	for _, r := range line.Runs {
-		expanded := theme.Expand(r.Text, meta)
+		expanded := e.theme.Expand(r.Text, meta)
 		if expanded.Refs > 0 {
 			fieldRuns++
 		}

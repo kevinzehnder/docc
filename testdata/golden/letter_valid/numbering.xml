@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<w:abstractNum w:abstractNumId="0">
+<w:multiLevelType w:val="multilevel"/>
+<w:name w:val="Nummerierung"/>
+<w:lvl w:ilvl="0">
+<w:start w:val="1"/>
+<w:numFmt w:val="decimal"/>
+<w:pStyle w:val="Listenabsatz"/>
+<w:lvlText w:val="%1."/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="397" w:hanging="397"/>
+</w:pPr>
+</w:lvl>
+<w:lvl w:ilvl="1">
+<w:start w:val="1"/>
+<w:numFmt w:val="lowerLetter"/>
+<w:pStyle w:val="Listenabsatz"/>
+<w:lvlText w:val="%2."/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="794" w:hanging="397"/>
+</w:pPr>
+</w:lvl>
+<w:lvl w:ilvl="2">
+<w:start w:val="1"/>
+<w:numFmt w:val="lowerRoman"/>
+<w:pStyle w:val="Listenabsatz"/>
+<w:lvlText w:val="%3."/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="1191" w:hanging="397"/>
+</w:pPr>
+</w:lvl>
+</w:abstractNum>
+<w:num w:numId="1">
+<w:abstractNumId w:val="0"/>
+</w:num>
+</w:numbering>

@@ -204,6 +204,67 @@ func TestListsGetDistinctNumIDs(t *testing.T) {
 	}
 }
 
+// A marginal number is a label with its own size, alignment and separator,
+// none of which follow the paragraph it labels.
+func TestNumLevelLabelProperties(t *testing.T) {
+	n := Numbering{}
+	n.AddList(AbstractNum{Levels: []NumLevel{{
+		Level:          0,
+		Format:         NumDecimal,
+		Text:           "%1.",
+		Size:           FontPt(8),
+		Align:          TabRight,
+		Suffix:         "space",
+		Hanging:        Mm(7),
+		ParagraphStyle: "Standard",
+	}}})
+	d := &Document{Numbering: n, Body: []Block{P("Standard", "x")}}
+
+	got := string(d.writeNumbering())
+	for _, want := range []string{
+		`<w:numFmt w:val="decimal"/>`,
+		`<w:lvlText w:val="%1."/>`,
+		`<w:suff w:val="space"/>`,
+		`<w:lvlJc w:val="right"/>`,
+		`<w:sz w:val="16"/>`,   // 8pt is 16 half-points
+		`<w:szCs w:val="16"/>`, // complex-script size, or Word ignores it in places
+		`<w:pStyle w:val="Standard"/>`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %s in:\n%s", want, got)
+		}
+	}
+}
+
+// A level with no label formatting must not emit an empty run-properties
+// element: Word treats <w:rPr/> as a formatting override of nothing.
+func TestNumLevelWithoutLabelFormattingHasNoRunProps(t *testing.T) {
+	n := Numbering{}
+	n.AddList(AbstractNum{Levels: []NumLevel{{Level: 0, Format: NumDecimal, Text: "%1."}}})
+	d := &Document{Numbering: n}
+	if got := string(d.writeNumbering()); strings.Contains(got, "<w:rPr>") {
+		t.Errorf("unexpected w:rPr:\n%s", got)
+	}
+}
+
+// A numbered paragraph refers to its level through w:numPr; the label itself is
+// never written into the text.
+func TestParagraphNumberingReference(t *testing.T) {
+	d := &Document{Body: []Block{Paragraph{
+		Props: ParaProps{Style: "Ueberschrift2", Numbering: &NumRef{ID: 3, Level: 1}},
+		Runs:  []Run{{Items: []Inline{Text("Zuständigkeit")}}},
+	}}}
+	got := string(d.writeDocument())
+	for _, want := range []string{
+		`<w:ilvl w:val="1"/>`,
+		`<w:numId w:val="3"/>`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %s in:\n%s", want, got)
+		}
+	}
+}
+
 // Output must be reproducible for golden tests over the archive to mean
 // anything.
 func TestOutputIsDeterministic(t *testing.T) {

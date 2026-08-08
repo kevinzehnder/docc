@@ -31,6 +31,53 @@ type Schema struct {
 	Styles map[string]string `yaml:"styles"`
 	// Rules lists named cross-cutting checks to run.
 	Rules []Rule `yaml:"rules"`
+	// Render configures numbering applied to the body at render time.
+	Render Render `yaml:"render"`
+}
+
+// Render is the document type's opt-in to numbering that the source markdown
+// does not express: an outline over the headings, and a marginal number on each
+// paragraph of prose.
+//
+// It lives in the schema rather than the theme because it is a fact about the
+// document type — a brief has numbered sections and marginal numbers, a letter
+// has neither. What those numbers look like is the theme's business, which is
+// why each rule names a definition rather than describing one.
+type Render struct {
+	// HeadingNumbering numbers headings by their markdown level: level 1 takes
+	// the definition's level 0, and so on.
+	HeadingNumbering *NumberingRule `yaml:"heading_numbering"`
+	// ParagraphNumbering numbers top-level paragraphs of prose at level 0,
+	// continuously, across the headings between them.
+	ParagraphNumbering *NumberingRule `yaml:"paragraph_numbering"`
+}
+
+// NumberingRule selects a list definition from the theme and says where in the
+// body it starts applying.
+type NumberingRule struct {
+	// Definition names an entry in the theme's `numbering:` map.
+	Definition string `yaml:"definition"`
+	// StartAtHeading names the heading that is itself the first numbered block.
+	StartAtHeading string `yaml:"start_at_heading"`
+	// StartAfterHeading names a heading that is not numbered but after which
+	// numbering begins. This is what a marginal number wants: the count starts
+	// with the prose, not with the heading above it.
+	//
+	// Set neither and numbering applies to the whole body. Setting both is a
+	// schema error rather than a precedence rule nobody would remember.
+	StartAfterHeading string `yaml:"start_after_heading"`
+}
+
+// Marker returns the heading text numbering keys off, and whether that heading
+// is itself numbered.
+func (r *NumberingRule) Marker() (heading string, inclusive bool) {
+	if r == nil {
+		return "", false
+	}
+	if r.StartAtHeading != "" {
+		return r.StartAtHeading, true
+	}
+	return r.StartAfterHeading, false
 }
 
 // Fields is a set of named field declarations.

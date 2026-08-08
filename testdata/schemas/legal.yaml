@@ -1,7 +1,7 @@
 type: legal
 extends: base
 description: Formal legal brief (Klageschrift, Klageantwort, Rechtsschrift).
-theme: zbp-legal
+theme: example-legal
 
 frontmatter:
   legal_doc_type:
@@ -118,18 +118,43 @@ styles:
   bullet_list: Aufzaehlung
   "div.beweis": Beweismittel
 
+# Numbering the markdown does not express. The headings carry an I. / A. / 1.
+# outline from RECHTSBEGEHREN onwards, and every paragraph of prose after that
+# heading carries a continuous Randziffer. Both name a definition in the theme,
+# which is where they get their appearance.
+#
+# Changing where either starts is this one line — set start_at_heading to
+# BEGRÜNDUNG and the Rechtsbegehren falls outside the outline.
+render:
+  heading_numbering:
+    definition: LegalHeadingNumbering
+    start_at_heading: RECHTSBEGEHREN
+  paragraph_numbering:
+    definition: Randziffer
+    start_after_heading: RECHTSBEGEHREN
+
 rules:
   - id: LEG031
     check: no_placeholder_text
     severity: error
 
   - id: LEG012
-    check: beweis_beilage_refs
+    check: div_items_match
     severity: error
+    args:
+      div: beweis
+      pattern: '//\s*Beilage\s+\d+\s*$'
+    message: "Beweismittel without a Beilage reference"
+    hint: 'append a reference, e.g. "// Beilage 3"'
 
   - id: LEG020
-    check: beilagen_coverage
+    check: cross_reference
     severity: warning
+    args:
+      div: beweis
+      pattern: '//\s*Beilage\s+(\d+)'
+      list_field: beilagen
+      label: Beilage
 
   - id: LEG040
     check: no_empty_sections

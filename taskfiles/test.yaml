@@ -31,4 +31,7 @@ tasks:
   golden:update:
     desc: regenerate golden fixtures in testdata/
     cmds:
+      # Diagnostics first: a rendered document is only worth comparing once the
+      # fixture it came from still validates.
       - "go test ./internal/sema/ -run Golden -update"
+      - "go test ./internal/emit/ -run Golden -update"

@@ -1,0 +1,36 @@
+letter_frontmatter.md:4:1: error[DOC007]: field `sent` is not a valid date: "05.08.2026"
+  | 
+4 | sent: 05.08.2026
+  | ^^^^^^^^^^^^^^^^ ISO format, e.g. 2026-08-04; the date the letter left the office
+letter_frontmatter.md:6:1: error[DOC006]: field `registered` must be a boolean, got string
+  | 
+6 | registered: "ja"
+  | ^^^^^^^^^^^^^^^^ true when the letter goes out as registered mail
+letter_frontmatter.md:9:3: error[DOC010]: field `sender.uid` has malformed value "CHE123456789"
+  | 
+9 |   uid: CHE123456789
+  |   ^^^^^^^^^^^^^^ Swiss UID format CHE-123.456.789
+letter_frontmatter.md:11:3: error[DOC006]: field `sender.postal_code` must be a string, got number
+   | 
+11 |   postal_code: 5000
+   |   ^^^^^^^^^^^^^^^^^ four digits, quoted: "5000"
+letter_frontmatter.md:13:1: error[DOC004]: missing required field `signee.name`
+   | 
+13 | signee:
+   | ^^^^^^^ add this field
+letter_frontmatter.md:15:1: error[DOC004]: missing required field `recipient.street`
+   | 
+15 | recipient:
+   | ^^^^^^^^^^ add this field
+letter_frontmatter.md:18:3: warning[DOC011]: unknown field `recipient.strasse`
+   | 
+18 |   strasse: Industrieweg 5
+   |   ^^^^^^^^^^^^^^^^^^^^^^^ remove it, or add it to the schema
+letter_frontmatter.md:27:1: error[LTR031]: unfilled template placeholder
+   | 
+27 | [Hier den Sachverhalt einfügen]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ replace this with the actual content
+letter_frontmatter.md: error[DOC004]: missing required field `subject`
+  = the subject line shown above the salutation
+
+8 errors, 1 warning

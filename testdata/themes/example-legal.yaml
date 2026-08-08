@@ -12,7 +12,7 @@ page:
     top: 22mm
     bottom: 20mm
     left: 25mm
-    right: 20mm
+    right: 25mm
     header: 12mm
     footer: 10mm
 
@@ -20,6 +20,16 @@ defaults:
   font: FreeSans
   size: 11pt
   lang: de-CH
+
+# How non-string metadata renders. Word documents in this corpus are German, so
+# the theme says so; the engine has no locale of its own.
+formats:
+  date: "2. January 2006"    # Go reference layout: day, month name, year
+  bool: ["ja", "nein"]       # [true, false]
+  list_separator: ", "
+  months: [Januar, Februar, März, April, Mai, Juni,
+           Juli, August, September, Oktober, November, Dezember]
+  weekdays: [Sonntag, Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag]
 
 styles:
   Standard:
@@ -66,6 +76,10 @@ styles:
     bold: true
 
   # ── Court address block ───────────────────────────────────────────────────
+  # First line inside the address field, so it shares the address geometry:
+  # same size, same line spacing, no gap below it. Swiss Post asks for non-bold
+  # address text; the bold caps here are house style and the one deliberate
+  # deviation.
   LegalVersand:
     name: Versandart
     based_on: Standard
@@ -73,25 +87,29 @@ styles:
     bold: true
     caps: true
     size: 10pt
-    spacing: { after: 2mm, line: 1.15 }
+    spacing: { before: 0mm, after: 0mm, line: 1.15 }
 
+  # Swiss Post wants the address black, non-bold, upright, left aligned and
+  # sans serif, at 9-28pt with 10pt ideal. Standard is justified, so the
+  # alignment is overridden here rather than inherited.
   LegalGericht:
     name: Court Address
     based_on: Standard
     align: left
+    size: 10pt
     spacing: { after: 0mm, line: 1.15 }
 
   LegalDate:
     name: Date Line
     based_on: Standard
     align: left
-    spacing: { before: 25mm, after: 0mm }
+    spacing: { before: 78mm, after: 0mm }
 
   LegalCaseRef:
     name: Case Reference
     based_on: Standard
     align: left
-    spacing: { before: 8mm, after: 0mm }
+    spacing: { before: 10mm, after: 0mm }
 
   LegalDocTitle:
     name: Document Title
@@ -100,7 +118,7 @@ styles:
     size: 16pt
     bold: true
     keep_next: true
-    spacing: { before: 8mm, after: 8mm }
+    spacing: { before: 12mm, after: 12mm }
 
   # ── Parties ───────────────────────────────────────────────────────────────
   LegalPlain:
@@ -108,7 +126,7 @@ styles:
     based_on: Standard
     align: left
     keep_next: true
-    spacing: { before: 4mm, after: 2mm }
+    spacing: { before: 6mm, after: 3mm }
 
   LegalPartyEntry:
     name: Party Entry
@@ -130,7 +148,14 @@ styles:
     based_on: Standard
     align: left
     keep_next: true
-    spacing: { before: 6mm, after: 8mm }
+    spacing: { before: 10mm, after: 8mm }
+
+  # An empty paragraph carrying page_break: true, so the markdown body starts on
+  # a fresh sheet after the Betreff. Zero spacing, or the break costs a line.
+  LegalBodyStart:
+    name: Legal Body Start
+    based_on: Standard
+    spacing: { before: 0mm, after: 0mm }
 
   LegalSmall:
     name: Party Address
@@ -211,6 +236,48 @@ styles:
     spacing: { before: 0mm, after: 0mm }
 
 numbering:
+  # Section outline: I. / A. / 1. Word renders these labels from
+  # numbering.xml; nothing writes them into the text.
+  LegalHeadingNumbering:
+    format: upperRoman
+    text: "%1."
+    indent: 0mm
+    hanging: 10mm
+    style: Ueberschrift1
+    levels:
+      - format: upperLetter
+        text: "%2."
+        indent: 0mm
+        hanging: 10mm
+        style: Ueberschrift2
+      - format: decimal
+        text: "%3."
+        indent: 0mm
+        hanging: 10mm
+        style: Ueberschrift3
+
+  # Randziffer: the small running number in the left margin.
+  #
+  # The geometry matches the heading outline on purpose: hanging 10mm and a tab
+  # suffix put the number in the same column as I. and A., and the prose flush
+  # with the heading text. A space suffix instead leaves the first line starting
+  # under the number and the rest of the block indented past it.
+  #
+  # align: left, not right. Word right-aligns a label to `indent - hanging`,
+  # which is the *start* of the gutter, so right alignment pushes the number
+  # further left than the I. and A. beside it, and further still at two digits.
+  #
+  # No dot after the number: a Randziffer is a reference mark, not a list item.
+  Randziffer:
+    format: decimal
+    text: "%1"
+    size: 8pt
+    align: left
+    suffix: tab
+    indent: 0mm
+    hanging: 10mm
+    style: Standard
+
   Rechtsbegehrensliste:
     format: decimal
     text: "%1."
@@ -264,11 +331,28 @@ prologue:
   - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
   - { style: LH_Addr, text: "im Anwaltsregister eingetragen", omit_if_empty: false, frame: *pcol }
 
-  - { style: LegalVersand, text: "{{ gericht.versand }}" }
-  - { style: LegalGericht, text: "{{ gericht.name }}" }
-  - { style: LegalGericht, text: "{{ gericht.abteilung }}" }
-  - { style: LegalGericht, text: "{{ gericht.street }}" }
-  - { style: LegalGericht, text: "{{ gericht.postal_code }} {{ gericht.city }}" }
+  # Swiss Post address field — see docs/swiss-post-letter-layout.md.
+  #
+  # Page-anchored rather than left in the flow: the window is at a fixed place
+  # on the envelope, so the address has to be at a fixed place on the sheet. In
+  # the flow its position is whatever the letterhead above it happens to add up
+  # to, and a one-line change to the firm block moves the address out of the
+  # window.
+  #
+  # The Versandart is the field's first line, not a separate block above it: it
+  # belongs in the window, so it shares the frame and the address geometry.
+  #
+  # x is 25mm, not the specification's 20mm. The window is at least 100mm wide
+  # from 20mm, so text starting at 25mm sits inside it with 5mm to spare on the
+  # left and roughly 50mm on the right — further from the window edge, not
+  # closer. Matching the body margin is what it buys. Confirm against the
+  # actual envelope stock, as the specification requires either way.
+  - { style: LegalVersand, text: "{{ gericht.versand }}",
+      frame: &addr { x: 25mm, y: 60mm, width: 95mm, h_anchor: page, v_anchor: page, wrap: around } }
+  - { style: LegalGericht, text: "{{ gericht.name }}", frame: *addr }
+  - { style: LegalGericht, text: "{{ gericht.abteilung }}", frame: *addr }
+  - { style: LegalGericht, text: "{{ gericht.street }}", frame: *addr }
+  - { style: LegalGericht, text: "{{ gericht.postal_code }} {{ gericht.city }}", frame: *addr }
 
   - { style: LegalDate, text: "{{ gericht.city }}, {{ date }}" }
   - { style: LegalCaseRef, text: "{{ case_ref }}" }
@@ -300,3 +384,7 @@ prologue:
     runs:
       - { text: "betreffend ", omit_if_empty: false }
       - { style: LegalBold, text: "{{ betreff }}" }
+
+  # The cover page ends here. This paragraph is empty and exists only to carry
+  # the break, so the first markdown block lands at the top of page two.
+  - { style: LegalBodyStart, text: "", omit_if_empty: false, page_break: true }

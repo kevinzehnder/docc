@@ -39,6 +39,10 @@ testdata/            golden corpus: schemas/, good/, bad/
 - **Adding a check:** implement it in `internal/sema/rules.go`, register it in
   `registry`, document it in the README table. Schemas select checks by name and
   supply their own code and severity.
+- **Schema/theme mismatches are caught in `emit.Validate`, not at load.** It is
+  the only place holding both. Every style a schema maps, every field a theme
+  interpolates and every definition a render rule names is checked there, before
+  a single paragraph is built.
 - **Adding a diagnostic code:** add it to `explanations` in `cmd/docc/main.go`.
 
 ## Testing
@@ -48,8 +52,17 @@ testdata/            golden corpus: schemas/, good/, bad/
 - `good/` — must produce zero errors (`TestGoodDocumentsHaveNoErrors`)
 - `bad/` — exercises specific failures
 - `*.golden` — committed rendered diagnostics for every fixture
+- `golden/<fixture>/*.xml` — the `word/` parts every `good/` fixture builds to
+  (`TestBuildGolden`), discovered from the archive so a theme that grows a
+  header or footer adds a file here
 
-Changing a message is expected to fail `TestGolden`. Review the diff, then
+Two document types, `legal` and `letter`, cover complementary halves of the
+theme surface: frames and mixed-formatting runs on one side, epilogue, repeat,
+footer and metadata formatting on the other. A change that only one of them
+catches is the reason both exist — do not fold them together.
+
+Changing a message is expected to fail `TestGolden`; changing a style or the
+writer is expected to fail `TestBuildGolden`. Review the diff, then
 `task test:golden:update`. Never regenerate goldens without reading the diff —
 that is the check working.
 
@@ -79,7 +92,12 @@ OOXML needs exact namespace prefixes and, in places, a specific attribute order.
   plain-int measurement parameter.
 - **Numbering is a two-level indirection.** A paragraph names a `numId`, which
   names an `abstractNumId`. Two lists sharing a `numId` continue each other's
-  numbering. Use `Numbering.AddList` / `NewInstance`.
+  numbering. Use `Numbering.AddList` / `NewInstance`. Render numbering inverts
+  the usual rule: a heading outline and a marginal number each want *one*
+  shared instance for the whole document, because continuing is the point.
+- **A theme's `levels:` is flat, not a tree.** The definition is level 0 and
+  `levels[i]` is level `i+1`, capped at nine. Recursing into it gave two levels
+  the same `ilvl`, and Word renders the loser's `%N` as literal text.
 - **`task test:roundtrip` before trusting a structural change.** Unit tests
   check strings; only a real renderer proves the file opens.
 

@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<w:docDefaults>
+<w:rPrDefault>
+<w:rPr>
+<w:rFonts w:ascii="FreeSans" w:hAnsi="FreeSans" w:cs="FreeSans"/>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+<w:lang w:val="de-CH"/>
+</w:rPr>
+</w:rPrDefault>
+<w:pPrDefault>
+<w:pPr/>
+</w:pPrDefault>
+</w:docDefaults>
+<w:style w:type="paragraph" w:styleId="AddressBlock">
+<w:name w:val="Address"/>
+<w:basedOn w:val="AddressBlockFirst"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="0" w:line="288" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="AddressBlockFirst">
+<w:name w:val="Address First"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="0" w:line="288" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="BeilagenHeader">
+<w:name w:val="Enclosures Heading"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="850" w:after="113"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="BeilagenItem">
+<w:name w:val="Enclosure"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="57"/>
+<w:ind w:left="283"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ClosingLine">
+<w:name w:val="Closing"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="454" w:after="0" w:line="336" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Code">
+<w:name w:val="Code"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="0"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Courier New" w:hAnsi="Courier New" w:cs="Courier New"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="DateLine">
+<w:name w:val="Date Line"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="3458" w:after="0"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="DeliveryMode">
+<w:name w:val="Delivery Mode"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="0" w:line="288" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+<w:caps/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="FooterLine">
+<w:name w:val="Footer Line"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:color w:val="666666"/>
+<w:sz w:val="16"/>
+<w:szCs w:val="16"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Listenabsatz">
+<w:name w:val="List Paragraph"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:contextualSpacing/>
+<w:spacing w:after="85"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="SenderLine">
+<w:name w:val="Sender Line"/>
+<w:basedOn w:val="SenderName"/>
+<w:qFormat/>
+<w:pPr/>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="SenderLineLast">
+<w:name w:val="Sender Line Last"/>
+<w:basedOn w:val="SenderLine"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="283"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="SenderName">
+<w:name w:val="Sender Name"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="0"/>
+<w:jc w:val="right"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+<w:color w:val="666666"/>
+<w:sz w:val="16"/>
+<w:szCs w:val="16"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="SignatureBlock">
+<w:name w:val="Signature"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="680" w:after="0" w:line="312" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="SignatureName">
+<w:name w:val="Signature Name"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="0" w:line="312" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Standard" w:default="1">
+<w:name w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="198" w:line="288" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="SubjectLine">
+<w:name w:val="Subject"/>
+<w:basedOn w:val="Standard"/>
+<w:next w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="113" w:after="454"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+<w:sz w:val="28"/>
+<w:szCs w:val="28"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Ueberschrift1">
+<w:name w:val="heading 1"/>
+<w:basedOn w:val="Standard"/>
+<w:next w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="340" w:after="113"/>
+<w:outlineLvl w:val="0"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+<w:sz w:val="26"/>
+<w:szCs w:val="26"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Ueberschrift2">
+<w:name w:val="heading 2"/>
+<w:basedOn w:val="Standard"/>
+<w:next w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="227" w:after="113"/>
+<w:outlineLvl w:val="1"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+<w:sz w:val="23"/>
+<w:szCs w:val="23"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Ueberschrift3">
+<w:name w:val="heading 3"/>
+<w:basedOn w:val="Standard"/>
+<w:next w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="170" w:after="85"/>
+<w:outlineLvl w:val="2"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+<w:i/>
+<w:iCs/>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Zitat">
+<w:name w:val="Quote"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:ind w:left="567" w:right="567"/>
+</w:pPr>
+<w:rPr>
+<w:i/>
+<w:iCs/>
+</w:rPr>
+</w:style>
+</w:styles>

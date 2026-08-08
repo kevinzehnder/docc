@@ -2,6 +2,7 @@ package theme
 
 import (
 	"testing"
+	"time"
 
 	"github.com/kevinzehnder/docc/pkg/docx"
 )
@@ -130,7 +131,8 @@ func TestExpand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Expand(tt.in, meta)
+			var th *Theme // the defaults; this test is about substitution, not locale
+			got := th.Expand(tt.in, meta)
 			if got.Text != tt.wantText {
 				t.Errorf("Text = %q, want %q", got.Text, tt.wantText)
 			}
@@ -145,7 +147,8 @@ func TestExpand(t *testing.T) {
 }
 
 func TestExpandReportsMissingPaths(t *testing.T) {
-	got := Expand("{{ absent.field }}", map[string]any{})
+	var th *Theme
+	got := th.Expand("{{ absent.field }}", map[string]any{})
 	if len(got.Missing) != 1 || got.Missing[0] != "absent.field" {
 		t.Errorf("Missing = %v, want [absent.field]", got.Missing)
 	}
@@ -178,6 +181,75 @@ func TestThemeFields(t *testing.T) {
 	}
 }
 
+// `levels:` is a flat list: the definition is level 0 and each entry is the
+// next one down. Reading it as a tree gave two levels both claiming ilvl 1,
+// and Word renders the loser's %3 placeholder as literal text.
+func TestNumFormatLevelsAreFlat(t *testing.T) {
+	def := NumFormat{
+		Format: "upperRoman", Text: "%1.", Style: "Ueberschrift1",
+		Levels: []NumFormat{
+			{Format: "upperLetter", Text: "%2.", Style: "Ueberschrift2"},
+			{Format: "decimal", Text: "%3.", Style: "Ueberschrift3"},
+		},
+	}.AbstractNum()
+
+	if len(def.Levels) != 3 {
+		t.Fatalf("got %d levels, want 3", len(def.Levels))
+	}
+	if def.MultiLevelType != "multilevel" {
+		t.Errorf("MultiLevelType = %q, want multilevel", def.MultiLevelType)
+	}
+	for i, want := range []struct {
+		format docx.NumFormat
+		text   string
+		style  string
+	}{
+		{docx.NumUpperRoman, "%1.", "Ueberschrift1"},
+		{docx.NumUpperLetter, "%2.", "Ueberschrift2"},
+		{docx.NumDecimal, "%3.", "Ueberschrift3"},
+	} {
+		got := def.Levels[i]
+		if got.Level != i {
+			t.Errorf("level %d reported ilvl %d", i, got.Level)
+		}
+		if got.Format != want.format || got.Text != want.text || got.ParagraphStyle != want.style {
+			t.Errorf("level %d = %+v, want %v/%q/%q", i, got, want.format, want.text, want.style)
+		}
+	}
+}
+
+// Word's numbering has nine levels. A definition declaring more is truncated
+// rather than emitted as XML Word rejects; emit.Validate reports it.
+func TestNumFormatCapsAtNineLevels(t *testing.T) {
+	def := NumFormat{Levels: make([]NumFormat, 20)}.AbstractNum()
+	if len(def.Levels) != MaxNumLevels {
+		t.Errorf("got %d levels, want %d", len(def.Levels), MaxNumLevels)
+	}
+}
+
+// A marginal number carries its own size, alignment and separator.
+func TestNumFormatLabelProperties(t *testing.T) {
+	var size FontSize
+	if err := size.UnmarshalYAML(func(v any) error { *v.(*any) = "8pt"; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	def := NumFormat{
+		Format: "decimal", Text: "%1.",
+		Size: size, Align: "right", Suffix: "space", Style: "Standard",
+	}.AbstractNum()
+
+	lvl := def.Levels[0]
+	if lvl.Size != docx.FontPt(8) {
+		t.Errorf("Size = %v, want %v", lvl.Size, docx.FontPt(8))
+	}
+	if lvl.Align != docx.TabRight {
+		t.Errorf("Align = %q, want %q", lvl.Align, docx.TabRight)
+	}
+	if lvl.Suffix != "space" {
+		t.Errorf("Suffix = %q, want space", lvl.Suffix)
+	}
+}
+
 func TestLineHeightMultipleVersusExact(t *testing.T) {
 	var multiple LineHeight
 	if err := multiple.UnmarshalYAML(func(v any) error {
@@ -207,5 +279,73 @@ func TestLineHeightMultipleVersusExact(t *testing.T) {
 	}
 	if line != docx.Pt(14) {
 		t.Errorf("line = %d, want %d", line, docx.Pt(14))
+	}
+}
+
+// A theme that declares no formats must render something unambiguous rather
+// than something in a language it never chose.
+func TestFormatsDefault(t *testing.T) {
+	var th *Theme
+	meta := map[string]any{
+		"date":   time.Date(2024, time.March, 3, 0, 0, 0, 0, time.UTC),
+		"urgent": true,
+		"calm":   false,
+		"items":  []any{"a", "b"},
+	}
+
+	tests := []struct{ in, want string }{
+		{"{{ date }}", "2024-03-03"},
+		{"{{ urgent }}", "true"},
+		{"{{ calm }}", "false"},
+		{"{{ items }}", "a, b"},
+	}
+	for _, tt := range tests {
+		if got := th.Expand(tt.in, meta).Text; got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+// A configured theme supplies the layout and the names; the engine holds no
+// locale of its own.
+func TestFormatsConfigured(t *testing.T) {
+	th := &Theme{Formats: Formats{
+		Date:          "2. January 2006",
+		Bool:          []string{"ja", "nein"},
+		ListSeparator: "; ",
+		Months: []string{
+			"Januar", "Februar", "März", "April", "Mai", "Juni",
+			"Juli", "August", "September", "Oktober", "November", "Dezember",
+		},
+		Weekdays: []string{
+			"Sonntag", "Montag", "Dienstag", "Mittwoch",
+			"Donnerstag", "Freitag", "Samstag",
+		},
+	}}
+	meta := map[string]any{
+		"date":   time.Date(2024, time.March, 3, 0, 0, 0, 0, time.UTC),
+		"urgent": true,
+		"calm":   false,
+		"items":  []any{"a", "b"},
+	}
+
+	tests := []struct{ in, want string }{
+		{"{{ date }}", "3. März 2024"},
+		{"{{ urgent }}", "ja"},
+		{"{{ calm }}", "nein"},
+		{"{{ items }}", "a; b"},
+	}
+	for _, tt := range tests {
+		if got := th.Expand(tt.in, meta).Text; got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+
+	// A weekday and a short month in one layout, to prove the substitution is a
+	// single pass: "Mar" must not be reconsidered after "March" became "März".
+	th.Formats.Date = "Monday, 2 Jan 2006"
+	got := th.Expand("{{ date }}", meta).Text
+	if got != "Sonntag, 3 Mär 2024" {
+		t.Errorf("date = %q, want %q", got, "Sonntag, 3 Mär 2024")
 	}
 }

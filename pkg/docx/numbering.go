@@ -66,6 +66,9 @@ type NumLevel struct {
 	// Font overrides the label font, needed for bullet glyphs: "Symbol" for
 	// a filled bullet, "Courier New" for "o".
 	Font string
+	// Size overrides the label's font size, independently of the paragraph it
+	// labels. A marginal number is set smaller than the prose beside it.
+	Size HalfPt
 	// Suffix is what follows the label: "tab" (default), "space" or "nothing".
 	Suffix string
 	// Bold and Italic format the label independently of the text.
@@ -214,7 +217,7 @@ func writeNumLevel(w *xw, lvl NumLevel) {
 		w.close("w:pPr")
 	}
 
-	if lvl.Font != "" || lvl.Bold || lvl.Italic {
+	if lvl.Font != "" || lvl.Bold || lvl.Italic || lvl.Size != 0 {
 		w.open("w:rPr")
 		if lvl.Bold {
 			w.empty("w:b")
@@ -229,6 +232,10 @@ func writeNumLevel(w *xw, lvl NumLevel) {
 				a("w:cs", lvl.Font),
 				a("w:hint", "default"),
 			)
+		}
+		if lvl.Size != 0 {
+			w.empty("w:sz", ai("w:val", lvl.Size))
+			w.empty("w:szCs", ai("w:val", lvl.Size))
 		}
 		w.close("w:rPr")
 	}

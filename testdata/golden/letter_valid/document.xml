@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<w:body>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SenderName"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Muster &amp; Partner</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SenderLine"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">CHE-123.456.789</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SenderLine"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Musterstrasse 1</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SenderLineLast"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">5000 Aarau</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="DeliveryMode"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Einschreiben: ja</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="AddressBlockFirst"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Frau Clara Muster</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="AddressBlock"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Beispiel AG</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="AddressBlock"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Industrieweg 5</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="AddressBlock"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">3000 Bern</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="DateLine"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Aarau, 4. August 2026</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SubjectLine"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Mahnung — Rechnung Nr. 2026-114</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Sehr geehrte Frau Muster</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Wir vertreten die Muster Handels AG in der oben genannten Angelegenheit. Namens und im Auftrag unserer Mandantin gelangen wir wie folgt an Sie.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Ausgangslage</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Unsere Mandantin stellte Ihnen am 3. Juni 2026 die Rechnung Nr. 2026-114 über CHF 8'400.— zu. Die Zahlungsfrist von 30 Tagen ist unbenutzt abgelaufen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Eine Zahlungserinnerung vom 1. Juli 2026 blieb ebenfalls unbeantwortet.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Aufforderung</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Wir fordern Sie hiermit auf:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Listenabsatz"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">den Betrag von CHF 8'400.— bis zum 31. August 2026 zu überweisen;</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Listenabsatz"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">uns die Zahlung unaufgefordert zu bestätigen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Sollte die Zahlung ausbleiben, ist unsere Mandantin gehalten, die Betreibung einzuleiten. Die damit verbundenen Kosten gingen zu Ihren Lasten.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Zitat"/>
+<w:ind w:left="567"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Der Schuldner einer Verbindlichkeit wird durch Mahnung des Gläubigers in Verzug gesetzt.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Für Rückfragen stehen wir Ihnen gerne zur Verfügung.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ClosingLine"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Freundliche Grüsse</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SignatureBlock"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Dr. iur. Anna Beispiel</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SignatureName"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Rechtsanwältin und Notarin</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BeilagenHeader"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Beilagen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BeilagenItem"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">– Rechnung Nr. 2026-114 vom 3. Juni 2026</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BeilagenItem"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">– Zahlungserinnerung vom 1. Juli 2026</w:t>
+</w:r>
+</w:p>
+<w:sectPr>
+<w:footerReference w:type="default" r:id="rId4"/>
+<w:pgSz w:w="11906" w:h="16838"/>
+<w:pgMar w:top="1134" w:right="1417" w:bottom="1134" w:left="1417" w:header="567" w:footer="567" w:gutter="0"/>
+<w:cols w:space="708"/>
+<w:docGrid w:linePitch="360"/>
+</w:sectPr>
+</w:body>
+</w:document>

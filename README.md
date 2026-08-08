@@ -110,10 +110,20 @@ rules:
   - id: LEG031
     check: no_placeholder_text
   - id: LEG012
-    check: beweis_beilage_refs
+    check: div_items_match
+    args:
+      div: beweis
+      pattern: '//\s*Beilage\s+\d+\s*$'
+    message: "Beweismittel without a Beilage reference"
+    hint: 'append a reference, e.g. "// Beilage 3"'
   - id: LEG020
-    check: beilagen_coverage
+    check: cross_reference
     severity: warning
+    args:
+      div: beweis
+      pattern: '//\s*Beilage\s+(\d+)'
+      list_field: beilagen
+      label: Beilage
 ```
 
 ### Field types
@@ -137,29 +147,136 @@ absence is genuinely a defect.
 Declarative constraints cover most of a contract. Cross-references between
 frontmatter and body do not, so those are Go functions a schema selects by name:
 
-| check | what it catches |
-|---|---|
-| `no_placeholder_text` | template placeholders like `[Sachverhaltsschilderung]` that were never filled in |
-| `beweis_beilage_refs` | evidence items in a `::: beweis` block with no `// Beilage N` reference |
-| `beilagen_coverage` | exhibits cited in the body but missing from `beilagen`, and vice versa |
-| `no_empty_sections` | a heading with no content beneath it |
+The checks are generic; what they mean is configured per schema through `args`.
+A check that names a missing or malformed argument reports `DOC009` against the
+schema rather than quietly doing nothing.
+
+| check | what it catches | args |
+|---|---|---|
+| `no_placeholder_text` | template text that was never filled in | `pattern` — what a placeholder looks like. Defaults to a line that is nothing but bracketed prose, `[like this]`. |
+| `div_items_match` | items in a fenced div that do not have the required form | `div` — the fence name, `pattern` — a regexp every item must match |
+| `cross_reference` | keys cited in the body but missing from a frontmatter list, and entries listed but never cited | `div`, `pattern` — capture group 1 is the cited key, `list_field` — the frontmatter list, `label` — what one entry is called in messages |
+| `no_empty_sections` | a heading with no content beneath it | — |
+
+`cross_reference` numbers a list positionally: the Nth entry of `list_field` is
+key N.
+
+Where a `pattern` locates a diagnostic, capture group 1 is what the caret
+underlines, so a pattern can match more context than it points at.
 
 Each rule supplies its own diagnostic code, and may override the message,
 severity and hint.
+
+### Render numbering
+
+Some numbering is a fact about the document type rather than something the
+markdown should carry. A brief has an `I. / A. / 1.` section outline and a
+running marginal number on each paragraph; nobody should be typing those, and a
+document that has them typed in cannot be reordered.
+
+```yaml
+render:
+  heading_numbering:
+    definition: LegalHeadingNumbering
+    start_at_heading: RECHTSBEGEHREN
+  paragraph_numbering:
+    definition: Randziffer
+    start_after_heading: RECHTSBEGEHREN
+```
+
+`definition` names an entry in the theme's `numbering:` map, which is where the
+appearance lives. Headings take their level from the markdown depth: `#` is the
+definition's level 0, `##` its level 1. Paragraph numbering is a single level
+and runs continuously, across the headings between paragraphs.
+
+`start_at_heading` numbers that heading itself; `start_after_heading` leaves it
+unnumbered and begins with what follows — which is what a marginal number wants,
+since the count belongs to the prose and not to the heading above it. Set
+neither and the rule covers the whole body. Setting both is an error.
+
+Only top-level blocks are numbered. A list item, a table cell, a quotation and
+the contents of a fenced div are all paragraphs, and none of them are body
+prose — a Rechtsbegehren already carries its own number.
+
+The labels are written as Word numbering, not as text. The document renumbers
+itself when a section moves, and does so without `docc`.
+
+## Themes
+
+A theme is the visual side of a document type: page geometry, named styles, list
+definitions, and the fixed furniture around the body. It also says how non-string
+metadata is written out, because that is presentation and differs per document:
+
+```yaml
+formats:
+  date: "2. January 2006"    # Go reference layout
+  bool: ["ja", "nein"]       # [true, false]
+  list_separator: ", "
+  months: [Januar, Februar, März, April, Mai, Juni,
+           Juli, August, September, Oktober, November, Dezember]
+  weekdays: [Sonntag, Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag]
+```
+
+`months` and `weekdays` translate the names Go's `time` package emits; short
+forms are the first three characters unless `months_short` / `weekdays_short`
+say otherwise. The engine ships no locale database — a theme that needs one
+writes six lines of YAML.
+
+Omit `formats:` and dates render as ISO 8601 and booleans as `true`/`false`:
+unambiguous, and in no particular language.
+
+### List definitions
+
+`numbering:` defines the lists a schema selects, by name, for both markdown
+lists and render numbering:
+
+```yaml
+numbering:
+  Randziffer:
+    format: decimal          # or upperRoman, upperLetter, lowerRoman, bullet, none
+    text: "%1."              # %N is the count at level N, one-based
+    size: 8pt                # the label's size, not the paragraph's
+    align: right             # within the space the hanging indent reserves
+    suffix: space            # what separates label from text: tab, space, nothing
+    indent: 0mm
+    hanging: 7mm
+    style: Standard
+```
+
+`levels:` adds the deeper levels as a **flat list** — the definition itself is
+level 0 and each entry is the next one down, up to nine. It is not a tree; Word
+has one sequence of levels, and a level nested inside another is an error rather
+than a third level.
+
+### Fixed furniture
+
+`prologue:` and `epilogue:` are the paragraphs around the body — letterhead,
+address block, subject, closing, enclosures. A line interpolates metadata with
+`{{ field.path }}`, `repeat:` emits one paragraph per element of a list field,
+`frame:` positions a line absolutely, and `page_break: true` starts a new page,
+which is how a cover page ends and the body begins on sheet two.
 
 ## Development
 
 ```bash
 task              # full CI: fmt, vet, lint, test, build
 task test         # unit tests
-task test:golden:update   # regenerate testdata/**/*.golden
+task test:golden:update   # regenerate the golden corpus
 task hooks:install
 ```
 
-The golden corpus in `testdata/` is the regression suite. Every fixture is
-checked against `testdata/schemas/` and its rendered diagnostics compared to a
-committed `.golden` file, so any change to a message or a rule shows up as a
-diff rather than as a surprise in a real document.
+The golden corpus in `testdata/` is the regression suite, and it is checked at
+both ends. Every fixture is validated against `testdata/schemas/` and its
+rendered diagnostics compared to a committed `.golden` file; every fixture in
+`good/` is then built with its theme and the resulting `word/*.xml` parts
+compared to `testdata/golden/<fixture>/`. A change to a message, a rule, a style
+or the writer shows up as a diff rather than as a surprise in a real document.
+
+Two document types are covered on purpose. `legal` exercises absolutely
+positioned frames and paragraphs whose formatting changes partway through;
+`letter` exercises an epilogue, a repeated list field, a footer and metadata
+formatting. Between them they reach most of the theme surface, which is what
+stops the engine quietly specialising in one document shape.
 
 ## Writing Word documents
 
@@ -205,8 +322,27 @@ task test:roundtrip     # needs soffice on PATH
 It asserts on the produced PDF, not on the exit code: `soffice` exits 0 even
 when it produces nothing.
 
+### Validating a theme against a schema
+
+A theme and the schema that names it are two files nobody diffs against each
+other, so `docc build` does it before rendering anything:
+
+- every style the schema's `styles:` map names must exist in the theme
+- every `{{ field.path }}` the theme interpolates must be declared by the schema
+
+Both are silent failures otherwise. Word renders an unknown style as body text
+without complaint, and a placeholder naming a field that does not exist expands
+to nothing — which, because a furniture line whose fields are all empty is
+dropped, deletes the line. A typo in `{{ recipient.city }}` posts a letter with
+no city on it. Now it does not build:
+
+```
+docc: theme "example-letter" interpolates fields the schema "letter" does not declare:
+  {{ recipent.city }} — the frontmatter declares no field "recipent"
+schema declares: beilagen, closing, date, document_type, recipient, ...
+```
+
 ## Status
 
-`docc check` and `pkg/docx` are implemented. Not yet wired together — the
-markdown-to-WordprocessingML emitter and `docc build` are next, along with the
-`.dotx`-free theme definitions in `.docc/themes/`.
+`docc check`, `docc build` and `pkg/docx` are implemented and wired together.
+Remaining work is in `docs/next-steps.md`.

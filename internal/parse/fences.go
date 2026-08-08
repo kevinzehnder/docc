@@ -14,8 +14,9 @@ import (
 var KindDiv = ast.NewNodeKind("Div")
 
 // Div is a `::: name` … `:::` block. Fenced divs carry the semantic regions of
-// a document that plain markdown cannot express — in legal briefs, `::: beweis`
-// marks an evidence block whose items must reference a Beilage.
+// a document that plain markdown cannot express — a region a schema can then
+// name in a rule and a theme can style. What the names mean is the project's
+// business, not the parser's.
 type Div struct {
 	ast.BaseBlock
 	// Name is the identifier after the opening colons, lowercased. A div opened
@@ -86,7 +87,7 @@ func splitFence(line []byte) (colons int, name string, ok bool) {
 		return 0, "", false
 	}
 	rest := strings.TrimSpace(string(line[i:]))
-	// A trailing run of colons (`::: beweis :::`) is decoration, not content.
+	// A trailing run of colons (`::: name :::`) is decoration, not content.
 	rest = strings.TrimRight(rest, ": \t")
 	if strings.ContainsAny(rest, " \t") {
 		// Only single-word names are meaningful; anything else is prose that

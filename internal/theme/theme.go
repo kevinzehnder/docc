@@ -28,6 +28,7 @@ type Theme struct {
 
 	Page      Page                 `yaml:"page"`
 	Defaults  Defaults             `yaml:"defaults"`
+	Formats   Formats              `yaml:"formats"`
 	Styles    map[string]Style     `yaml:"styles"`
 	Numbering map[string]NumFormat `yaml:"numbering"`
 
@@ -71,6 +72,33 @@ type Defaults struct {
 	Font string   `yaml:"font"`
 	Size FontSize `yaml:"size"`
 	Lang string   `yaml:"lang"`
+}
+
+// Formats says how non-string metadata is rendered into text. This is
+// presentation, and presentation is the theme's business: the day order, the
+// month names and the word for true differ per document, and none of them
+// belong in the engine.
+//
+// The month and weekday names are supplied here rather than looked up from a
+// locale, because a locale database is a dependency and a table is four lines
+// of YAML.
+type Formats struct {
+	// Date is a Go reference layout, e.g. "2. January 2006". Defaults to ISO
+	// 8601 — a theme that says nothing should render something unambiguous.
+	Date string `yaml:"date"`
+	// Bool is [true, false]. Defaults to ["true", "false"].
+	Bool []string `yaml:"bool"`
+	// ListSeparator joins a list field into one line. Defaults to ", ".
+	ListSeparator string `yaml:"list_separator"`
+
+	// Months translates the twelve month names in calendar order. Short names
+	// are the first three characters unless MonthsShort gives them.
+	Months      []string `yaml:"months"`
+	MonthsShort []string `yaml:"months_short"`
+	// Weekdays translates the seven day names, Sunday first, matching Go's
+	// week. Short names default to the first three characters.
+	Weekdays      []string `yaml:"weekdays"`
+	WeekdaysShort []string `yaml:"weekdays_short"`
 }
 
 // Style is a named style definition.
@@ -161,6 +189,15 @@ type NumFormat struct {
 	Indent  Length `yaml:"indent"`
 	Hanging Length `yaml:"hanging"`
 	Font    string `yaml:"font"`
+	// Size sets the label's font size independently of the text it labels, which
+	// is what a marginal number needs: small digit, normal prose.
+	Size FontSize `yaml:"size"`
+	// Align positions the label within the space the hanging indent reserves:
+	// "left" (default), "center", "right" or "decimal".
+	Align string `yaml:"align"`
+	// Suffix is what separates the label from the text: "tab" (default),
+	// "space" or "nothing".
+	Suffix string `yaml:"suffix"`
 	// Style is the paragraph style applied to items at this level.
 	Style string `yaml:"style"`
 	// Levels defines deeper levels. Level 0 is this definition itself.

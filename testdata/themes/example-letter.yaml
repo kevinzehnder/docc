@@ -1,0 +1,274 @@
+# Muster & Partner — correspondence on letterhead.
+#
+# Invented identity. Never replace this with a real firm's letterhead: the
+# corpus is public and a theme carries names, addresses and mail addresses.
+#
+# Where example-legal exercises frames and mixed-formatting runs, this one
+# exercises the other half of the furniture model — an epilogue, a repeated
+# list field, a footer, and a boolean rendered through `formats`.
+name: example-letter
+description: Muster & Partner business and legal correspondence.
+
+page:
+  size: A4
+  margins:
+    top: 20mm
+    bottom: 20mm
+    left: 25mm
+    right: 25mm
+    header: 10mm
+    footer: 10mm
+
+defaults:
+  font: FreeSans
+  size: 11pt
+  lang: de-CH
+
+# How non-string metadata renders. Documents in this corpus are German, so the
+# theme says so; the engine has no locale of its own.
+formats:
+  date: "2. January 2006"    # Go reference layout: day, month name, year
+  bool: ["ja", "nein"]       # [true, false]
+  list_separator: ", "
+  months: [Januar, Februar, März, April, Mai, Juni,
+           Juli, August, September, Oktober, November, Dezember]
+  weekdays: [Sonntag, Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag]
+
+styles:
+  Standard:
+    name: Standard
+    default: true
+    spacing:
+      after: 3.5mm
+      line: 1.2
+
+  # ── Sender block: small, grey, right-aligned above the address ─────────────
+  SenderName:
+    name: Sender Name
+    based_on: Standard
+    align: right
+    size: 8pt
+    bold: true
+    color: "666666"
+    spacing: { before: 0mm, after: 0mm }
+
+  SenderLine:
+    name: Sender Line
+    based_on: SenderName
+    bold: false
+
+  SenderLineLast:
+    name: Sender Line Last
+    based_on: SenderLine
+    spacing: { after: 5mm }
+
+  # ── Recipient address, positioned for a left-window envelope ───────────────
+  # The address field. Swiss Post wants it black, non-bold, upright, left
+  # aligned and sans serif, at 9-28pt with 10pt ideal, with no blank lines and
+  # a uniform 1-1.5mm between them. The vertical position comes from the frame
+  # on the prologue lines, so there is no spacing here to carry it.
+  DeliveryMode:
+    name: Delivery Mode
+    based_on: Standard
+    align: left
+    bold: true
+    caps: true
+    size: 10pt
+    spacing: { before: 0mm, after: 0mm, line: 1.2 }
+
+  AddressBlockFirst:
+    name: Address First
+    based_on: Standard
+    align: left
+    size: 10pt
+    spacing: { before: 0mm, after: 0mm, line: 1.2 }
+
+  AddressBlock:
+    name: Address
+    based_on: AddressBlockFirst
+    spacing: { before: 0mm, after: 0mm, line: 1.2 }
+
+  # The address is framed out of the flow, so this spacing is what clears the
+  # field rather than what follows it: the last address line plus the 12mm
+  # bottom clearance the specification requires.
+  DateLine:
+    name: Date Line
+    based_on: Standard
+    spacing: { before: 61mm, after: 0mm }
+
+  SubjectLine:
+    name: Subject
+    based_on: Standard
+    next: Standard
+    size: 14pt
+    bold: true
+    keep_next: true
+    spacing: { before: 2mm, after: 8mm }
+
+  # ── Body ───────────────────────────────────────────────────────────────────
+  Ueberschrift1:
+    name: heading 1
+    based_on: Standard
+    next: Standard
+    outline_level: 1
+    size: 13pt
+    bold: true
+    keep_next: true
+    spacing: { before: 6mm, after: 2mm }
+
+  Ueberschrift2:
+    name: heading 2
+    based_on: Standard
+    next: Standard
+    outline_level: 2
+    size: 11.5pt
+    bold: true
+    keep_next: true
+    spacing: { before: 4mm, after: 2mm }
+
+  Ueberschrift3:
+    name: heading 3
+    based_on: Standard
+    next: Standard
+    outline_level: 3
+    size: 11pt
+    bold: true
+    italic: true
+    keep_next: true
+    spacing: { before: 3mm, after: 1.5mm }
+
+  Listenabsatz:
+    name: List Paragraph
+    based_on: Standard
+    contextual_spacing: true
+    spacing: { after: 1.5mm }
+
+  Zitat:
+    name: Quote
+    based_on: Standard
+    italic: true
+    indent: { left: 10mm, right: 10mm }
+
+  Code:
+    name: Code
+    based_on: Standard
+    font: Courier New
+    size: 9pt
+    spacing: { before: 0mm, after: 0mm }
+
+  # ── Closing ────────────────────────────────────────────────────────────────
+  ClosingLine:
+    name: Closing
+    based_on: Standard
+    keep_next: true
+    spacing: { before: 8mm, after: 0mm, line: 1.4 }
+
+  SignatureBlock:
+    name: Signature
+    based_on: Standard
+    spacing: { before: 12mm, after: 0mm, line: 1.3 }
+
+  SignatureName:
+    name: Signature Name
+    based_on: Standard
+    spacing: { before: 0mm, after: 0mm, line: 1.3 }
+
+  BeilagenHeader:
+    name: Enclosures Heading
+    based_on: Standard
+    bold: true
+    keep_next: true
+    spacing: { before: 15mm, after: 2mm }
+
+  BeilagenItem:
+    name: Enclosure
+    based_on: Standard
+    indent: { left: 5mm }
+    spacing: { before: 0mm, after: 1mm }
+
+  FooterLine:
+    name: Footer Line
+    based_on: Standard
+    align: center
+    size: 8pt
+    color: "666666"
+    spacing: { before: 0mm, after: 0mm }
+
+numbering:
+  Nummerierung:
+    format: decimal
+    text: "%1."
+    indent: 7mm
+    hanging: 7mm
+    style: Listenabsatz
+    levels:
+      - format: lowerLetter
+        text: "%2."
+        indent: 14mm
+        hanging: 7mm
+        style: Listenabsatz
+      - format: lowerRoman
+        text: "%3."
+        indent: 21mm
+        hanging: 7mm
+        style: Listenabsatz
+
+  Aufzaehlung:
+    format: bullet
+    text: "–"
+    indent: 7mm
+    hanging: 7mm
+    style: Listenabsatz
+    levels:
+      - format: bullet
+        text: "–"
+        indent: 14mm
+        hanging: 7mm
+        style: Listenabsatz
+
+# Fixed furniture placed above the rendered markdown. A line whose fields are
+# all empty is dropped, so an optional organisation leaves no blank line.
+prologue:
+  - { style: SenderName, text: "{{ sender.name }}" }
+  - { style: SenderLine, text: "{{ sender.uid }}" }
+  - { style: SenderLine, text: "{{ sender.street }}" }
+  - { style: SenderLineLast, text: "{{ sender.postal_code }} {{ sender.city }}" }
+
+  # Swiss Post address field — see docs/swiss-post-letter-layout.md.
+  #
+  # Page-anchored rather than left in the flow: the window is at a fixed place
+  # on the envelope, so the address has to be at a fixed place on the sheet. In
+  # the flow its position is whatever the sender block above it happens to add
+  # up to, and one more sender line moves the address out of the window.
+  #
+  # x is 25mm, not the specification's 20mm. The window is at least 100mm wide
+  # from 20mm, so text starting at 25mm sits inside it with 5mm to spare on the
+  # left — further from the window edge, not closer — and matches the body
+  # margin. Confirm against the actual envelope stock either way.
+  #
+  # The delivery mode is the field's first line, not a block above it: it
+  # belongs in the window, so it shares the frame and the address geometry.
+  - { style: DeliveryMode, text: "Einschreiben: {{ registered }}",
+      frame: &addr { x: 25mm, y: 60mm, width: 95mm, h_anchor: page, v_anchor: page, wrap: around } }
+  - { style: AddressBlockFirst, text: "{{ recipient.salutation }} {{ recipient.name }}", frame: *addr }
+  - { style: AddressBlock, text: "{{ recipient.organization }}", frame: *addr }
+  - { style: AddressBlock, text: "{{ recipient.street }}", frame: *addr }
+  - { style: AddressBlock, text: "{{ recipient.postal_code }} {{ recipient.city }}", frame: *addr }
+
+  - { style: DateLine, text: "{{ sender.city }}, {{ date }}" }
+  - { style: SubjectLine, text: "{{ subject }}" }
+
+# The enclosures heading carries omit_if_empty: false because it interpolates
+# nothing — a literal line has no fields to be empty, so without this it would
+# print even for a letter with no enclosures. The items below it are a repeat,
+# which emits nothing when the list is empty; the heading cannot know that.
+epilogue:
+  - { style: ClosingLine, text: "{{ closing }}" }
+  - { style: SignatureBlock, text: "{{ signee.name }}" }
+  - { style: SignatureName, text: "{{ signee.title }}" }
+  - { style: BeilagenHeader, text: "Beilagen", omit_if_empty: false }
+  - { style: BeilagenItem, text: "– {{ item }}", repeat: beilagen }
+
+footer:
+  default:
+    - { style: FooterLine, text: "{{ sender.name }} · {{ sender.street }} · {{ sender.postal_code }} {{ sender.city }}" }

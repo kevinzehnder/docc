@@ -190,12 +190,31 @@ func tabAlignName(s string) string {
 	}
 }
 
-// AbstractNum converts a theme list definition. Level 0 is the definition
-// itself; nested levels come from Levels.
+// MaxNumLevels is how many levels Word's numbering has. It is a fixed sequence,
+// not an open-ended tree.
+const MaxNumLevels = 9
+
+// Flatten returns the definition's levels in order: the definition itself is
+// level 0 and Levels[i] is level i+1.
+//
+// Levels is a flat list, not a tree. Treating it as one and recursing produced
+// two levels both claiming ilvl 1, which Word resolves by rendering the second
+// one's %3 placeholder as literal text — a definition that looks right in YAML
+// and wrong on the page.
+func (n NumFormat) Flatten() []NumFormat {
+	out := make([]NumFormat, 0, len(n.Levels)+1)
+	out = append(out, n)
+	out = append(out, n.Levels...)
+	if len(out) > MaxNumLevels {
+		out = out[:MaxNumLevels]
+	}
+	return out
+}
+
+// AbstractNum converts a theme list definition.
 func (n NumFormat) AbstractNum() docx.AbstractNum {
 	def := docx.AbstractNum{}
-	var add func(f NumFormat, level int)
-	add = func(f NumFormat, level int) {
+	for level, f := range n.Flatten() {
 		format := docx.NumFormat(f.Format)
 		if format == "" {
 			format = docx.NumDecimal
@@ -208,13 +227,12 @@ func (n NumFormat) AbstractNum() docx.AbstractNum {
 			Indent:         f.Indent.Twips(defaultIndent(level)),
 			Hanging:        f.Hanging.Twips(docx.Twips(360)),
 			Font:           f.Font,
+			Size:           f.Size.HalfPt(0),
+			Align:          docx.TabAlign(tabAlignName(f.Align)),
+			Suffix:         f.Suffix,
 			ParagraphStyle: f.Style,
 		})
-		for _, child := range f.Levels {
-			add(child, level+1)
-		}
 	}
-	add(n, 0)
 
 	if len(def.Levels) > 1 {
 		def.MultiLevelType = "multilevel"

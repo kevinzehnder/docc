@@ -23,151 +23,67 @@ use invented identities — see `testdata/themes/example-legal.yaml`
 
 ---
 
-## Task 1 — parameterise the named checks
+## Done — Tasks 1, 2 and 4
 
-**Problem.** `internal/sema/rules.go` registers Swiss-legal checks by name:
+**Task 1, parameterise the named checks.** `beweis_beilage_refs` and
+`beilagen_coverage` are gone; `div_items_match` and `cross_reference` replace
+them, configured through `schema.Rule.Args`. `no_placeholder_text` takes an
+optional `pattern`. A rule naming a missing or malformed argument reports
+`DOC009` against the schema. Where a pattern has a capture group, group 1 is
+what the caret underlines. `testdata/schemas/legal.yaml` and
+`~/git/pi_assistant/.docc/schemas/legal.yaml` carry the Swiss-legal meaning;
+`docc check` on `pi_assistant/templates/template_legal.md` is byte-identical to
+before. Tests: `internal/sema/rules_test.go`.
 
-```go
-var registry = map[string]CheckFunc{
-	"no_placeholder_text": checkNoPlaceholders,
-	"beweis_beilage_refs": checkBeweisBeilageRefs,   // domain-specific
-	"beilagen_coverage":   checkBeilagenCoverage,    // domain-specific
-	"no_empty_sections":   checkNoEmptySections,
-}
-```
+**Task 2, move locale out of the engine.** `theme.Formats` declares `date`
+(Go reference layout), `bool`, `list_separator`, and the `months` / `weekdays`
+name tables — the theme supplies the names, so the engine holds no locale
+database. `Expand` is now a method on `*Theme`; a nil theme formats with the
+defaults, which are ISO dates and `true`/`false`. Tests: `TestFormatsDefault`,
+`TestFormatsConfigured`.
 
-`beweis_beilage_refs` requires every item inside a `::: beweis` div to end in
-`// Beilage N`. `beilagen_coverage` cross-checks those numbers against the
-`beilagen` frontmatter list. Both hardcode the div name `beweis`, the field name
-`beilagen`, and the German regex — none of which belong in a general tool.
+**Task 4, golden tests over built `.docx`.** `internal/emit/golden_test.go`
+builds every fixture in `testdata/good` with its theme and compares the `word/`
+parts to `testdata/golden/<fixture>/`. Parts are discovered from the archive
+rather than listed, so a theme that grows a header or footer adds a file; a part
+that stops being produced fails rather than leaving a stale golden behind.
+`task test:golden:update` now regenerates diagnostics and documents in that
+order. `testdata/schemas/legal.yaml` named the nonexistent theme `zbp-legal`;
+it names `example-legal` now.
 
-**Target.** Two generic checks configured from the schema.
-`schema.Rule.Args map[string]any` already exists and is currently unused; this
-is what it is for.
+**A second document type.** `testdata/schemas/letter.yaml` and
+`testdata/themes/example-letter.yaml`, ported from the letter type in
+`~/git/pi_assistant/.docc` with invented identities. It is not a variation on
+`legal`: it exercises the epilogue, `repeat`, a footer, a boolean and non-list
+defaults, none of which `legal` reaches, while `legal` keeps frames and runs.
+Keep both. The port surfaced three engine defects, all now fixed:
 
-```yaml
-# in .docc/schemas/legal.yaml — the Swiss-legal meaning lives here
-rules:
-  - id: LEG012
-    check: div_items_match
-    args:
-      div: beweis
-      pattern: '//\s*Beilage\s+\d+\s*$'
-    message: "Beweismittel without a Beilage reference"
-    hint: 'append a reference, e.g. "// Beilage 3"'
+- `Theme.Fields()` was documented as existing for schema validation and had no
+  caller. It is now wired into `emit.Validate`, which is what turns a typo in
+  `{{ recipient.city }}` from a silently dropped address line into a build
+  failure.
+- `Fields()` walked only `Line.Text`, so every placeholder inside a `runs:`
+  block — which is the entire party block of a brief — was invisible to it.
+- `formats.date` never fired. YAML hands back a string for a date, so both
+  themes' date configuration was dead and letterheads printed ISO dates.
+  `emit.typedMeta` now converts values by their declared schema type before
+  interpolation. It is schema-driven on purpose: sniffing strings that look
+  like dates would reformat case references.
 
-  - id: LEG020
-    check: cross_reference
-    severity: warning
-    args:
-      div: beweis
-      pattern: '//\s*Beilage\s+(\d+)'   # capture group 1 is the key
-      list_field: beilagen
-      label: Beilage                     # used in the message
-```
+The letter type in `pi_assistant` still declares `right_window`, which cannot
+work — the theme has the `AddressBlock*Right` styles but `theme.Line` has no
+condition, and it should not grow one. Either drop the field or ship a second
+theme. The port here does neither: it omits the field.
 
-`cross_reference` checks both directions, as `beilagen_coverage` does today:
-cited but not listed, and listed but never cited.
+**Render numbering.** `schema.Render` adds `render.heading_numbering` and
+`render.paragraph_numbering`, each naming a definition in the theme and a
+heading to start at. The engine knows nothing about outlines or Randziffern —
+it applies a named definition to top-level headings and top-level prose. See
+`docs/legal-output-numbering.md`, which is now a record rather than a proposal.
 
-Also parameterise `no_placeholder_text`: keep the current bracketed-text regex as
-the default, but allow `args: { pattern: ... }`.
+## Remaining work
 
-**Files.**
-
-- `internal/sema/rules.go` — replace the two functions, keep the shape.
-  `ruleContext` already carries `Rule`, so `c.Rule.Args` is in scope.
-  `c.report(pos, defaultHint, format, args...)` already honours
-  `Rule.Message`/`Rule.Hint` overrides.
-- Add arg accessors with clear errors. A rule naming a missing or malformed arg
-  must produce a `DOC009` diagnostic ("the schema itself is wrong"), not a panic
-  and not silence. There is precedent: the unknown-check branch in `runRules`.
-- `cmd/docc/main.go` — no new `DOC0xx` codes needed; schema-defined rule codes
-  are documented in the schema, not in `explanations`.
-- `testdata/schemas/legal.yaml` — update to the new form.
-- `~/git/pi_assistant/.docc/schemas/legal.yaml` — update to the new form.
-  This is outside the docc repo and is easy to forget; the golden tests will not
-  catch it.
-
-**Acceptance.**
-
-- `grep -rin 'beweis\|beilage' internal/ pkg/` returns nothing.
-- `task` passes. `TestGolden` output is unchanged except for wording you
-  deliberately changed — read the diff before running `task test:golden:update`.
-- `docc check` on `pi_assistant/templates/template_legal.md` still reports the
-  same findings it does today.
-
----
-
-## Task 2 — move locale out of the engine
-
-**Problem.** `internal/theme/interp.go`:
-
-```go
-func format(v any) string {
-	case bool:
-		if val { return "ja" }        // German hardcoded in the engine
-		return "nein"
-	case time.Time:
-		return val.Format("2. January 2006")   // also wrong: German day order,
-		                                       // English month names
-	...
-}
-```
-
-The date format is a latent bug as well as a genericity leak. It has not bitten
-yet only because frontmatter dates currently arrive as strings and pass through
-untouched. The moment a date is parsed into a `time.Time` it renders as
-"3. March 2024" in a German document.
-
-**Target.** Formats declared by the theme, since this is presentation:
-
-```yaml
-# .docc/themes/<name>.yaml
-formats:
-  date: "2. January 2006"    # Go reference layout
-  bool: ["ja", "nein"]       # [true, false]
-  list_separator: ", "
-```
-
-Month and weekday names need translating; Go's `time` package will not do it.
-Either add a small name table keyed off `defaults.lang`, or let the theme supply
-one:
-
-```yaml
-formats:
-  months: [Januar, Februar, März, ...]
-```
-
-Pick one and document it. The table is the simpler option and keeps the engine
-free of a locale database.
-
-**Files.**
-
-- `internal/theme/theme.go` — add `Formats` to `Theme`.
-- `internal/theme/interp.go` — `Expand` must take the formats.
-  Current signature `Expand(text string, meta map[string]any) Interp`; there are
-  exactly two call sites, both in `internal/emit/emit.go`
-  (`furnitureLine`, `furnitureRunLine`). Prefer a method on `*Theme` over a
-  third parameter.
-- Sensible defaults when `formats:` is absent: ISO dates, `true`/`false`.
-  A theme that says nothing should produce something unambiguous, not something
-  German.
-
-**Acceptance.**
-
-- `grep -rn '"ja"\|"nein"\|January' internal/` returns nothing outside tests and
-  the default Go layout constant.
-- A theme with no `formats:` block renders dates as ISO.
-- `internal/theme/theme_test.go` covers both a configured and a default theme.
-
----
-
-## After those two
-
-In order. Do not start these before Tasks 1 and 2 — schemas written against the
-old check names would have to be rewritten.
-
-### 3. Verify the legal letterhead, then cut over
+### 3. Verify the legal letterhead and numbering, then cut over
 
 `~/git/pi_assistant/.docc/themes/zbp-legal.yaml` is a **reconstruction** from
 `assets/template_legal/legal.opendocument`, not a verified match. Positions were
@@ -177,30 +93,33 @@ firm-name block over the rule. These documents go to courts.
 Get a reference PDF of a real filed brief from Kevin and match against it before
 cutting anything over.
 
+The same reference settles the numbering, which is why `pi_assistant` has not
+been touched. Port from `testdata/schemas/legal.yaml` and
+`testdata/themes/example-legal.yaml`, which carry a working configuration:
+
+- the `LegalBodyStart` style and the `page_break: true` prologue line
+- the `LegalHeadingNumbering` and `Randziffer` definitions — the Randziffer
+  geometry (`8pt`, `align: right`, `hanging: 7mm`) is a guess and is what the
+  reference brief is for
+- the `render:` block opting the type in
+
+**Do this as one change.** Enabling render numbering while the real briefs still
+carry manually typed `I.`, `A.` and `1.` prefixes doubles every label, so the
+markdown must be normalised in the same commit.
+
 Then in `~/git/pi_assistant/src/document_cli.py`: `command_render` currently
 calls `gate_render` and then runs pandoc. Route `legal` and `letter` to
 `docc build` instead. Leave `contract`, `gutachten`, `protokoll` on pandoc —
 they have no schema yet. Delete pandoc assets only for the types actually cut
 over.
 
-### 4. Golden tests over built `.docx`
-
-Output is deterministic (fixed archive timestamps, sorted parts, ids by
-position), so this is cheap and currently missing. Extract `word/document.xml`,
-`word/styles.xml` and `word/numbering.xml` and compare to committed goldens.
-`testdata/themes/example-legal.yaml` and the fixtures in `testdata/good` and
-`testdata/bad` are already in place.
-
-Keep `task test:roundtrip` as well — golden files prove the bytes did not
-change, not that Word will open the file.
-
-### 5. Remaining document types
+### 4. Remaining document types
 
 `contract`, `gutachten`, `protokoll` have no schema and no theme. Reverse-
 engineering them from `templates/` and `assets/` means guessing at conventions;
 have Kevin confirm each before relying on it.
 
-### 6. Possible later work
+### 5. Possible later work
 
 - `docc fmt` — canonical formatter. Whatever can be auto-fixed should be
   rewritten rather than diagnosed; it cuts agent iteration count.
@@ -228,6 +147,9 @@ have Kevin confirm each before relying on it.
 - **`soffice` exits 0 when it produced nothing.** `internal/emit/pdf.go` already
   handles this, plus profile locking and hangs. Do not add a second call site
   that skips those.
+- **Furniture interpolates from `emitter.meta`, never `doc.Meta`.** `meta` is
+  the copy `typedMeta` has converted by declared schema type. Reaching for
+  `e.doc.Meta` gets raw YAML values and silently disables `formats.date`.
 - **Rebuild `bin/docc` before manual testing.** `go build ./...` compiles the
   packages but leaves the binary stale, which produces confusing "the fix did
   nothing" results.

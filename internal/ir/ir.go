@@ -44,7 +44,7 @@ type ListItem struct {
 	Blocks []Block
 }
 
-// Div is a fenced region: `::: beweis`.
+// Div is a fenced region: `::: name`.
 type Div struct {
 	Name   string
 	Blocks []Block
