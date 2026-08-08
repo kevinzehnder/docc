@@ -83,41 +83,44 @@ it applies a named definition to top-level headings and top-level prose. See
 
 ## Remaining work
 
-### 3. Verify the legal letterhead and numbering, then cut over
+### 3. Verify the themes against real documents
 
-`~/git/pi_assistant/.docc/themes/zbp-legal.yaml` is a **reconstruction** from
-`assets/template_legal/legal.opendocument`, not a verified match. Positions were
-approximated: the partner column at `x: 148mm, y: 40mm`, the page margins, the
-firm-name block over the rule. These documents go to courts.
+**This is the only thing standing between the pipeline and production use, and
+no amount of further engine work substitutes for it.**
 
-Get a reference PDF of a real filed brief from Kevin and match against it before
-cutting anything over.
+All five types now render through docc, but every theme is a *reconstruction*
+from the ODT assets it replaces, not a verified match. Nothing has been checked
+against a document that was actually filed or posted. These go to courts and to
+clients.
 
-The same reference settles the numbering, which is why `pi_assistant` has not
-been touched. Port from `testdata/schemas/legal.yaml` and
-`testdata/themes/example-legal.yaml`, which carry a working configuration:
+What is known to be a guess:
 
-- the `LegalBodyStart` style and the `page_break: true` prologue line
-- the `LegalHeadingNumbering` and `Randziffer` definitions — the Randziffer
-  geometry (`8pt`, `align: right`, `hanging: 7mm`) is a guess and is what the
-  reference brief is for
-- the `render:` block opting the type in
+- `zbp-legal` letterhead geometry — the partner column at `x: 148mm, y: 40mm`,
+  the margins, the firm-name block over the rule.
+- The Randziffer: `8pt`, `hanging: 10mm`. Internally consistent — the numbers
+  share a column with the `I.` and `A.` labels — but the size and the column
+  width were never measured.
+- The address field at `x: 25mm, y: 60mm`. It satisfies the Swiss Post
+  specification on paper (`docs/swiss-post-letter-layout.md`), but a window
+  envelope is a physical object: print it, fold it, look through the window.
+- `contract`, `gutachten` and `protokoll` were ported quickly and have had the
+  least scrutiny of all.
 
-**Do this as one change.** Enabling render numbering while the real briefs still
-carry manually typed `I.`, `A.` and `1.` prefixes doubles every label, so the
-markdown must be normalised in the same commit.
+Get a reference PDF per type from Kevin and diff against it. `pdftotext -bbox`
+gives positions in points and turns "looks about right" into a number; rendering
+pages to PNG and reading them catches what coordinates do not.
 
-Then in `~/git/pi_assistant/src/document_cli.py`: `command_render` currently
-calls `gate_render` and then runs pandoc. Route `legal` and `letter` to
-`docc build` instead. Leave `contract`, `gutachten`, `protokoll` on pandoc —
-they have no schema yet. Delete pandoc assets only for the types actually cut
-over.
+### 4. Loose ends from the cutover
 
-### 4. Remaining document types
-
-`contract`, `gutachten`, `protokoll` have no schema and no theme. Reverse-
-engineering them from `templates/` and `assets/` means guessing at conventions;
-have Kevin confirm each before relying on it.
+- `unterzeichner` is now `required: true` on `legal`. Existing briefs do not
+  carry it and will fail validation until they do. Decide whether to backfill
+  or relax it during migration.
+- `schlussformel` has no default because the wording differs by procedural type
+  and addressee. If it should be generated, that is a defaults-by-enum
+  mechanism in the schema, not a conditional in the theme.
+- `pi_assistant` still has the old pandoc assets deleted but uncommitted, and
+  build outputs (`docs/testklage.pdf`, `docs/Klageantwort.docx`) untracked.
+  Those want a `.gitignore` entry rather than a commit.
 
 ### 5. Possible later work
 
@@ -126,6 +129,15 @@ have Kevin confirm each before relying on it.
 - LSP server — reuse `internal/sema`, gives live diagnostics while writing.
 - MCP server — thin wrapper over `check`/`build`/`types`/`themes`.
   `docc check --json` already emits the right shape. Defer until the CLI settles.
+- Golden coverage stops at `testdata/good`. The `bad/` fixtures are checked but
+  never built, so a theme change cannot regress the error path.
+- `docx.Indent` still does not distinguish absent from zero, unlike
+  `theme.Length` and `docx.Spacing`. It has not bitten yet; it will when a style
+  needs to override an inherited indent back to `0mm`.
+- Conditional furniture keeps being asked for — a right-window address, a
+  Schlussformel per procedural type. The answer so far is a second theme or a
+  frontmatter field, deliberately. If it comes up a third time, the honest fix
+  is defaults-by-enum in the schema, not `when:` in the theme.
 
 ---
 
