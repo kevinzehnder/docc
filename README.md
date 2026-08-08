@@ -33,6 +33,7 @@ task build      # → ./bin/docc
 ## Usage
 
 ```bash
+docc init                         # create the generic starter in this directory
 docc check docs/klage.md          # validate
 docc check --json docs/*.md       # machine-readable, for agents and CI
 docc check --strict docs/klage.md # warnings become errors
@@ -62,6 +63,33 @@ myproject/
 ```
 
 Override the location with `--schema-dir`.
+
+### Starting a new project
+
+`docc init [directory]` creates `.docc/` with a generic letter and a
+Swiss-legal starter schema/theme, plus compiling examples in
+`examples/docc/`. It never overwrites an existing starter configuration,
+example directory, or installed skill.
+
+```bash
+mkdir my-documents && cd my-documents
+docc init
+docc check examples/docc/letter.md
+docc build examples/docc/letter.md
+```
+
+The starter is deliberately generic. Replace the legal theme's `YOUR …`
+letterhead values, then adapt its schemas and themes to the organisation's
+actual conventions before using it for production documents.
+
+### Agent skill
+
+No LLM is required to use `docc`. For agents, this repository ships a portable
+[Agent Skill](skills/docc/SKILL.md) that describes the validation-and-build
+workflow. `docc init` also installs it at `.agents/skills/docc/SKILL.md`, which
+Pi discovers in a trusted project. Other harnesses can copy that directory or
+load the skill file directly; the project's `.docc` configuration remains the
+authoritative contract.
 
 This split means changing a letterhead is a file edit, not a compiler release,
 and one engine serves projects whose document conventions have nothing in common.
@@ -344,5 +372,5 @@ schema declares: beilagen, closing, date, document_type, recipient, ...
 
 ## Status
 
-`docc check`, `docc build` and `pkg/docx` are implemented and wired together.
+`docc init`, `docc check`, `docc build` and `pkg/docx` are implemented and wired together.
 Remaining work is in `docs/next-steps.md`.

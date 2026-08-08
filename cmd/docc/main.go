@@ -17,6 +17,7 @@ import (
 	"github.com/kevinzehnder/docc/internal/project"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/sema"
+	"github.com/kevinzehnder/docc/internal/starter"
 	"github.com/kevinzehnder/docc/internal/theme"
 )
 
@@ -28,6 +29,7 @@ const usage = `docc — a compiler for structured documents
 usage:
   docc check [flags] <file.md>...   validate documents against their schema
   docc build [flags] <file.md>      validate, then render to .docx or .pdf
+  docc init [directory]             create a generic starter project
   docc types [flags]                list known document types
   docc themes [flags]               list available themes
   docc explain <CODE>               describe a diagnostic code
@@ -69,6 +71,8 @@ func run(args []string) int {
 		return cmdCheck(rest)
 	case "build":
 		return cmdBuild(rest)
+	case "init":
+		return cmdInit(rest)
 	case "types":
 		return cmdTypes(rest)
 	case "themes":
@@ -174,6 +178,23 @@ func report(ds diag.List, sources map[string][]byte, cf commonFlags) int {
 	if ds.HasErrors() {
 		return 1
 	}
+	return 0
+}
+
+func cmdInit(args []string) int {
+	if len(args) > 1 {
+		fmt.Fprintln(os.Stderr, "usage: docc init [directory]")
+		return 2
+	}
+	dir := "."
+	if len(args) == 1 {
+		dir = args[0]
+	}
+	if err := starter.Init(dir); err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 1
+	}
+	fmt.Printf("created docc starter in %s\n", dir)
 	return 0
 }
 
