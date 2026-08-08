@@ -167,6 +167,61 @@ styles:
     type: character
     bold: true
 
+  # ── Closing block ─────────────────────────────────────────────────────────
+  # A short centred rule separating the last Randziffer from the closing
+  # formula. An empty paragraph with a bottom border, inset from both margins
+  # so the rule is centred and roughly a third of the text width.
+  LegalSchlussLinie:
+    name: Closing Rule
+    based_on: Standard
+    indent: { left: 55mm, right: 55mm }
+    spacing: { before: 10mm, after: 10mm }
+    borders:
+      bottom: { style: single, width: 0.75 }
+
+  LegalSchlussformel:
+    name: Closing Formula
+    based_on: Standard
+    spacing: { before: 0mm, after: 10mm }
+
+  LegalGruss:
+    name: Closing Greeting
+    based_on: Standard
+    align: left
+    keep_next: true
+    spacing: { before: 0mm, after: 0mm }
+
+  # The gap is the signature space: nothing is drawn, the name simply sits
+  # far enough below the greeting to sign between them.
+  LegalUnterschrift:
+    name: Signature Name
+    based_on: Standard
+    align: left
+    spacing: { before: 22mm, after: 0mm }
+
+  LegalVermerk:
+    name: Filing Note
+    based_on: Standard
+    align: left
+    bold: true
+    spacing: { before: 12mm, after: 0mm }
+
+  # ── Beilagenverzeichnis ───────────────────────────────────────────────────
+  LegalBeilagenTitel:
+    name: Enclosures Heading
+    based_on: Standard
+    align: left
+    size: 14pt
+    bold: true
+    keep_next: true
+    spacing: { before: 0mm, after: 6mm }
+
+  LegalBeilagenItem:
+    name: Enclosure Entry
+    based_on: Standard
+    align: left
+    spacing: { before: 0mm, after: 3mm }
+
   # ── Body ──────────────────────────────────────────────────────────────────
   Ueberschrift1:
     name: heading 1
@@ -278,6 +333,16 @@ numbering:
     hanging: 10mm
     style: Standard
 
+  # The Beilagenverzeichnis. One shared instance numbers the whole index, so
+  # the numbers are the Beilage numbers the body cites — and adding an entry
+  # renumbers the rest rather than desynchronising them.
+  Beilagenverzeichnis:
+    format: decimal
+    text: "%1."
+    indent: 10mm
+    hanging: 10mm
+    style: LegalBeilagenItem
+
   Rechtsbegehrensliste:
     format: decimal
     text: "%1."
@@ -388,3 +453,24 @@ prologue:
   # The cover page ends here. This paragraph is empty and exists only to carry
   # the break, so the first markdown block lands at the top of page two.
   - { style: LegalBodyStart, text: "", omit_if_empty: false, page_break: true }
+
+# Everything after the last Randziffer: the rule that closes the argument, the
+# formulaic request, the signature, the filing notes, and the enclosures index
+# on its own sheet.
+#
+# None of it is numbered — render numbering applies to the markdown body, and
+# furniture is not part of it, so the Randziffern stop at the last paragraph of
+# prose exactly as they should.
+epilogue:
+  - { style: LegalSchlussLinie, text: "", omit_if_empty: false }
+  - { style: LegalSchlussformel, text: "{{ schlussformel }}" }
+  - { style: LegalGruss, text: "{{ gruss }}", omit_if_empty: false }
+  - { style: LegalUnterschrift, text: "{{ unterzeichner }}" }
+  - { style: LegalVermerk, text: "{{ versandvermerk }}" }
+  - { style: LegalVermerk, text: "Beilagen gemäss separatem Beilagenverzeichnis", omit_if_empty: false }
+
+  # The index is a sheet of its own. page_break sits on the heading, so a brief
+  # with no Beilagen still gets the page — the repeat below emits nothing and
+  # the sheet carries only the heading.
+  - { style: LegalBeilagenTitel, text: "Beilagen", omit_if_empty: false, page_break: true }
+  - { style: LegalBeilagenItem, text: "{{ item }}", repeat: beilagen, numbering: Beilagenverzeichnis }

@@ -91,6 +91,20 @@
 </w:pPr>
 </w:lvl>
 </w:abstractNum>
+<w:abstractNum w:abstractNumId="4">
+<w:multiLevelType w:val="singleLevel"/>
+<w:name w:val="Beilagenverzeichnis"/>
+<w:lvl w:ilvl="0">
+<w:start w:val="1"/>
+<w:numFmt w:val="decimal"/>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:lvlText w:val="%1."/>
+<w:lvlJc w:val="left"/>
+<w:pPr>
+<w:ind w:left="567" w:hanging="567"/>
+</w:pPr>
+</w:lvl>
+</w:abstractNum>
 <w:num w:numId="1">
 <w:abstractNumId w:val="0"/>
 </w:num>
@@ -102,5 +116,8 @@
 </w:num>
 <w:num w:numId="4">
 <w:abstractNumId w:val="3"/>
+</w:num>
+<w:num w:numId="5">
+<w:abstractNumId w:val="4"/>
 </w:num>
 </w:numbering>

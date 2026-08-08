@@ -127,6 +127,17 @@ func checkFields(f *parse.File, sc *schema.Schema, fields schema.Fields, m *Meta
 		}
 
 		raw, present := values[name]
+
+		// A declared default fills an absent field, here rather than at render
+		// time: it decides whether a required field is actually missing, and it
+		// has to be in Meta.Values for the emitter to interpolate it. An
+		// explicit null is left alone — on a nullable field that is a real
+		// answer, and overwriting it would erase the author's "known absent".
+		if field.Default != nil && !present {
+			values[name] = field.Default
+			raw, present = field.Default, true
+		}
+
 		if !present || raw == nil {
 			switch {
 			case !field.Required:

@@ -284,6 +284,25 @@ address block, subject, closing, enclosures. A line interpolates metadata with
 `frame:` positions a line absolutely, and `page_break: true` starts a new page,
 which is how a cover page ends and the body begins on sheet two.
 
+`numbering:` gives a line a Word list number from a definition in the theme.
+Lines naming the same definition within one block of furniture share an
+instance, so a `repeat` comes out 1., 2., 3. — an enclosures index that
+renumbers itself when an entry is added:
+
+```yaml
+epilogue:
+  - { style: BeilagenTitel, text: "Beilagen", omit_if_empty: false, page_break: true }
+  - { style: BeilagenItem, text: "{{ item }}", repeat: beilagen, numbering: Beilagenverzeichnis }
+```
+
+Pair it with a `cross_reference` rule over the same list and the index is
+checked as well as generated: a Beilage cited in the body but missing from the
+list, or listed and never cited, is a diagnostic rather than a discrepancy
+someone notices at the counter.
+
+Render numbering does not apply to furniture, so the marginal numbers stop at
+the last paragraph of prose and the closing block is unnumbered.
+
 ## Development
 
 ```bash

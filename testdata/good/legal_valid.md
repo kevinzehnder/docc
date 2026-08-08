@@ -25,6 +25,8 @@ beklagter:
   city: "Baden"
 beklagter_vertreter: ~
 betreff: "Forderung aus Werkvertrag"
+unterzeichner: "lic. iur. David Muster"
+schlussformel: "Aufgrund der vorstehenden Erwägungen ersuche ich Sie um Gutheissung der vorgenannten Rechtsbegehren."
 beilagen:
   - Werkvertrag vom 3. März 2024
   - Abnahmeprotokoll vom 12. Juni 2024

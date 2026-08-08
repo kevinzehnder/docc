@@ -577,6 +577,84 @@
 <w:t xml:space="preserve">Die Klage ist gutzuheissen.</w:t>
 </w:r>
 </w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalSchlussLinie"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalSchlussformel"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Aufgrund der vorstehenden Erwägungen ersuche ich Sie um Gutheissung der vorgenannten Rechtsbegehren.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalGruss"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Mit freundlichen Grüssen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalUnterschrift"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">lic. iur. David Muster</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalVermerk"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Im Doppel</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalVermerk"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Beilagen gemäss separatem Beilagenverzeichnis</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenTitel"/>
+<w:pageBreakBefore/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Beilagen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="5"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Werkvertrag vom 3. März 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="5"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Abnahmeprotokoll vom 12. Juni 2024</w:t>
+</w:r>
+</w:p>
 <w:sectPr>
 <w:pgSz w:w="11906" w:h="16838"/>
 <w:pgMar w:top="1247" w:right="1417" w:bottom="1134" w:left="1417" w:header="680" w:footer="567" w:gutter="0"/>

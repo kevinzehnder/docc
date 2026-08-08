@@ -32,5 +32,7 @@ legal_frontmatter.md:44:3: error[LEG012]: Beweismittel without a Beilage referen
    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^ append a reference, e.g. "// Beilage 3"
 legal_frontmatter.md: error[DOC004]: missing required field `beklagter_vertreter`
   = set to ~ when the opposing party has no legal representative
+legal_frontmatter.md: error[DOC004]: missing required field `unterzeichner`
+  = the signing lawyer as it appears under the signature, e.g. "lic. iur. Kevin Zehnder"
 
-7 errors, 2 warnings
+8 errors, 2 warnings

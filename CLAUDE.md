@@ -95,6 +95,11 @@ OOXML needs exact namespace prefixes and, in places, a specific attribute order.
   numbering. Use `Numbering.AddList` / `NewInstance`. Render numbering inverts
   the usual rule: a heading outline and a marginal number each want *one*
   shared instance for the whole document, because continuing is the point.
+- **Schema `default:` is applied in sema, not at render time.** It decides
+  whether a required field is actually missing, and it has to reach
+  `Meta.Values` for the emitter to interpolate it. It was declared and
+  documented but never applied for a while; `formats.date` had the same shape
+  of bug. Check that new schema knobs are read by something.
 - **A theme's `levels:` is flat, not a tree.** The definition is level 0 and
   `levels[i]` is level `i+1`, capped at nine. Recursing into it gave two levels
   the same `ilvl`, and Word renders the loser's `%N` as literal text.

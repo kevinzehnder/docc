@@ -53,6 +53,31 @@ frontmatter:
     type: list<string>
     default: []
 
+  # ── Closing block ─────────────────────────────────────────────────────────
+  schlussformel:
+    type: string
+    required: false
+    hint: >-
+      the closing request, e.g. "Aufgrund der vorstehenden Erwägungen ersuche
+      ich Sie ... um Gutheissung der vorgenannten Rechtsbegehren". Omitted when
+      absent rather than guessed: the wording differs by procedural type and
+      addressee.
+
+  gruss:
+    type: string
+    default: Mit freundlichen Grüssen
+
+  unterzeichner:
+    type: string
+    required: true
+    hint: 'the signing lawyer as it appears under the signature, e.g. "lic. iur. Kevin Zehnder"'
+
+  versandvermerk:
+    type: string
+    default: Im Doppel
+    hint: 'the filing note above the enclosures line; set to ~ to omit'
+    nullable: true
+
 types:
   court:
     versand:
@@ -149,7 +174,7 @@ rules:
 
   - id: LEG020
     check: cross_reference
-    severity: warning
+    severity: error
     args:
       div: beweis
       pattern: '//\s*Beilage\s+(\d+)'

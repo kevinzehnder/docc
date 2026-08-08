@@ -167,9 +167,25 @@ func validateNumbering(th *theme.Theme) error {
 			}
 		}
 	}
+	// A furniture line naming a definition that does not exist would render
+	// without its number and say nothing about it — an enclosures index quietly
+	// losing its 1., 2., 3.
+	for _, group := range [][]theme.Line{th.Prologue, th.Epilogue} {
+		for _, line := range group {
+			if line.Numbering == "" {
+				continue
+			}
+			if _, ok := th.Numbering[line.Numbering]; !ok {
+				bad = append(bad, fmt.Sprintf(
+					"furniture line %q names numbering %q, which is not defined", line.Style, line.Numbering))
+			}
+		}
+	}
+
 	if len(bad) == 0 {
 		return nil
 	}
+	sort.Strings(bad)
 	return fmt.Errorf("theme %q defines numbering Word cannot render:\n  %s",
 		th.Name, strings.Join(bad, "\n  "))
 }
@@ -850,14 +866,30 @@ func (e *emitter) buildHeadersFooters() error {
 // buildFurniture expands the fixed lines of a theme against the document's
 // metadata.
 func (e *emitter) buildFurniture(lines []theme.Line, out *[]docx.Block) error {
+	// One instance per definition per block of furniture, so a repeat over a
+	// list numbers 1., 2., 3. and a second index elsewhere starts again at 1.
+	instances := map[string]int{}
+	numIDFor := func(defName string) int {
+		if defName == "" {
+			return 0
+		}
+		if id, known := instances[defName]; known {
+			return id
+		}
+		id, _ := e.sharedNumID(defName)
+		instances[defName] = id
+		return id
+	}
+
 	for _, line := range lines {
+		numID := numIDFor(line.Numbering)
 		if line.Repeat != "" {
-			if err := e.repeatLine(line, out); err != nil {
+			if err := e.repeatLine(line, numID, out); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := e.furnitureLine(line, e.meta, out); err != nil {
+		if err := e.furnitureLine(line, e.meta, numID, out); err != nil {
 			return err
 		}
 	}
@@ -867,7 +899,7 @@ func (e *emitter) buildFurniture(lines []theme.Line, out *[]docx.Block) error {
 // repeatLine emits one paragraph per element of a list field. A list that is
 // absent or empty emits nothing, so a letter without enclosures has no
 // enclosures section.
-func (e *emitter) repeatLine(line theme.Line, out *[]docx.Block) error {
+func (e *emitter) repeatLine(line theme.Line, numID int, out *[]docx.Block) error {
 	raw, found := lookupMeta(e.meta, line.Repeat)
 	if !found {
 		return nil
@@ -883,16 +915,16 @@ func (e *emitter) repeatLine(line theme.Line, out *[]docx.Block) error {
 				scope[k] = v
 			}
 		}
-		if err := e.furnitureLine(line, scope, out); err != nil {
+		if err := e.furnitureLine(line, scope, numID, out); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, out *[]docx.Block) error {
+func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int, out *[]docx.Block) error {
 	if len(line.Runs) > 0 {
-		return e.furnitureRunLine(line, meta, out)
+		return e.furnitureRunLine(line, meta, numID, out)
 	}
 
 	expanded := e.theme.Expand(line.Text, meta)
@@ -908,6 +940,9 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, out *[]doc
 			Style:     line.Style,
 			PageBreak: line.PageBreak,
 		},
+	}
+	if numID != 0 {
+		p.Props.Numbering = &docx.NumRef{ID: numID}
 	}
 	if line.Frame != nil {
 		p.Props.Frame = &docx.FramePr{
@@ -948,9 +983,12 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, out *[]doc
 // A run whose fields are all empty is dropped individually, so a party with no
 // street loses that fragment without losing the line — and the tab or break
 // that would have preceded it goes with it, rather than leaving a gap.
-func (e *emitter) furnitureRunLine(line theme.Line, meta map[string]any, out *[]docx.Block) error {
+func (e *emitter) furnitureRunLine(line theme.Line, meta map[string]any, numID int, out *[]docx.Block) error {
 	p := docx.Paragraph{
 		Props: docx.ParaProps{Style: line.Style, PageBreak: line.PageBreak},
+	}
+	if numID != 0 {
+		p.Props.Numbering = &docx.NumRef{ID: numID}
 	}
 	for _, t := range line.Tabs {
 		p.Props.Tabs = append(p.Props.Tabs, docx.TabStop{

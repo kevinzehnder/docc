@@ -628,6 +628,54 @@ func TestRepeatEmitsOnePerItem(t *testing.T) {
 	}
 }
 
+// An enclosures index is a repeat that has to come out numbered 1., 2., 3. —
+// one shared instance across the repeated lines, so adding an entry renumbers
+// the rest instead of restarting at 1.
+func TestFurnitureNumberingSharesOneInstance(t *testing.T) {
+	th := testTheme()
+	th.Numbering["Index"] = theme.NumFormat{Format: "decimal", Text: "%1.", Style: "Standard"}
+	th.Epilogue = []theme.Line{
+		{Style: "Standard", Text: "{{ item }}", Repeat: "attachments", Numbering: "Index"},
+	}
+	f, _ := parse.Parse("t.md", []byte("---\nx: 1\n---\n\nBody.\n"))
+	doc := ir.Build(f, "test", map[string]any{
+		"attachments": []any{"Vertrag", "Protokoll", "Rechnung"},
+	})
+
+	built, err := Build(doc, testSchema(), th, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var ids []int
+	for _, p := range numberedParagraphs(t, built) {
+		if p.NumID != 0 {
+			ids = append(ids, p.NumID)
+		}
+	}
+	if len(ids) != 3 {
+		t.Fatalf("got %d numbered entries, want 3", len(ids))
+	}
+	for _, id := range ids[1:] {
+		if id != ids[0] {
+			t.Errorf("index entries got instances %v; the count would restart", ids)
+		}
+	}
+}
+
+// A furniture line naming a definition the theme does not have would render
+// without its number and say nothing about it.
+func TestValidateCatchesUnknownFurnitureNumbering(t *testing.T) {
+	th := testTheme()
+	th.Epilogue = []theme.Line{
+		{Style: "Standard", Text: "{{ item }}", Repeat: "attachments", Numbering: "Nonexistent"},
+	}
+	err := Validate(testSchema(), th)
+	if err == nil || !strings.Contains(err.Error(), "Nonexistent") {
+		t.Fatalf("expected an unknown-numbering error, got: %v", err)
+	}
+}
+
 func TestRepeatOverMissingListEmitsNothing(t *testing.T) {
 	th := testTheme()
 	th.Epilogue = []theme.Line{{Style: "Standard", Text: "– {{ item }}", Repeat: "attachments"}}

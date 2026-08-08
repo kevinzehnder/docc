@@ -101,6 +101,30 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
+<w:style w:type="paragraph" w:styleId="LegalBeilagenItem">
+<w:name w:val="Enclosure Entry"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="170"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="LegalBeilagenTitel">
+<w:name w:val="Enclosures Heading"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="0" w:after="340"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+<w:sz w:val="28"/>
+<w:szCs w:val="28"/>
+</w:rPr>
+</w:style>
 <w:style w:type="paragraph" w:styleId="LegalBetreff">
 <w:name w:val="Subject"/>
 <w:basedOn w:val="Standard"/>
@@ -173,6 +197,16 @@
 <w:szCs w:val="20"/>
 </w:rPr>
 </w:style>
+<w:style w:type="paragraph" w:styleId="LegalGruss">
+<w:name w:val="Closing Greeting"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:before="0" w:after="0"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
 <w:style w:type="paragraph" w:styleId="LegalPartyEntry">
 <w:name w:val="Party Entry"/>
 <w:basedOn w:val="Standard"/>
@@ -195,12 +229,55 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
+<w:style w:type="paragraph" w:styleId="LegalSchlussLinie">
+<w:name w:val="Closing Rule"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:pBdr>
+<w:bottom w:val="single" w:sz="6" w:space="0" w:color="auto"/>
+</w:pBdr>
+<w:spacing w:before="567" w:after="567"/>
+<w:ind w:left="3118" w:right="3118"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="LegalSchlussformel">
+<w:name w:val="Closing Formula"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="567"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
 <w:style w:type="character" w:styleId="LegalSmall">
 <w:name w:val="Party Address"/>
 <w:qFormat/>
 <w:rPr>
 <w:sz w:val="19"/>
 <w:szCs w:val="19"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="LegalUnterschrift">
+<w:name w:val="Signature Name"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="1247" w:after="0"/>
+</w:pPr>
+<w:rPr/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="LegalVermerk">
+<w:name w:val="Filing Note"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="680" w:after="0"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
 </w:rPr>
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalVersand">

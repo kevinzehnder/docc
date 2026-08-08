@@ -226,6 +226,15 @@ type Line struct {
 	// nesting. A theme that needs more than this is describing logic, and logic
 	// belongs in Go where it can be tested.
 	Repeat string `yaml:"repeat"`
+	// Numbering names a definition in the theme's `numbering:` map, giving the
+	// line a Word list number. Every line naming the same definition within one
+	// block of furniture shares an instance, so a `repeat` over a list comes out
+	// as 1., 2., 3. — which is what an enclosures index is.
+	//
+	// The label is Word numbering, not text: the index renumbers itself when an
+	// entry is added, and a cross-reference check can still read the underlying
+	// list.
+	Numbering string `yaml:"numbering"`
 	// OmitIfEmpty drops the line when every field it interpolates is empty.
 	// Defaults to true: a recipient without an organisation should not leave a
 	// blank line in the address block.
