@@ -13,6 +13,7 @@ import (
 	"github.com/kevinzehnder/docc/internal/diag"
 	"github.com/kevinzehnder/docc/internal/emit"
 	"github.com/kevinzehnder/docc/internal/ir"
+	"github.com/kevinzehnder/docc/internal/lsp"
 	"github.com/kevinzehnder/docc/internal/parse"
 	"github.com/kevinzehnder/docc/internal/project"
 	"github.com/kevinzehnder/docc/internal/schema"
@@ -30,6 +31,7 @@ usage:
   docc check [flags] <file.md>...   validate documents against their schema
   docc build [flags] <file.md>      validate, then render to .docx or .pdf
   docc init [directory]             create a generic starter project
+  docc lsp [flags]                  start a Language Server Protocol server
   docc types [flags]                list known document types
   docc themes [flags]               list available themes
   docc explain <CODE>               describe a diagnostic code
@@ -73,6 +75,8 @@ func run(args []string) int {
 		return cmdBuild(rest)
 	case "init":
 		return cmdInit(rest)
+	case "lsp":
+		return cmdLSP(rest)
 	case "types":
 		return cmdTypes(rest)
 	case "themes":
@@ -176,6 +180,29 @@ func report(ds diag.List, sources map[string][]byte, cf commonFlags) int {
 		}
 	}
 	if ds.HasErrors() {
+		return 1
+	}
+	return 0
+}
+
+// cmdLSP serves editor diagnostics over stdio. Protocol messages must use
+// stdout exclusively, so errors are reported on stderr.
+func cmdLSP(args []string) int {
+	fs := flag.NewFlagSet("lsp", flag.ContinueOnError)
+	var cf commonFlags
+	cf.bind(fs)
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if fs.NArg() != 0 {
+		fmt.Fprintln(os.Stderr, "usage: docc lsp [--schema-dir <dir>] [--type <type>]")
+		return 2
+	}
+	if err := lsp.Serve(os.Stdin, os.Stdout, lsp.Options{
+		SchemaDir: cf.schemaDir,
+		DocType:   cf.docType,
+	}); err != nil {
+		fmt.Fprintln(os.Stderr, "docc lsp:", err)
 		return 1
 	}
 	return 0
@@ -398,6 +425,7 @@ var explanations = map[string]string{
 	"DOC020": "a section the schema requires is missing from the body.",
 	"DOC021": "a conventional but optional section is missing.",
 	"DOC022": "a section appears out of the order the schema declares.",
+	"DOC023": "a fenced div was opened but not closed. Put the closing `:::` on a line of its own.",
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest

@@ -37,11 +37,38 @@ docc init                         # create the generic starter in this directory
 docc check docs/klage.md          # validate
 docc check --json docs/*.md       # machine-readable, for agents and CI
 docc check --strict docs/klage.md # warnings become errors
+docc lsp                          # serve editor diagnostics over stdio
 docc types                        # list known document types
 docc explain DOC010               # describe a diagnostic code
 ```
 
 Exit codes: `0` clean, `1` diagnostics reported, `2` usage or configuration error.
+
+## NeoVim
+
+`docc lsp` is a dependency-free Language Server Protocol server. It publishes
+live diagnostics for Markdown documents using the nearest `.docc/schemas`
+directory; `--schema-dir` and `--type` have the same meaning as for `check`.
+
+With NeoVim's built-in LSP client, add this to your `init.lua`:
+
+```lua
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "markdown",
+  callback = function(args)
+    vim.lsp.start({
+      name = "docc",
+      cmd = { "docc", "lsp" },
+      root_dir = vim.fs.root(args.file, { ".docc" }) or vim.fn.getcwd(),
+    })
+  end,
+})
+```
+
+The server uses full-document synchronization and reports UTF-16-correct
+ranges, including in documents containing non-ASCII text. It currently
+provides diagnostics only; completion and code actions remain editor features
+for a future release.
 
 ## Projects
 
@@ -141,18 +168,41 @@ rules:
     check: div_items_match
     args:
       div: beweis
-      pattern: '//\s*Beilage\s+\d+\s*$'
-    message: "Beweismittel without a Beilage reference"
-    hint: 'append a reference, e.g. "// Beilage 3"'
+      pattern: '^\s*\[[^\]\r\n]+\]\s+\S'
+    message: "Beweismittel without a bracketed label"
+    hint: 'prefix it with a label, e.g. "[Beilage 3]"'
   - id: LEG020
     check: cross_reference
     severity: warning
     args:
       div: beweis
-      pattern: '//\s*Beilage\s+(\d+)'
+      pattern: '(?i)^\s*\[Beilage\s+(\d+)\]'
       list_field: beilagen
       label: Beilage
 ```
+
+### Evidence blocks
+
+An evidence item in a `::: beweis` block starts with a bracketed, free-form
+label followed by its description. The label records the kind of proof and is
+preserved separately from the prose for themes that choose to style it:
+
+```markdown
+::: beweis
+
+- [Beilage 1] Anwaltsvollmacht vom 4. August 2025
+- [Klagebeilage 3] Eingabe der Gegenpartei vom 12. Mai 2025
+- [Actorum 33] Protokoll der Einigungsverhandlung
+- [Zeugenbefragung] Max Muster, Musterstrasse 1, 8000 Zürich
+- [Von der Klägerin zu edieren] Buchhaltungsunterlagen 2022–2024
+:::
+```
+
+Labels are intentionally open: a lawyer may use the procedural term that fits
+the proof. Only `[Beilage N]` has special semantics: `N` is checked against the
+positional `beilagen` list in the frontmatter. Labels such as `Klagebeilage`,
+`Actorum`, `Augenschein`, or `Zeugenbefragung` remain valid but do not claim a
+locally filed attachment. A closing `:::` must be on a line of its own.
 
 ### Field types
 

@@ -114,6 +114,71 @@ func TestDivItemsMatchFlagsUnmatchedItem(t *testing.T) {
 	}
 }
 
+func TestDivItemsMatchTreatsWrappedListItemAsOneEvidence(t *testing.T) {
+	src := `---
+document_type: test
+attachments:
+  - Contract
+---
+
+::: evidence
+- [Beilage 1] Contract of 3
+  March
+- [Augenschein] The disputed property
+:::
+`
+	ds := run(t, src, schema.Rule{
+		ID:    "X010",
+		Check: "div_items_match",
+		Args: map[string]any{
+			"div":     "evidence",
+			"pattern": `^\s*\[[^\]\r\n]+\]\s+\S`,
+		},
+	})
+	if len(ds) != 0 {
+		t.Fatalf("wrapped labelled evidence should pass, got:\n%s", messages(ds))
+	}
+
+	ds = run(t, src, schema.Rule{
+		ID:    "X011",
+		Check: "cross_reference",
+		Args: map[string]any{
+			"div":        "evidence",
+			"pattern":    `(?i)^\s*\[Beilage\s+(\d+)\]`,
+			"list_field": "attachments",
+			"label":      "Beilage",
+		},
+	})
+	if len(ds) != 0 {
+		t.Fatalf("only [Beilage N] should cross-reference attachments, got:\n%s", messages(ds))
+	}
+}
+
+func TestDivItemsMatchRequiresLabel(t *testing.T) {
+	src := `---
+document_type: test
+---
+
+::: evidence
+- Contract of 3 March
+:::
+`
+	ds := run(t, src, schema.Rule{
+		ID:    "X012",
+		Check: "div_items_match",
+		Args: map[string]any{
+			"div":     "evidence",
+			"pattern": `^\s*\[[^\]\r\n]+\]\s+\S`,
+		},
+	})
+	if len(ds) != 1 {
+		t.Fatalf("want one unlabelled-evidence diagnostic, got:\n%s", messages(ds))
+	}
+	if ds[0].Pos.Line != 6 {
+		t.Errorf("line = %d, want 6", ds[0].Pos.Line)
+	}
+}
+
 // Both directions: a key cited but not listed, and one listed but never cited.
 func TestCrossReferenceBothDirections(t *testing.T) {
 	ds := run(t, evidenceDoc, schema.Rule{

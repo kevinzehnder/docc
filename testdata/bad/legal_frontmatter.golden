@@ -26,10 +26,10 @@ legal_frontmatter.md:34:3: warning[LEG040]: section "BEGRÜNDUNG" has no content
    | 
 34 | # BEGRÜNDUNG
    |   ^^^^^^^^^^ write the section, or remove the heading
-legal_frontmatter.md:44:3: error[LEG012]: Beweismittel without a Beilage reference
+legal_frontmatter.md:44:3: error[LEG012]: Beweismittel without a bracketed label
    | 
 44 | - Korrespondenz der Parteien
-   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^ append a reference, e.g. "// Beilage 3"
+   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^ prefix it with a label, e.g. "[Beilage 3]"
 legal_frontmatter.md: error[DOC004]: missing required field `beklagter_vertreter`
   = set to ~ when the opposing party has no legal representative
 legal_frontmatter.md: error[DOC004]: missing required field `unterzeichner`

@@ -343,27 +343,45 @@ func checkNoEmptySections(c *ruleContext) {
 	}
 }
 
-// divListItems returns one entry per line of content inside a div. Text lives
-// on leaf blocks — a list item keeps its text in a child TextBlock, not on the
-// item itself — so this walks to the leaves rather than assuming a depth.
+// divListItems returns one entry per list item inside a div. A list item can
+// span several source lines after Markdown has been formatted; treating those
+// lines as independent evidence used to make a wrapped citation look missing.
 func divListItems(f *parse.File, div *parse.Div) []parse.TextLine {
 	var out []parse.TextLine
 	_ = ast.Walk(div, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		// Lines panics on inline nodes, so descend no further than blocks.
-		if !entering || n == ast.Node(div) || n.Type() != ast.TypeBlock {
+		item, isItem := n.(*ast.ListItem)
+		if !entering || !isItem {
 			return ast.WalkContinue, nil
 		}
-		if n.Lines().Len() == 0 {
-			return ast.WalkContinue, nil
+
+		text, pos, ok := listItemText(f, item)
+		if ok {
+			out = append(out, parse.TextLine{Text: text, Pos: pos})
 		}
-		for _, tl := range f.TextLines(n) {
-			if strings.TrimSpace(tl.Text) != "" {
-				out = append(out, tl)
-			}
-		}
-		return ast.WalkContinue, nil
+		return ast.WalkSkipChildren, nil
 	})
 	return out
+}
+
+// listItemText joins the source lines in an item's direct text blocks. A
+// nested list is deliberately excluded: it is a different set of evidence.
+func listItemText(f *parse.File, item *ast.ListItem) (string, diag.Position, bool) {
+	var text []string
+	var pos diag.Position
+	for child := item.FirstChild(); child != nil; child = child.NextSibling() {
+		for _, line := range f.TextLines(child) {
+			if trimmed := strings.TrimSpace(line.Text); trimmed != "" {
+				if len(text) == 0 {
+					pos = line.Pos
+				}
+				text = append(text, trimmed)
+			}
+		}
+	}
+	if len(text) == 0 {
+		return "", diag.Position{}, false
+	}
+	return strings.Join(text, " "), pos, true
 }
 
 func offsetOfLine(f *parse.File, line int) int {

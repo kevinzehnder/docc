@@ -168,16 +168,16 @@ rules:
     severity: error
     args:
       div: beweis
-      pattern: '//\s*Beilage\s+\d+\s*$'
-    message: "Beweismittel without a Beilage reference"
-    hint: 'append a reference, e.g. "// Beilage 3"'
+      pattern: '^\s*\[[^\]\r\n]+\]\s+\S'
+    message: "Beweismittel without a bracketed label"
+    hint: 'prefix it with a label, e.g. "[Beilage 3]"'
 
   - id: LEG020
     check: cross_reference
     severity: error
     args:
       div: beweis
-      pattern: '//\s*Beilage\s+(\d+)'
+      pattern: '(?i)^\s*\[Beilage\s+(\d+)\]'
       list_field: beilagen
       label: Beilage
 

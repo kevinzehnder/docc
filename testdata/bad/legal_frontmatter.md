@@ -40,7 +40,7 @@ beilagen:
 Die Parteien schlossen am 3. März 2024 einen Werkvertrag.
 
 ::: beweis
-- Werkvertrag vom 3. März 2024 // Beilage 1
+- [Beilage 1] Werkvertrag vom 3. März 2024
 - Korrespondenz der Parteien
 :::
 

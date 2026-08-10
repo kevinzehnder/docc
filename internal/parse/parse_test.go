@@ -100,8 +100,22 @@ func TestDivs(t *testing.T) {
 	if divs[0].Name != "evidence" {
 		t.Errorf("div name = %q, want \"evidence\"", divs[0].Name)
 	}
+	if !divs[0].Closed {
+		t.Error("closed div reports Closed = false")
+	}
 	if n := divs[0].ChildCount(); n != 1 {
 		t.Errorf("div children = %d, want 1 (the list)", n)
+	}
+}
+
+func TestUnclosedDivIsDiagnostic(t *testing.T) {
+	src := "---\n---\n\n::: evidence\n- [Beilage 1] Contract :::\n"
+	_, ds := Parse("t.md", []byte(src))
+	if len(ds) != 1 {
+		t.Fatalf("got %d diagnostics, want 1: %+v", len(ds), ds)
+	}
+	if ds[0].Code != "DOC023" || ds[0].Pos.Line != 4 {
+		t.Errorf("diagnostic = %+v, want DOC023 at line 4", ds[0])
 	}
 }
 

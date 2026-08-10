@@ -71,6 +71,14 @@ func Parse(path string, src []byte) (*File, diag.List) {
 		goldmark.WithExtensions(extension.Table, divExtension{}),
 	)
 	f.Body = md.Parser().Parse(text.NewReader(body))
+	for _, div := range f.Divs() {
+		if div.Closed {
+			continue
+		}
+		ds.Errorf(path, f.BodyPos(div.OpenOffset), "DOC023",
+			"add a closing `:::` on its own line",
+			"fenced div `::: %s` was never closed", div.Name)
+	}
 	return f, ds
 }
 

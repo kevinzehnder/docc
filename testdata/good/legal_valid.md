@@ -52,8 +52,8 @@ Die örtliche Zuständigkeit ergibt sich aus dem Sitz der Beklagten in Baden.
 Die Parteien schlossen am 3. März 2024 einen Werkvertrag über den Innenausbau.
 
 ::: beweis
-- Werkvertrag vom 3. März 2024 // Beilage 1
-- Abnahmeprotokoll vom 12. Juni 2024 // Beilage 2
+- [Beilage 1] Werkvertrag vom 3. März 2024
+- [Beilage 2] Abnahmeprotokoll vom 12. Juni 2024
 :::
 
 # Rechtliches

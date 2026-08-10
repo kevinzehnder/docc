@@ -25,6 +25,10 @@ type Div struct {
 	// OpenLine is the 1-indexed source line of the opening fence, resolved by
 	// the caller against the full file.
 	OpenOffset int
+	// Closed reports whether the parser encountered a closing fence on its own
+	// line. An unclosed div would otherwise make the rest of the document part
+	// of the evidence region without a useful diagnostic.
+	Closed bool
 }
 
 func (n *Div) Kind() ast.NodeKind { return KindDiv }
@@ -63,6 +67,9 @@ func (divParser) Continue(node ast.Node, reader text.Reader, pc parser.Context) 
 	}
 	if pos < len(line) {
 		if colons, name, ok := splitFence(line[pos:]); ok && colons >= 3 && name == "" {
+			if div, isDiv := node.(*Div); isDiv {
+				div.Closed = true
+			}
 			reader.Advance(seg.Len() - 1)
 			return parser.Close
 		}

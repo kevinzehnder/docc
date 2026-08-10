@@ -536,9 +536,12 @@ func TestHeadingUsesMappedStyle(t *testing.T) {
 }
 
 func TestDivUsesMappedStyle(t *testing.T) {
-	doc := xml(t, build(t, "---\nx: 1\n---\n\n::: evidence\n- Contract // Exhibit 1\n:::\n"))
+	doc := xml(t, build(t, "---\nx: 1\n---\n\n::: evidence\n- [Exhibit 1] Contract\n:::\n"))
 	if !strings.Contains(doc, `<w:pStyle w:val="Evidence"/>`) {
 		t.Errorf("div content did not get the mapped style:\n%s", doc)
+	}
+	if !strings.Contains(doc, "[Exhibit 1] Contract") {
+		t.Errorf("evidence label did not reach the rendered document:\n%s", doc)
 	}
 }
 
