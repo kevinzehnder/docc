@@ -33,18 +33,26 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 		return nil, err
 	}
 
+	firstSection := docx.Section{
+		Page:      th.Page.PageSize(),
+		Margins:   th.Page.Margins.DocxMargins(),
+		TitlePage: th.Page.TitlePage,
+	}
+	continuationSection := firstSection
+	if th.Page.ContinuationMargins != nil {
+		continuationSection.Margins = th.Page.ContinuationMargins.Merge(th.Page.Margins).DocxMargins()
+		continuationSection.TitlePage = false
+	}
+
 	e := &emitter{
-		doc:    doc,
-		meta:   typedMeta(sc.Frontmatter, sc.Types, doc.Meta),
-		schema: sc,
-		theme:  th,
-		opts:   opts,
+		doc:                 doc,
+		meta:                typedMeta(sc.Frontmatter, sc.Types, doc.Meta),
+		schema:              sc,
+		theme:               th,
+		opts:                opts,
+		continuationSection: continuationSection,
 		out: &docx.Document{
-			Section: docx.Section{
-				Page:      th.Page.PageSize(),
-				Margins:   th.Page.Margins.DocxMargins(),
-				TitlePage: th.Page.TitlePage,
-			},
+			Section: firstSection,
 			Defaults: docx.Defaults{
 				Run: docx.RunProps{
 					Font: th.Defaults.Font,
@@ -342,7 +350,8 @@ type emitter struct {
 	numbering docx.Numbering
 	// abstractByName caches the abstract definition per theme list name, so
 	// every list of a kind shares one definition.
-	abstractByName map[string]int
+	abstractByName      map[string]int
+	continuationSection docx.Section
 }
 
 // style resolves a style-map key to a style id, falling back through a chain of
@@ -697,6 +706,10 @@ func (e *emitter) sharedNumID(defName string) (numID, levels int) {
 
 func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 	style := e.style("div."+d.Name, "paragraph")
+	if labelStyle := e.style("div." + d.Name + ".label"); labelStyle != "" {
+		e.labelledDiv(d, out, depth, style, labelStyle)
+		return
+	}
 
 	var inner []docx.Block
 	e.blocks(d.Blocks, &inner, depth)
@@ -714,6 +727,107 @@ func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 		}
 		*out = append(*out, p)
 	}
+}
+
+// labelledDiv renders a labelled list item as its description, a right-aligned
+// tab, then its source label. The source keeps the label first in square
+// brackets because that makes the schema rule and cross-reference unambiguous;
+// the page uses the more readable description-first order.
+//
+// A schema opts into this rendering by mapping div.<name>.label to a character
+// style. Other divs retain the ordinary markdown rendering above.
+func (e *emitter) labelledDiv(d ir.Div, out *[]docx.Block, depth int, style, labelStyle string) {
+	for _, block := range d.Blocks {
+		if list, ok := block.(ir.List); ok && !list.Ordered {
+			e.labelledList(list, out, depth, style, labelStyle)
+			continue
+		}
+
+		var inner []docx.Block
+		e.blockTo(block, &inner, depth)
+		for _, blk := range inner {
+			if p, ok := blk.(docx.Paragraph); ok {
+				p.Props.Style = style
+				*out = append(*out, p)
+				continue
+			}
+			*out = append(*out, blk)
+		}
+	}
+}
+
+func (e *emitter) labelledList(list ir.List, out *[]docx.Block, depth int, style, labelStyle string) {
+	numID := e.numID("bullet_list", list)
+	for _, item := range list.Items {
+		first := true
+		for _, block := range item.Blocks {
+			if para, ok := block.(ir.Para); ok && first {
+				if label, description, labelled := splitEvidenceLabel(para.Inlines); labelled {
+					runs := e.runs(description, docx.RunProps{})
+					runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+					runs = append(runs, docx.Run{
+						Props: docx.RunProps{Style: labelStyle},
+						Items: []docx.Inline{docx.Text(label)},
+					})
+					*out = append(*out, docx.Paragraph{
+						Props: docx.ParaProps{
+							Style:     style,
+							Numbering: &docx.NumRef{ID: numID, Level: depth},
+						},
+						Runs: runs,
+					})
+					first = false
+					continue
+				}
+			}
+
+			var inner []docx.Block
+			e.blockTo(block, &inner, depth)
+			for _, blk := range inner {
+				p, isPara := blk.(docx.Paragraph)
+				if !isPara {
+					*out = append(*out, blk)
+					continue
+				}
+				p.Props.Style = style
+				if first {
+					p.Props.Numbering = &docx.NumRef{ID: numID, Level: depth}
+					first = false
+				}
+				*out = append(*out, p)
+			}
+		}
+	}
+}
+
+// splitEvidenceLabel separates the leading [label] from an evidence item's
+// description without disturbing any Markdown formatting in the description.
+func splitEvidenceLabel(inlines []ir.Inline) (label string, description []ir.Inline, ok bool) {
+	if len(inlines) == 0 {
+		return "", nil, false
+	}
+	first, isText := inlines[0].(ir.Str)
+	if !isText {
+		return "", nil, false
+	}
+	text := strings.TrimLeft(first.Text, " \t")
+	if !strings.HasPrefix(text, "[") {
+		return "", nil, false
+	}
+	end := strings.IndexByte(text, ']')
+	if end <= 1 {
+		return "", nil, false
+	}
+	label = strings.TrimSpace(text[1:end])
+	remainder := strings.TrimLeft(text[end+1:], " \t")
+	if remainder != "" {
+		description = append(description, ir.Str{Text: remainder})
+	}
+	description = append(description, inlines[1:]...)
+	if label == "" || len(description) == 0 {
+		return "", nil, false
+	}
+	return label, description, true
 }
 
 func (e *emitter) table(t ir.Table, depth int) docx.Table {
@@ -882,6 +996,9 @@ func (e *emitter) buildFurniture(lines []theme.Line, out *[]docx.Block) error {
 	}
 
 	for _, line := range lines {
+		if line.IfNonempty != "" && !metaNonempty(e.meta, line.IfNonempty) {
+			continue
+		}
 		numID := numIDFor(line.Numbering)
 		if line.Repeat != "" {
 			if err := e.repeatLine(line, numID, out); err != nil {
@@ -894,6 +1011,26 @@ func (e *emitter) buildFurniture(lines []theme.Line, out *[]docx.Block) error {
 		}
 	}
 	return nil
+}
+
+// metaNonempty reports whether a theme condition names a populated value.
+func metaNonempty(meta map[string]any, path string) bool {
+	value, found := lookupMeta(meta, path)
+	if !found || value == nil {
+		return false
+	}
+	switch v := value.(type) {
+	case string:
+		return strings.TrimSpace(v) != ""
+	case []any:
+		return len(v) > 0
+	case map[string]any:
+		return len(v) > 0
+	case bool:
+		return v
+	default:
+		return true
+	}
 }
 
 // repeatLine emits one paragraph per element of a list field. A list that is
@@ -920,6 +1057,19 @@ func (e *emitter) repeatLine(line theme.Line, numID int, out *[]docx.Block) erro
 		}
 	}
 	return nil
+}
+
+// applySectionBreak turns a furniture paragraph into the final paragraph of
+// the current section. The next block starts on a new page with the theme's
+// continuation geometry.
+func (e *emitter) applySectionBreak(line theme.Line, p *docx.Paragraph) {
+	if !line.SectionBreak {
+		return
+	}
+	ending := e.out.Section
+	ending.NextPage = true
+	p.Props.SectionBreak = &ending
+	e.out.Section = e.continuationSection
 }
 
 func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int, out *[]docx.Block) error {
@@ -973,6 +1123,7 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int,
 	if expanded.Text != "" {
 		p.Runs = append(p.Runs, furnitureRuns(expanded.Text)...)
 	}
+	e.applySectionBreak(line, &p)
 
 	*out = append(*out, p)
 	return nil
@@ -1044,6 +1195,7 @@ func (e *emitter) furnitureRunLine(line theme.Line, meta map[string]any, numID i
 			return nil
 		}
 	}
+	e.applySectionBreak(line, &p)
 	*out = append(*out, p)
 	return nil
 }

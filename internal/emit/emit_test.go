@@ -19,6 +19,7 @@ func testTheme() *theme.Theme {
 			"Ueberschrift1": {Name: "heading 1", BasedOn: "Standard", Bold: true},
 			"Listenabsatz":  {Name: "List Paragraph", BasedOn: "Standard"},
 			"Evidence":      {Name: "Evidence", BasedOn: "Standard", Italic: true},
+			"EvidenceLabel": {Name: "Evidence Label", Type: "character"},
 		},
 		Numbering: map[string]theme.NumFormat{
 			"Nummerierung": {Format: "decimal", Text: "%1.", Style: "Listenabsatz"},
@@ -30,10 +31,11 @@ func testSchema() *schema.Schema {
 	return &schema.Schema{
 		Type: "test",
 		Styles: map[string]string{
-			"h1":           "Ueberschrift1",
-			"paragraph":    "Standard",
-			"ordered_list": "Nummerierung",
-			"div.evidence": "Evidence",
+			"h1":                 "Ueberschrift1",
+			"paragraph":          "Standard",
+			"ordered_list":       "Nummerierung",
+			"div.evidence":       "Evidence",
+			"div.evidence.label": "EvidenceLabel",
 		},
 		// The furniture tests below interpolate these. Validate rejects a theme
 		// that names a field the schema does not declare, so the test schema has
@@ -535,14 +537,46 @@ func TestHeadingUsesMappedStyle(t *testing.T) {
 	}
 }
 
-func TestDivUsesMappedStyle(t *testing.T) {
-	doc := xml(t, build(t, "---\nx: 1\n---\n\n::: evidence\n- [Exhibit 1] Contract\n:::\n"))
-	if !strings.Contains(doc, `<w:pStyle w:val="Evidence"/>`) {
-		t.Errorf("div content did not get the mapped style:\n%s", doc)
+func TestLabelledDivMovesEvidenceLabelToRightTab(t *testing.T) {
+	doc := build(t, "---\nx: 1\n---\n\n::: evidence\n- [Exhibit 1] Contract\n:::\n")
+	if len(doc.Body) != 1 {
+		t.Fatalf("got %d body blocks, want 1", len(doc.Body))
 	}
-	if !strings.Contains(doc, "[Exhibit 1] Contract") {
-		t.Errorf("evidence label did not reach the rendered document:\n%s", doc)
+	p, ok := doc.Body[0].(docx.Paragraph)
+	if !ok {
+		t.Fatalf("body block is %T, want paragraph", doc.Body[0])
 	}
+	if p.Props.Style != "Evidence" {
+		t.Errorf("paragraph style = %q, want Evidence", p.Props.Style)
+	}
+	if p.Props.Numbering == nil {
+		t.Fatal("labelled evidence lost its bullet")
+	}
+	if got := runText(p.Runs[0]); got != "Contract" {
+		t.Errorf("description = %q, want Contract", got)
+	}
+	if len(p.Runs) != 3 {
+		t.Fatalf("got %d runs, want description + tab + label", len(p.Runs))
+	}
+	if _, ok := p.Runs[1].Items[0].(docx.Tab); !ok {
+		t.Errorf("middle run = %T, want tab", p.Runs[1].Items[0])
+	}
+	if p.Runs[2].Props.Style != "EvidenceLabel" {
+		t.Errorf("label style = %q, want EvidenceLabel", p.Runs[2].Props.Style)
+	}
+	if got := runText(p.Runs[2]); got != "Exhibit 1" {
+		t.Errorf("label = %q, want Exhibit 1", got)
+	}
+}
+
+func runText(r docx.Run) string {
+	var out strings.Builder
+	for _, item := range r.Items {
+		if text, ok := item.(docx.Text); ok {
+			out.WriteString(string(text))
+		}
+	}
+	return out.String()
 }
 
 // Inline emphasis must survive as run properties rather than as literal
@@ -627,6 +661,36 @@ func TestRepeatEmitsOnePerItem(t *testing.T) {
 	for _, want := range []string{"Vertrag", "Protokoll", "Rechnung"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("repeat dropped %q", want)
+		}
+	}
+}
+
+func TestFurnitureIfNonemptySkipsEmptyEnclosureSection(t *testing.T) {
+	th := testTheme()
+	th.Epilogue = []theme.Line{
+		{Style: "Standard", Text: "Beilagen", IfNonempty: "attachments", PageBreak: true},
+		{Style: "Standard", Text: "{{ item }}", Repeat: "attachments"},
+	}
+	f, _ := parse.Parse("t.md", []byte("---\nx: 1\n---\n\nBody.\n"))
+
+	empty := ir.Build(f, "test", map[string]any{"attachments": []any{}})
+	built, err := Build(empty, testSchema(), th, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out := xml(t, built); strings.Contains(out, "Beilagen") {
+		t.Errorf("empty enclosure list emitted its heading:\n%s", out)
+	}
+
+	filled := ir.Build(f, "test", map[string]any{"attachments": []any{"Vertrag"}})
+	built, err = Build(filled, testSchema(), th, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := xml(t, built)
+	for _, want := range []string{"Beilagen", "Vertrag"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("populated enclosure list omitted %q:\n%s", want, out)
 		}
 	}
 }

@@ -264,6 +264,7 @@ func (t *Theme) Fields() []string {
 	collect := func(lines []Line) {
 		for _, l := range lines {
 			add(l.Repeat)
+			add(l.IfNonempty)
 			for _, text := range l.texts() {
 				for _, m := range fieldRe.FindAllStringSubmatch(text, -1) {
 					path := strings.TrimSpace(m[1])

@@ -162,14 +162,17 @@ func TestThemeFields(t *testing.T) {
 			{Text: "{{ sender.name }}"},
 			{Text: "{{ sender.city }}, {{ date }}"},
 		},
-		Epilogue: []Line{{Text: "{{ signee.name }}"}},
-		Header:   map[string][]Line{"first": {{Text: "{{ sender.name }}"}}},
+		Epilogue: []Line{
+			{Text: "{{ signee.name }}"},
+			{Text: "Enclosures", IfNonempty: "attachments"},
+		},
+		Header: map[string][]Line{"first": {{Text: "{{ sender.name }}"}}},
 	}
 	fields := th.Fields()
 
 	want := map[string]bool{
 		"sender.name": true, "sender.city": true,
-		"date": true, "signee.name": true,
+		"date": true, "signee.name": true, "attachments": true,
 	}
 	if len(fields) != len(want) {
 		t.Errorf("got %d fields %v, want %d", len(fields), fields, len(want))

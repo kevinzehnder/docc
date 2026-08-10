@@ -93,6 +93,9 @@ type HeaderFooter struct {
 type Section struct {
 	Page    PageSize
 	Margins Margins
+	// NextPage starts this section on a new page when it appears as a paragraph
+	// section break. It is ignored for the final document section.
+	NextPage bool
 	// TitlePage enables a distinct first-page header, which a letterhead
 	// normally needs: the logo appears once, not on every page.
 	TitlePage bool
@@ -169,8 +172,12 @@ type ParaProps struct {
 	Indent    Indent
 	Frame     *FramePr
 	Numbering *NumRef
-	Tabs      []TabStop
-	Borders   *ParaBorders
+	// SectionBreak ends the current section after this paragraph. Its page
+	// geometry applies to the section that just ended; the document's final
+	// Section applies to the following content.
+	SectionBreak *Section
+	Tabs         []TabStop
+	Borders      *ParaBorders
 	// KeepNext keeps this paragraph on the same page as the next, which is
 	// what stops a heading being orphaned at a page break.
 	KeepNext  bool

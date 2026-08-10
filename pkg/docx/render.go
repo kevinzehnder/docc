@@ -38,7 +38,16 @@ func (d *Document) writeDocument() []byte {
 }
 
 func (d *Document) writeSectPr(w *xw) {
+	d.writeSectionPr(w, d.Section)
+}
+
+// writeSectionPr writes the properties for either the final document section
+// or a section break carried by a paragraph.
+func (d *Document) writeSectionPr(w *xw, section Section) {
 	w.open("w:sectPr")
+	if section.NextPage {
+		w.empty("w:type", a("w:val", "nextPage"))
+	}
 
 	for _, h := range d.Headers {
 		w.empty("w:headerReference", a("w:type", string(h.hfType())), a("r:id", h.relID))
@@ -47,7 +56,7 @@ func (d *Document) writeSectPr(w *xw) {
 		w.empty("w:footerReference", a("w:type", string(f.hfType())), a("r:id", f.relID))
 	}
 
-	page := d.Section.Page
+	page := section.Page
 	if page.Width == 0 || page.Height == 0 {
 		page = A4
 	}
@@ -57,7 +66,7 @@ func (d *Document) writeSectPr(w *xw) {
 	}
 	w.empty("w:pgSz", pageAttrs...)
 
-	m := d.Section.Margins
+	m := section.Margins
 	w.empty("w:pgMar",
 		ai("w:top", m.Top),
 		ai("w:right", m.Right),
@@ -68,13 +77,13 @@ func (d *Document) writeSectPr(w *xw) {
 		ai("w:gutter", m.Gutter),
 	)
 
-	if d.Section.Cols > 1 {
-		w.empty("w:cols", ai("w:num", d.Section.Cols))
+	if section.Cols > 1 {
+		w.empty("w:cols", ai("w:num", section.Cols))
 	} else {
 		w.empty("w:cols", ai("w:space", Twips(708)))
 	}
 
-	if d.Section.TitlePage {
+	if section.TitlePage {
 		w.empty("w:titlePg")
 	}
 	w.empty("w:docGrid", ai("w:linePitch", 360))
@@ -95,7 +104,7 @@ func (h HeaderFooter) hfType() HeaderFooterType {
 
 func (p Paragraph) write(w *xw, d *Document) {
 	w.open("w:p")
-	writeParaProps(w, p.Props, true)
+	writeParaProps(w, p.Props, true, d)
 	for _, r := range p.Runs {
 		r.write(w, d)
 	}
@@ -104,7 +113,7 @@ func (p Paragraph) write(w *xw, d *Document) {
 
 // writeParaProps emits w:pPr. inBody distinguishes a body paragraph, where an
 // empty w:pPr is pointless noise, from a style definition, where it is invalid.
-func writeParaProps(w *xw, p ParaProps, inBody bool) {
+func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 	if p.isZero() {
 		if !inBody {
 			// Style definitions need the element present even when empty.
@@ -204,6 +213,9 @@ func writeParaProps(w *xw, p ParaProps, inBody bool) {
 	if p.OutlineLevel != nil {
 		w.empty("w:outlineLvl", ai("w:val", *p.OutlineLevel))
 	}
+	if p.SectionBreak != nil && d != nil {
+		d.writeSectionPr(w, *p.SectionBreak)
+	}
 
 	w.close("w:pPr")
 }
@@ -211,7 +223,7 @@ func writeParaProps(w *xw, p ParaProps, inBody bool) {
 func (p ParaProps) isZero() bool {
 	return p.Style == "" && p.Align == "" && p.Spacing == (Spacing{}) &&
 		p.Indent == (Indent{}) && p.Frame == nil && p.Numbering == nil &&
-		len(p.Tabs) == 0 && p.Borders == nil && !p.KeepNext && !p.KeepLines &&
+		p.SectionBreak == nil && len(p.Tabs) == 0 && p.Borders == nil && !p.KeepNext && !p.KeepLines &&
 		!p.PageBreak && !p.ContextualSpacing && p.Shading == "" && p.OutlineLevel == nil
 }
 

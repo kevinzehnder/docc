@@ -166,6 +166,40 @@ func TestBodyEndsWithSectPr(t *testing.T) {
 	}
 }
 
+func TestParagraphSectionBreakStartsNewSection(t *testing.T) {
+	doc := sample()
+	doc.Body = []Block{
+		Paragraph{
+			Props: ParaProps{SectionBreak: &Section{
+				Page:     A4,
+				Margins:  Margins{Top: Mm(20), Bottom: Mm(20), Left: Mm(25), Right: Mm(25)},
+				NextPage: true,
+			}},
+			Runs: []Run{R("Cover")},
+		},
+		P("Standard", "Body"),
+	}
+	doc.Section = Section{
+		Page:    A4,
+		Margins: Margins{Top: Mm(20), Bottom: Mm(25), Left: Mm(32), Right: Mm(32)},
+	}
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	xml := partOf(t, data, "word/document.xml")
+	if got := strings.Count(xml, "<w:sectPr>"); got != 2 {
+		t.Errorf("got %d section properties, want 2:\n%s", got, xml)
+	}
+	if !strings.Contains(xml, `<w:type w:val="nextPage"/>`) {
+		t.Errorf("section break is not a next-page break:\n%s", xml)
+	}
+	if !strings.Contains(xml, `w:left="1814"`) || !strings.Contains(xml, `w:bottom="1417"`) {
+		t.Errorf("continuation margins missing from final section:\n%s", xml)
+	}
+}
+
 // Header and footer references in sectPr must match relationship ids that
 // actually exist, or Word silently drops the letterhead.
 func TestHeaderFooterRelationshipsResolve(t *testing.T) {

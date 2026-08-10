@@ -50,7 +50,7 @@ func (d *Document) writeStyles() []byte {
 	writeRunProps(w, d.Defaults.Run, false)
 	w.close("w:rPrDefault")
 	w.open("w:pPrDefault")
-	writeParaProps(w, d.Defaults.Paragraph, false)
+	writeParaProps(w, d.Defaults.Paragraph, false, nil)
 	w.close("w:pPrDefault")
 	w.close("w:docDefaults")
 
@@ -101,7 +101,7 @@ func writeStyle(w *xw, s Style) {
 	// A character style carries no paragraph properties; emitting an empty
 	// w:pPr inside one is invalid.
 	if typ != StyleCharacter {
-		writeParaProps(w, s.Para, false)
+		writeParaProps(w, s.Para, false, nil)
 	}
 	writeRunProps(w, s.Run, false)
 

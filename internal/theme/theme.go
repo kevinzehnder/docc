@@ -51,6 +51,9 @@ type Page struct {
 	Height    Length  `yaml:"height"`
 	Landscape bool    `yaml:"landscape"`
 	Margins   Margins `yaml:"margins"`
+	// ContinuationMargins override the first section's margins after a
+	// furniture line creates a section break. Omitted sides retain Margins.
+	ContinuationMargins *Margins `yaml:"continuation_margins"`
 	// TitlePage gives the first page its own header and footer, which a
 	// letterhead needs: the logo belongs on page one, not on every page.
 	TitlePage bool `yaml:"title_page"`
@@ -221,11 +224,11 @@ type Line struct {
 	Image *Image `yaml:"image"`
 	// Repeat names a list field, emitting one paragraph per element. Inside
 	// the text, {{ item }} is the element.
-	//
-	// This is a list rendering, not control flow: there is no condition and no
-	// nesting. A theme that needs more than this is describing logic, and logic
-	// belongs in Go where it can be tested.
 	Repeat string `yaml:"repeat"`
+	// IfNonempty emits this line only when the named metadata field has a value.
+	// It is for furniture that introduces a repeated list (for example, an
+	// enclosures heading) and must disappear with an empty list.
+	IfNonempty string `yaml:"if_nonempty"`
 	// Numbering names a definition in the theme's `numbering:` map, giving the
 	// line a Word list number. Every line naming the same definition within one
 	// block of furniture shares an instance, so a `repeat` over a list comes out
@@ -241,6 +244,9 @@ type Line struct {
 	OmitIfEmpty *bool `yaml:"omit_if_empty"`
 	// PageBreak starts a new page before this line.
 	PageBreak bool `yaml:"page_break"`
+	// SectionBreak ends the current section after this line and starts the next
+	// one on a new page. It activates page.continuation_margins.
+	SectionBreak bool `yaml:"section_break"`
 	// Tab inserts a tab before the text, for a right-aligned date line.
 	Tabs []Tab `yaml:"tabs"`
 }
@@ -383,6 +389,33 @@ func (p Page) PageSize() docx.PageSize {
 
 // DocxMargins converts theme margins, defaulting to values that keep text on
 // the page rather than to zero.
+// Merge fills unset override sides from base.
+func (m Margins) Merge(base Margins) Margins {
+	out := base
+	if m.Top.Set() {
+		out.Top = m.Top
+	}
+	if m.Bottom.Set() {
+		out.Bottom = m.Bottom
+	}
+	if m.Left.Set() {
+		out.Left = m.Left
+	}
+	if m.Right.Set() {
+		out.Right = m.Right
+	}
+	if m.Header.Set() {
+		out.Header = m.Header
+	}
+	if m.Footer.Set() {
+		out.Footer = m.Footer
+	}
+	if m.Gutter.Set() {
+		out.Gutter = m.Gutter
+	}
+	return out
+}
+
 func (m Margins) DocxMargins() docx.Margins {
 	return docx.Margins{
 		Top:    m.Top.Twips(docx.Mm(20)),
