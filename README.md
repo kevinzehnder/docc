@@ -322,14 +322,18 @@ model: qwen3-vl
 temperature: 0.1   # low by default — determinism over range, for a small corpus
 dpi: 200
 anchor: true       # inject the PDF's own text layer into the prompt as ground truth
+max_tokens: 4096   # caps each page's response; a dense page needs more than a chat reply
 ```
 
 `anchor` implements what OCR research calls "document-anchoring": for a
 born-digital PDF (not a scan), the page's own extracted text is given to the
 model alongside the page image, which measurably reduces hallucination
 versus prompting from the image alone. It has no effect on plain image input
-or a scanned page with no text layer — those pages are marked
-low-confidence in the output instead.
+or a scanned page with no text layer — those pages are marked low-confidence
+in the output instead, along with any page whose response was cut off at
+`max_tokens` — a dense page (a long list, a big table) can need more than
+the default allows, and a silently truncated page is worse than a flagged
+one.
 
 ## Themes
 

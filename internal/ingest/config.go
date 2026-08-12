@@ -32,6 +32,10 @@ type Config struct {
 	// prompt alongside the page image. Off only makes sense for scanned PDFs
 	// or plain images, where there is no text layer to extract.
 	Anchor bool `yaml:"anchor"`
+	// MaxTokens caps each page's response length. A dense page — a long
+	// list, a big table — can need more than a typical chat reply; too low
+	// a value silently truncates the transcription rather than erroring.
+	MaxTokens int `yaml:"max_tokens"`
 }
 
 // Defaults returns the configuration used when no .docc/ingest.yaml exists.
@@ -41,6 +45,7 @@ func Defaults() Config {
 		Temperature: 0.1,
 		DPI:         200,
 		Anchor:      true,
+		MaxTokens:   4096,
 	}
 }
 

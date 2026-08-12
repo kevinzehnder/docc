@@ -56,18 +56,20 @@ func Convert(ctx context.Context, inputPath string, cfg Config, firstPage, lastP
 			return "", nil, err
 		}
 
-		raw, err := client.CompletePage(ctx, page.PNGPath, prompt)
+		raw, truncated, err := client.CompletePage(ctx, page.PNGPath, prompt)
 		if err != nil {
 			return "", nil, fmt.Errorf("page %d: %w", page.Index, err)
 		}
 
 		res := ParsePageResponse(page.Index, raw)
 		res.HadAnchor = hadAnchor
-		if isPDF && !hadAnchor {
+		switch {
+		case truncated:
 			res.LowConfidence = true
-			if res.Note == "" {
-				res.Note = "no text layer found on this page — verify carefully"
-			}
+			res.Note = "response was cut off at max_tokens — page is likely incomplete"
+		case isPDF && !hadAnchor:
+			res.LowConfidence = true
+			res.Note = "no text layer found on this page — verify carefully"
 		}
 		results = append(results, res)
 	}

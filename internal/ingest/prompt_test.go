@@ -34,3 +34,13 @@ func TestBuildPromptPreservesSpecialCharacters(t *testing.T) {
 		t.Error("expected the prompt to instruct preserving special characters like umlauts")
 	}
 }
+
+func TestBuildPromptSkipsRunningHeadersFooters(t *testing.T) {
+	p, err := BuildPrompt("")
+	if err != nil {
+		t.Fatalf("BuildPrompt: %v", err)
+	}
+	if !strings.Contains(p, "running footers") || !strings.Contains(p, "page number") {
+		t.Error("expected the prompt to instruct skipping running headers/footers and standalone page numbers")
+	}
+}

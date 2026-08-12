@@ -32,13 +32,16 @@ func TestAssembleBannerAndFrontmatter(t *testing.T) {
 func TestAssembleFlagsLowConfidencePages(t *testing.T) {
 	pages := []PageResult{
 		{Index: 1, Markdown: "fine"},
-		{Index: 2, Markdown: "shaky", LowConfidence: true},
-		{Index: 3, Markdown: "also shaky", LowConfidence: true},
+		{Index: 2, Markdown: "shaky", LowConfidence: true, Note: "no text layer found on this page — verify carefully"},
+		{Index: 3, Markdown: "cut off", LowConfidence: true, Note: "response was cut off at max_tokens — page is likely incomplete"},
 	}
 	got := Assemble(pages, AssembleOptions{SourceFile: "scan.pdf"})
 
-	if !strings.Contains(got, "low-confidence pages, review closely: 2, 3") {
-		t.Errorf("expected a low-confidence banner listing pages 2 and 3, got:\n%s", got)
+	if !strings.Contains(got, "page 2: low confidence — no text layer found on this page — verify carefully") {
+		t.Errorf("expected a low-confidence banner line for page 2 with its reason, got:\n%s", got)
+	}
+	if !strings.Contains(got, "page 3: low confidence — response was cut off at max_tokens — page is likely incomplete") {
+		t.Errorf("expected a low-confidence banner line for page 3 with its reason, got:\n%s", got)
 	}
 }
 

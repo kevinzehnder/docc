@@ -17,15 +17,8 @@ func TestClientCompletePageSendsExpectedRequest(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&gotReq); err != nil {
 			t.Errorf("decode request body: %v", err)
 		}
-		_ = json.NewEncoder(w).Encode(chatResponse{
-			Choices: []struct {
-				Message struct {
-					Content string `json:"content"`
-				} `json:"message"`
-			}{{Message: struct {
-				Content string `json:"content"`
-			}{Content: "# hello\n\nsome transcribed text"}}},
-		})
+		body := `{"choices":[{"message":{"content":"# hello\n\nsome transcribed text"},"finish_reason":"stop"}]}`
+		_, _ = w.Write([]byte(body))
 	}))
 	defer srv.Close()
 
@@ -34,10 +27,13 @@ func TestClientCompletePageSendsExpectedRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c := &Client{Endpoint: srv.URL, Model: "qwen3-vl", Temperature: 0.1, HTTPClient: srv.Client()}
-	got, err := c.CompletePage(context.Background(), imgPath, "transcribe this page")
+	c := &Client{Endpoint: srv.URL, Model: "qwen3-vl", Temperature: 0.1, MaxTokens: 2048, HTTPClient: srv.Client()}
+	got, truncated, err := c.CompletePage(context.Background(), imgPath, "transcribe this page")
 	if err != nil {
 		t.Fatalf("CompletePage: %v", err)
+	}
+	if truncated {
+		t.Error("truncated = true for finish_reason \"stop\"")
 	}
 	if !strings.Contains(got, "hello") {
 		t.Errorf("response = %q, want it to contain the model's markdown", got)
@@ -49,11 +45,30 @@ func TestClientCompletePageSendsExpectedRequest(t *testing.T) {
 	if gotReq.Temperature != 0.1 {
 		t.Errorf("request temperature = %v, want 0.1", gotReq.Temperature)
 	}
+	if gotReq.MaxTokens != 2048 {
+		t.Errorf("request max_tokens = %v, want 2048", gotReq.MaxTokens)
+	}
 	if len(gotReq.Messages) != 1 || len(gotReq.Messages[0].Content) != 2 {
 		t.Fatalf("request content parts = %+v, want one text part and one image part", gotReq.Messages)
 	}
 	if gotReq.Messages[0].Content[1].ImageURL == nil || !strings.HasPrefix(gotReq.Messages[0].Content[1].ImageURL.URL, "data:image/png;base64,") {
 		t.Errorf("image part = %+v, want a base64 data URL", gotReq.Messages[0].Content[1])
+	}
+}
+
+func TestClientCompletePageTruncated(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"cut off mid-sente"},"finish_reason":"length"}]}`))
+	}))
+	defer srv.Close()
+
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
+	_, truncated, err := c.CompletePage(context.Background(), "", "prompt")
+	if err != nil {
+		t.Fatalf("CompletePage: %v", err)
+	}
+	if !truncated {
+		t.Error("expected truncated = true for finish_reason \"length\"")
 	}
 }
 
@@ -65,7 +80,7 @@ func TestClientCompletePageHTTPError(t *testing.T) {
 	defer srv.Close()
 
 	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
-	_, err := c.CompletePage(context.Background(), "", "prompt")
+	_, _, err := c.CompletePage(context.Background(), "", "prompt")
 	if err == nil {
 		t.Fatal("expected an error for a non-200 response")
 	}
@@ -76,12 +91,12 @@ func TestClientCompletePageHTTPError(t *testing.T) {
 
 func TestClientCompletePageNoChoices(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode(chatResponse{})
+		_, _ = w.Write([]byte(`{"choices":[]}`))
 	}))
 	defer srv.Close()
 
 	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
-	_, err := c.CompletePage(context.Background(), "", "prompt")
+	_, _, err := c.CompletePage(context.Background(), "", "prompt")
 	if err == nil {
 		t.Fatal("expected an error when the server returns no choices")
 	}

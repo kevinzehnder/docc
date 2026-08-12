@@ -17,6 +17,9 @@ func TestDefaults(t *testing.T) {
 	if !cfg.Anchor {
 		t.Error("Defaults().Anchor = false, want true — anchoring is the main precision lever and should be on by default")
 	}
+	if cfg.MaxTokens <= 0 {
+		t.Errorf("Defaults().MaxTokens = %d, want a positive default — an unset cap silently truncates dense pages", cfg.MaxTokens)
+	}
 }
 
 func TestLoadConfigMissingFileReturnsDefaults(t *testing.T) {
