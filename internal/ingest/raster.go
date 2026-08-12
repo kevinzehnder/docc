@@ -25,6 +25,11 @@ type Page struct {
 type RasterOptions struct {
 	// DPI controls resolution. Zero means Defaults().DPI.
 	DPI int
+	// First and Last restrict rasterization to a 1-based, inclusive page
+	// range. Zero means from the first page / through the last page — useful
+	// to try a prompt against a handful of pages before spending a VLM call
+	// on every page of a long document.
+	First, Last int
 	// Timeout bounds the whole pdftoppm run. Zero means 120 seconds.
 	Timeout time.Duration
 }
@@ -61,14 +66,18 @@ func RenderPages(pdfPath, outDir string, opts RasterOptions) ([]Page, error) {
 	defer cancel()
 
 	prefix := filepath.Join(outDir, "page")
+	args := []string{"-png", "-r", strconv.Itoa(dpi)}
+	if opts.First > 0 {
+		args = append(args, "-f", strconv.Itoa(opts.First))
+	}
+	if opts.Last > 0 {
+		args = append(args, "-l", strconv.Itoa(opts.Last))
+	}
+	args = append(args, pdfPath, prefix)
+
 	// binary comes from exec.LookPath and the paths are the caller's own
 	// arguments; there is no shell involved, so no interpolation to escape.
-	cmd := exec.CommandContext(ctx, binary, //nolint:gosec // fixed argv, no shell
-		"-png",
-		"-r", strconv.Itoa(dpi),
-		pdfPath,
-		prefix,
-	)
+	cmd := exec.CommandContext(ctx, binary, args...) //nolint:gosec // fixed argv, no shell
 	out, err := cmd.CombinedOutput()
 	if ctx.Err() == context.DeadlineExceeded {
 		return nil, fmt.Errorf("pdftoppm timed out after %s", timeout)

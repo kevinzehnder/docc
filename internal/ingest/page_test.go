@@ -51,3 +51,19 @@ func TestParsePageResponseEmptyRzSequence(t *testing.T) {
 		t.Errorf("RzSeq = %v, want empty", got.RzSeq)
 	}
 }
+
+func TestParsePlainResponse(t *testing.T) {
+	got := ParsePlainResponse(4, "  # Heading\n\n12 Some literal marginal number kept as text.\n  ")
+	if got.Index != 4 {
+		t.Errorf("Index = %d, want 4", got.Index)
+	}
+	if got.Markdown != "# Heading\n\n12 Some literal marginal number kept as text." {
+		t.Errorf("Markdown = %q", got.Markdown)
+	}
+	if len(got.RzSeq) != 0 {
+		t.Errorf("RzSeq = %v, want empty — plain mode never parses one", got.RzSeq)
+	}
+	if got.LowConfidence {
+		t.Error("plain responses are never flagged low-confidence for format reasons")
+	}
+}

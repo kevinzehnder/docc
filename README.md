@@ -291,11 +291,14 @@ file.
 
 ```bash
 llama-server -hf ggml-org/Qwen3-VL-8B-Instruct-GGUF   # or any OpenAI-compatible VLM endpoint
+docc ingest --pages 1-3 klage_mueller.pdf --model qwen3-vl --type legal  # try a few pages first
 docc ingest klage_mueller.pdf --model qwen3-vl --type legal
 docc check klage_mueller.md
 ```
 
-It requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH` for PDF
+`--pages` (`N` or `N-M`, 1-based, inclusive) limits conversion to a page range
+— worth using on a first run against a long document, since every page is a
+VLM call. It requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH` for PDF
 input, the same way `docc build --to pdf` requires LibreOffice; a plain image
 input skips rasterization entirely.
 
@@ -311,6 +314,12 @@ source pages against the count `docc` would actually render. A mismatch
 (`ING001`) usually means a paragraph was split or merged during conversion; a
 gap in the model's own reported sequence (`ING002`) usually means it
 misread a page even where the total count came out right.
+
+`--plain` bypasses that docc-specific behavior for a literal transcription:
+any marginal numbers are kept as visible text instead of stripped and
+reported separately, and `ING001`/`ING002` never run, since there is no
+observed Randziffer sequence to check against. Use it for documents that
+have nothing to do with docc's numbering model — a plain conversion job.
 
 Configure the endpoint, model and precision knobs in `.docc/ingest.yaml`,
 overridable per run with flags:

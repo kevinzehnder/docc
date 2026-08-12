@@ -31,6 +31,13 @@ const (
 	rzMarker       = "===RZ==="
 )
 
+// ParsePlainResponse wraps a plain-mode response (see BuildPlainPrompt) as a
+// PageResult with no RZ parsing: the response is the page's markdown,
+// verbatim.
+func ParsePlainResponse(index int, raw string) PageResult {
+	return PageResult{Index: index, Markdown: strings.TrimSpace(raw)}
+}
+
 // ParsePageResponse splits the VLM's raw response into the markdown body and
 // the reported Randziffer sequence. A response that does not follow the
 // requested format is not an error — it is passed through as the page's

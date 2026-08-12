@@ -11,7 +11,16 @@ import (
 // (skipped for image inputs, which are already one page), extract
 // born-digital text-layer anchors where available, call the VLM once per
 // page, and assemble the results into one markdown document.
-func Convert(ctx context.Context, inputPath string, cfg Config, opts AssembleOptions) (string, []PageResult, error) {
+//
+// firstPage and lastPage restrict conversion to a 1-based, inclusive page
+// range; zero on either end means from the first / through the last page.
+// They have no effect on image input, which is always a single page.
+//
+// plain switches to a literal transcription with no docc-specific behavior:
+// Randziffern are transcribed as-is rather than stripped and reported
+// separately, and the returned PageResults carry no RzSeq — Verify has
+// nothing to check in that mode and should not be called on the result.
+func Convert(ctx context.Context, inputPath string, cfg Config, firstPage, lastPage int, plain bool, opts AssembleOptions) (string, []PageResult, error) {
 	client := NewClient(cfg)
 	isPDF := IsPDF(inputPath)
 
@@ -23,7 +32,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts AssembleOpt
 		}
 		defer func() { _ = os.RemoveAll(workDir) }()
 
-		rendered, err := RenderPages(inputPath, workDir, RasterOptions{DPI: cfg.DPI})
+		rendered, err := RenderPages(inputPath, workDir, RasterOptions{DPI: cfg.DPI, First: firstPage, Last: lastPage})
 		if err != nil {
 			return "", nil, err
 		}
@@ -47,7 +56,12 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts AssembleOpt
 			}
 		}
 
-		prompt, err := BuildPrompt(anchorText)
+		buildPrompt, parseResponse := BuildPrompt, ParsePageResponse
+		if plain {
+			buildPrompt, parseResponse = BuildPlainPrompt, ParsePlainResponse
+		}
+
+		prompt, err := buildPrompt(anchorText)
 		if err != nil {
 			return "", nil, err
 		}
@@ -57,7 +71,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts AssembleOpt
 			return "", nil, fmt.Errorf("page %d: %w", page.Index, err)
 		}
 
-		res := ParsePageResponse(page.Index, raw)
+		res := parseResponse(page.Index, raw)
 		res.HadAnchor = hadAnchor
 		if isPDF && !hadAnchor {
 			res.LowConfidence = true

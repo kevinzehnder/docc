@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/kevinzehnder/docc/internal/diag"
@@ -56,6 +57,8 @@ build flags:
 
 ingest flags:
   --dpi <n>            page rasterization DPI (default: from .docc/ingest.yaml, or 200)
+  --pages <n|n-m>      page range to convert, e.g. 3 or 3-5 (default: the whole document)
+  --plain              plain transcription: no Randziffer stripping, no ING00x verification
   --no-anchor          disable born-digital text-layer anchoring
   --model <name>       VLM model name (default: from .docc/ingest.yaml)
   --endpoint <url>     VLM chat completions endpoint (default: from .docc/ingest.yaml)
@@ -420,6 +423,8 @@ func cmdIngest(args []string) int {
 		model    = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
 		endpoint = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
 		output   = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
+		pages    = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
+		plain    = fs.Bool("plain", false, "plain transcription: no Randziffer stripping, no ING00x verification")
 	)
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -431,6 +436,11 @@ func cmdIngest(args []string) int {
 	}
 	if *output != "" && len(files) > 1 {
 		fmt.Fprintln(os.Stderr, "docc ingest: --output requires exactly one input file")
+		return 2
+	}
+	firstPage, lastPage, err := parsePageRange(*pages)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc ingest:", err)
 		return 2
 	}
 
@@ -477,7 +487,7 @@ func cmdIngest(args []string) int {
 			outPath = strings.TrimSuffix(input, filepath.Ext(input)) + ".md"
 		}
 
-		md, pages, err := ingest.Convert(context.Background(), input, cfg, ingest.AssembleOptions{DocType: cf.docType})
+		md, results, err := ingest.Convert(context.Background(), input, cfg, firstPage, lastPage, *plain, ingest.AssembleOptions{DocType: cf.docType})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
 			exitCode = 1
@@ -500,8 +510,11 @@ func cmdIngest(args []string) int {
 		f, parseDiags := parse.Parse(name, []byte(md))
 		res := sema.Check(f, schemas, parseDiags, cf.docType)
 		all = append(all, res.Diagnostics...)
-		if res.Schema != nil {
-			all = append(all, ingest.Verify(f, res.Schema, pages)...)
+		// Plain mode never collects a Randziffer sequence, so there is
+		// nothing for Verify to compare against — running it would report a
+		// spurious mismatch on every paragraph-numbered schema.
+		if res.Schema != nil && !*plain {
+			all = append(all, ingest.Verify(f, res.Schema, results)...)
 		}
 	}
 
@@ -528,6 +541,27 @@ func resolveIngestConfig(start string) (ingest.Config, error) {
 		return ingest.Config{}, err
 	}
 	return ingest.LoadConfig(proj.IngestConfigPath())
+}
+
+// parsePageRange parses --pages as "N" or "N-M", both 1-based and inclusive.
+// An empty string means the whole document.
+func parsePageRange(s string) (first, last int, err error) {
+	if s == "" {
+		return 0, 0, nil
+	}
+	before, after, hasDash := strings.Cut(s, "-")
+	first, err = strconv.Atoi(strings.TrimSpace(before))
+	if err != nil || first < 1 {
+		return 0, 0, fmt.Errorf("invalid --pages %q: expected N or N-M", s)
+	}
+	if !hasDash {
+		return first, first, nil
+	}
+	last, err = strconv.Atoi(strings.TrimSpace(after))
+	if err != nil || last < first {
+		return 0, 0, fmt.Errorf("invalid --pages %q: expected N or N-M", s)
+	}
+	return first, last, nil
 }
 
 func cmdExplain(args []string) int {
