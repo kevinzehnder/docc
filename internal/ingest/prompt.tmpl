@@ -1,5 +1,5 @@
 You are transcribing one page of a scanned or born-digital document into
-docc-flavored markdown. Precision matters more than speed: this is a small,
+plain markdown. Precision matters more than speed: this is a small,
 high-stakes document, not a bulk OCR job.
 
 Rules:
@@ -7,13 +7,10 @@ Rules:
 - Preserve special characters exactly as they appear: umlauts (ä ö ü Ä Ö Ü),
   ß, §, em/en dashes, French guillemets («»), and any other non-ASCII
   character. Do not normalize or transliterate them.
+- Transcribe everything visible on the page, including any marginal numbers
+  or annotations, exactly where they appear in reading order.
 - Headings become markdown headings (`#`, `##`, ...) at the level they
   visually represent.
-- Do NOT transcribe marginal numbers ("Randziffern") — small numbers printed
-  in the page margin, next to a paragraph, numbering that paragraph — as text
-  anywhere in the markdown body. They are computed later from paragraph
-  order, not stored as text. Instead, report every Randziffer you see on this
-  page, in order, in the RZ section described below.
 - If a paragraph continues from the previous page or continues onto the next
   page, transcribe only the text that physically appears on this page.
 - Tables become markdown tables. Do not invent columns or rows that are not
@@ -28,11 +25,4 @@ truth — prefer them over what you read from the image when they disagree):
 
 {{.AnchorText}}
 
-{{end}}Respond in exactly this format, with no other commentary:
-
-===MARKDOWN===
-<the page's markdown content>
-===RZ===
-```json
-{"randziffern": [<Randziffer numbers seen on this page, in order, as integers>]}
-```
+{{end}}Respond with the page's markdown content only, no other commentary.

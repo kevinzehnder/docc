@@ -83,7 +83,7 @@ func TestExtractAnchorsRealBinary(t *testing.T) {
 	if _, err := exec.LookPath("pdftotext"); err != nil {
 		t.Skip("pdftotext not on PATH")
 	}
-	pdfPath := writeMinimalPDF(t, t.TempDir(), "Randziffer Test")
+	pdfPath := writeMinimalPDF(t, t.TempDir(), "Anchor Test")
 
 	anchors, err := ExtractAnchors(pdfPath, 1, 10*time.Second)
 	if err != nil {
@@ -93,7 +93,7 @@ func TestExtractAnchorsRealBinary(t *testing.T) {
 		t.Fatal("expected at least one anchor word from the fixture PDF")
 	}
 	got := PromptText(anchors)
-	if !strings.Contains(got, "Randziffer") {
+	if !strings.Contains(got, "Anchor") {
 		t.Errorf("PromptText(ExtractAnchors(...)) = %q, want it to contain the fixture text", got)
 	}
 }

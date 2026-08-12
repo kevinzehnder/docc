@@ -56,13 +56,14 @@ build flags:
   --force              render despite validation errors
 
 ingest flags:
+  --type <type>        document_type to write into the output frontmatter
   --dpi <n>            page rasterization DPI (default: from .docc/ingest.yaml, or 200)
   --pages <n|n-m>      page range to convert, e.g. 3 or 3-5 (default: the whole document)
-  --plain              plain transcription: no Randziffer stripping, no ING00x verification
   --no-anchor          disable born-digital text-layer anchoring
   --model <name>       VLM model name (default: from .docc/ingest.yaml)
   --endpoint <url>     VLM chat completions endpoint (default: from .docc/ingest.yaml)
   --output <path>      output path (single input file only; default: input with .md extension)
+  --json               machine-readable output
 
 exit codes:
   0  no errors
@@ -407,24 +408,22 @@ func cmdBuild(args []string) int {
 	return 0
 }
 
-// cmdIngest converts each input PDF or image into a draft markdown document
-// via a locally hosted VLM. The result is never trusted automatically: it is
-// written to disk and, when a schema can be resolved, run through the same
-// docc check pipeline any hand-authored document goes through, plus one
-// ingest-specific check comparing the Randziffern the VLM observed against
-// the count docc's own paragraph_numbering would render.
+// cmdIngest converts each input PDF or image into a plain markdown draft via
+// a locally hosted VLM. It does no schema fitting — adapting the result to a
+// specific docc document type (frontmatter fields, section structure) is a
+// later editing pass, not ingest's job. Nothing it produces is trusted
+// automatically; run docc check once a draft has been adapted.
 func cmdIngest(args []string) int {
 	fs := flag.NewFlagSet("ingest", flag.ContinueOnError)
-	var cf commonFlags
-	cf.bind(fs)
 	var (
+		docType  = fs.String("type", "", "document_type to write into the output frontmatter")
+		jsonOut  = fs.Bool("json", false, "machine-readable output")
 		dpi      = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
 		noAnchor = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
 		model    = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
 		endpoint = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
 		output   = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
 		pages    = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
-		plain    = fs.Bool("plain", false, "plain transcription: no Randziffer stripping, no ING00x verification")
 	)
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -466,20 +465,6 @@ func cmdIngest(args []string) int {
 		return 2
 	}
 
-	// Schema resolution is best-effort: ingest is useful before a project has
-	// schemas set up at all, and still produces a draft either way. Only an
-	// explicit --schema-dir or --type is treated as a hard requirement.
-	schemas, schemaErr := loadSchemas(cf.schemaDir, files[0])
-	if schemaErr != nil {
-		if cf.schemaDir != "" || cf.docType != "" {
-			fmt.Fprintln(os.Stderr, "docc:", schemaErr)
-			return 2
-		}
-		schemas = nil
-	}
-
-	var all diag.List
-	sources := map[string][]byte{}
 	exitCode := 0
 	for _, input := range files {
 		outPath := *output
@@ -487,7 +472,7 @@ func cmdIngest(args []string) int {
 			outPath = strings.TrimSuffix(input, filepath.Ext(input)) + ".md"
 		}
 
-		md, results, err := ingest.Convert(context.Background(), input, cfg, firstPage, lastPage, *plain, ingest.AssembleOptions{DocType: cf.docType})
+		md, _, err := ingest.Convert(context.Background(), input, cfg, firstPage, lastPage, ingest.AssembleOptions{DocType: *docType})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
 			exitCode = 1
@@ -498,32 +483,11 @@ func cmdIngest(args []string) int {
 			exitCode = 1
 			continue
 		}
-		if !cf.jsonOut {
+		if *jsonOut {
+			fmt.Printf("{\"ok\":true,\"output\":%q}\n", outPath)
+		} else {
 			fmt.Println(outPath)
 		}
-
-		if schemas == nil {
-			continue
-		}
-		name := displayPath(outPath)
-		sources[name] = []byte(md)
-		f, parseDiags := parse.Parse(name, []byte(md))
-		res := sema.Check(f, schemas, parseDiags, cf.docType)
-		all = append(all, res.Diagnostics...)
-		// Plain mode never collects a Randziffer sequence, so there is
-		// nothing for Verify to compare against — running it would report a
-		// spurious mismatch on every paragraph-numbered schema.
-		if res.Schema != nil && !*plain {
-			all = append(all, ingest.Verify(f, res.Schema, results)...)
-		}
-	}
-
-	if len(all) > 0 {
-		if reported := report(all, sources, cf); reported != 0 {
-			exitCode = reported
-		}
-	} else if cf.jsonOut {
-		fmt.Println(`{"ok":true}`)
 	}
 	return exitCode
 }
@@ -598,8 +562,6 @@ var explanations = map[string]string{
 	"DOC021": "a conventional but optional section is missing.",
 	"DOC022": "a section appears out of the order the schema declares.",
 	"DOC023": "a fenced div was opened but not closed. Put the closing `:::` on a line of its own.",
-	"ING001": "`docc ingest` produced a different number of paragraphs than the Randziffern the VLM reported seeing on the source pages — a paragraph was likely split or merged during conversion.",
-	"ING002": "the VLM's own observed Randziffer sequence has a gap or repeat, meaning it likely misread a source page even though the overall paragraph count matched.",
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest

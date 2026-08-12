@@ -24,7 +24,7 @@ func TestClientCompletePageSendsExpectedRequest(t *testing.T) {
 				} `json:"message"`
 			}{{Message: struct {
 				Content string `json:"content"`
-			}{Content: "===MARKDOWN===\nhello\n===RZ===\n{\"randziffern\":[]}"}}},
+			}{Content: "# hello\n\nsome transcribed text"}}},
 		})
 	}))
 	defer srv.Close()

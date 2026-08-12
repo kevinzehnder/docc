@@ -286,15 +286,22 @@ itself when a section moves, and does so without `docc`.
 hosted vision language model reached over an OpenAI-compatible chat
 completions API — the interface a `llama.cpp` `llama-server` instance
 exposes. It exists for the reverse direction docc otherwise has no answer
-for: an existing document that needs to become a `docc`-checkable source
-file.
+for: an existing document that needs to become editable markdown.
 
 ```bash
 llama-server -hf ggml-org/Qwen3-VL-8B-Instruct-GGUF   # or any OpenAI-compatible VLM endpoint
-docc ingest --pages 1-3 klage_mueller.pdf --model qwen3-vl --type legal  # try a few pages first
-docc ingest klage_mueller.pdf --model qwen3-vl --type legal
-docc check klage_mueller.md
+docc ingest --pages 1-3 klage_mueller.pdf --model qwen3-vl  # try a few pages first
+docc ingest klage_mueller.pdf --model qwen3-vl
 ```
+
+It does one job — turn a PDF or image into faithful, clean markdown — and
+stops there. It has no schema awareness: it does not validate, does not fit
+the result to a document type, and does not run `docc check`. `--type` only
+writes a `document_type` line into the output frontmatter as a convenience;
+fitting the draft to a schema's actual fields and structure is a later
+editing pass (by a person, or an agent), not ingest's job. Once that pass is
+done, `docc check klage_mueller.md` validates the result the same way it
+would for anything hand-authored.
 
 `--pages` (`N` or `N-M`, 1-based, inclusive) limits conversion to a page range
 — worth using on a first run against a long document, since every page is a
@@ -302,24 +309,9 @@ VLM call. It requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH` for P
 input, the same way `docc build --to pdf` requires LibreOffice; a plain image
 input skips rasterization entirely.
 
-Nothing `docc ingest` produces is trusted automatically. The output is a
-`.md` file with a banner comment marking it machine-generated, low-confidence
-pages called out by number, and generic frontmatter the author fills in by
-hand — `docc check` reports whatever schema fields are still missing, the
-same way it would for a document typed by a person. When `--type` (or
-`--schema-dir`) resolves a schema, `docc ingest` runs that check immediately
-and, if the schema declares `paragraph_numbering`, one more comparison
-unique to this pipeline: the Randziffern the model reported seeing on the
-source pages against the count `docc` would actually render. A mismatch
-(`ING001`) usually means a paragraph was split or merged during conversion; a
-gap in the model's own reported sequence (`ING002`) usually means it
-misread a page even where the total count came out right.
-
-`--plain` bypasses that docc-specific behavior for a literal transcription:
-any marginal numbers are kept as visible text instead of stripped and
-reported separately, and `ING001`/`ING002` never run, since there is no
-observed Randziffer sequence to check against. Use it for documents that
-have nothing to do with docc's numbering model — a plain conversion job.
+The output is a `.md` file with a banner comment marking it machine-generated
+and low-confidence pages called out by number — pages with no text layer to
+cross-check against, worth a closer read before trusting them.
 
 Configure the endpoint, model and precision knobs in `.docc/ingest.yaml`,
 overridable per run with flags:
