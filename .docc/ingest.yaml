@@ -1,0 +1,5 @@
+endpoint: http://localhost:8080/v1/chat/completions
+model: unsloth/Qwen3.5-9B-GGUF:Q4_K_M
+temperature: 0.1
+dpi: 200
+anchor: true
