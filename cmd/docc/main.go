@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/kevinzehnder/docc/internal/diag"
 	"github.com/kevinzehnder/docc/internal/emit"
+	"github.com/kevinzehnder/docc/internal/ingest"
 	"github.com/kevinzehnder/docc/internal/ir"
 	"github.com/kevinzehnder/docc/internal/lsp"
 	"github.com/kevinzehnder/docc/internal/parse"
@@ -30,6 +32,7 @@ const usage = `docc — a compiler for structured documents
 usage:
   docc check [flags] <file.md>...   validate documents against their schema
   docc build [flags] <file.md>      validate, then render to .docx or .pdf
+  docc ingest [flags] <file>...     draft markdown from a PDF or image via a local VLM
   docc init [directory]             create a generic starter project
   docc lsp [flags]                  start a Language Server Protocol server
   docc types [flags]                list known document types
@@ -50,6 +53,13 @@ build flags:
   --output <path>      output path (default: input with the new extension)
   --theme <name>       theme to render with (default: the schema's own)
   --force              render despite validation errors
+
+ingest flags:
+  --dpi <n>            page rasterization DPI (default: from .docc/ingest.yaml, or 200)
+  --no-anchor          disable born-digital text-layer anchoring
+  --model <name>       VLM model name (default: from .docc/ingest.yaml)
+  --endpoint <url>     VLM chat completions endpoint (default: from .docc/ingest.yaml)
+  --output <path>      output path (single input file only; default: input with .md extension)
 
 exit codes:
   0  no errors
@@ -73,6 +83,8 @@ func run(args []string) int {
 		return cmdCheck(rest)
 	case "build":
 		return cmdBuild(rest)
+	case "ingest":
+		return cmdIngest(rest)
 	case "init":
 		return cmdInit(rest)
 	case "lsp":
@@ -392,6 +404,132 @@ func cmdBuild(args []string) int {
 	return 0
 }
 
+// cmdIngest converts each input PDF or image into a draft markdown document
+// via a locally hosted VLM. The result is never trusted automatically: it is
+// written to disk and, when a schema can be resolved, run through the same
+// docc check pipeline any hand-authored document goes through, plus one
+// ingest-specific check comparing the Randziffern the VLM observed against
+// the count docc's own paragraph_numbering would render.
+func cmdIngest(args []string) int {
+	fs := flag.NewFlagSet("ingest", flag.ContinueOnError)
+	var cf commonFlags
+	cf.bind(fs)
+	var (
+		dpi      = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
+		noAnchor = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
+		model    = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
+		endpoint = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
+		output   = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
+	)
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	files := fs.Args()
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "docc ingest: no input files")
+		return 2
+	}
+	if *output != "" && len(files) > 1 {
+		fmt.Fprintln(os.Stderr, "docc ingest: --output requires exactly one input file")
+		return 2
+	}
+
+	cfg, err := resolveIngestConfig(files[0])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 2
+	}
+	if *dpi != 0 {
+		cfg.DPI = *dpi
+	}
+	if *noAnchor {
+		cfg.Anchor = false
+	}
+	if *model != "" {
+		cfg.Model = *model
+	}
+	if *endpoint != "" {
+		cfg.Endpoint = *endpoint
+	}
+	if cfg.Model == "" {
+		fmt.Fprintln(os.Stderr, "docc ingest: no model configured — pass --model or set model in .docc/ingest.yaml")
+		return 2
+	}
+
+	// Schema resolution is best-effort: ingest is useful before a project has
+	// schemas set up at all, and still produces a draft either way. Only an
+	// explicit --schema-dir or --type is treated as a hard requirement.
+	schemas, schemaErr := loadSchemas(cf.schemaDir, files[0])
+	if schemaErr != nil {
+		if cf.schemaDir != "" || cf.docType != "" {
+			fmt.Fprintln(os.Stderr, "docc:", schemaErr)
+			return 2
+		}
+		schemas = nil
+	}
+
+	var all diag.List
+	sources := map[string][]byte{}
+	exitCode := 0
+	for _, input := range files {
+		outPath := *output
+		if outPath == "" {
+			outPath = strings.TrimSuffix(input, filepath.Ext(input)) + ".md"
+		}
+
+		md, pages, err := ingest.Convert(context.Background(), input, cfg, ingest.AssembleOptions{DocType: cf.docType})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
+			exitCode = 1
+			continue
+		}
+		if err := os.WriteFile(outPath, []byte(md), 0o644); err != nil { //nolint:gosec // draft output, not a secret
+			fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
+			exitCode = 1
+			continue
+		}
+		if !cf.jsonOut {
+			fmt.Println(outPath)
+		}
+
+		if schemas == nil {
+			continue
+		}
+		name := displayPath(outPath)
+		sources[name] = []byte(md)
+		f, parseDiags := parse.Parse(name, []byte(md))
+		res := sema.Check(f, schemas, parseDiags, cf.docType)
+		all = append(all, res.Diagnostics...)
+		if res.Schema != nil {
+			all = append(all, ingest.Verify(f, res.Schema, pages)...)
+		}
+	}
+
+	if len(all) > 0 {
+		if reported := report(all, sources, cf); reported != 0 {
+			exitCode = reported
+		}
+	} else if cf.jsonOut {
+		fmt.Println(`{"ok":true}`)
+	}
+	return exitCode
+}
+
+// resolveIngestConfig loads .docc/ingest.yaml the same way loadSchemas
+// resolves the schema directory: nearest .docc above the first input file. A
+// project that has no ingest.yaml, or no .docc directory at all, still gets
+// Defaults() — ingest works from flags alone.
+func resolveIngestConfig(start string) (ingest.Config, error) {
+	proj, err := project.Resolve(start)
+	if err != nil {
+		if errors.Is(err, project.ErrNotFound) {
+			return ingest.Defaults(), nil
+		}
+		return ingest.Config{}, err
+	}
+	return ingest.LoadConfig(proj.IngestConfigPath())
+}
+
 func cmdExplain(args []string) int {
 	if len(args) != 1 {
 		fmt.Fprintln(os.Stderr, "usage: docc explain <CODE>")
@@ -426,6 +564,8 @@ var explanations = map[string]string{
 	"DOC021": "a conventional but optional section is missing.",
 	"DOC022": "a section appears out of the order the schema declares.",
 	"DOC023": "a fenced div was opened but not closed. Put the closing `:::` on a line of its own.",
+	"ING001": "`docc ingest` produced a different number of paragraphs than the Randziffern the VLM reported seeing on the source pages — a paragraph was likely split or merged during conversion.",
+	"ING002": "the VLM's own observed Randziffer sequence has a gap or repeat, meaning it likely misread a source page even though the overall paragraph count matched.",
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest

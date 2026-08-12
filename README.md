@@ -40,6 +40,7 @@ docc check --strict docs/klage.md # warnings become errors
 docc lsp                          # serve editor diagnostics over stdio
 docc types                        # list known document types
 docc explain DOC010               # describe a diagnostic code
+docc ingest scan.pdf              # draft markdown from a PDF via a local VLM
 ```
 
 Exit codes: `0` clean, `1` diagnostics reported, `2` usage or configuration error.
@@ -278,6 +279,56 @@ prose — a Rechtsbegehren already carries its own number.
 
 The labels are written as Word numbering, not as text. The document renumbers
 itself when a section moves, and does so without `docc`.
+
+## Ingest
+
+`docc ingest` drafts a markdown document from a PDF or image, using a locally
+hosted vision language model reached over an OpenAI-compatible chat
+completions API — the interface a `llama.cpp` `llama-server` instance
+exposes. It exists for the reverse direction docc otherwise has no answer
+for: an existing document that needs to become a `docc`-checkable source
+file.
+
+```bash
+llama-server -hf ggml-org/Qwen3-VL-8B-Instruct-GGUF   # or any OpenAI-compatible VLM endpoint
+docc ingest klage_mueller.pdf --model qwen3-vl --type legal
+docc check klage_mueller.md
+```
+
+It requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH` for PDF
+input, the same way `docc build --to pdf` requires LibreOffice; a plain image
+input skips rasterization entirely.
+
+Nothing `docc ingest` produces is trusted automatically. The output is a
+`.md` file with a banner comment marking it machine-generated, low-confidence
+pages called out by number, and generic frontmatter the author fills in by
+hand — `docc check` reports whatever schema fields are still missing, the
+same way it would for a document typed by a person. When `--type` (or
+`--schema-dir`) resolves a schema, `docc ingest` runs that check immediately
+and, if the schema declares `paragraph_numbering`, one more comparison
+unique to this pipeline: the Randziffern the model reported seeing on the
+source pages against the count `docc` would actually render. A mismatch
+(`ING001`) usually means a paragraph was split or merged during conversion; a
+gap in the model's own reported sequence (`ING002`) usually means it
+misread a page even where the total count came out right.
+
+Configure the endpoint, model and precision knobs in `.docc/ingest.yaml`,
+overridable per run with flags:
+
+```yaml
+endpoint: http://localhost:8080/v1/chat/completions
+model: qwen3-vl
+temperature: 0.1   # low by default — determinism over range, for a small corpus
+dpi: 200
+anchor: true       # inject the PDF's own text layer into the prompt as ground truth
+```
+
+`anchor` implements what OCR research calls "document-anchoring": for a
+born-digital PDF (not a scan), the page's own extracted text is given to the
+model alongside the page image, which measurably reduces hallucination
+versus prompting from the image alone. It has no effect on plain image input
+or a scanned page with no text layer — those pages are marked
+low-confidence in the output instead.
 
 ## Themes
 
