@@ -64,7 +64,8 @@ ingest flags:
   --dpi <n>            page rasterization DPI (default: from .docc/ingest.yaml, or 200)
   --pages <n|n-m>      page range to convert, e.g. 3 or 3-5 (default: the whole document)
   --no-anchor          disable born-digital text-layer anchoring
-  --model <name>       VLM model name (default: from .docc/ingest.yaml)
+  --profile <name>     ingest profile — a model and the protocol it speaks (default: the config's use:)
+  --model <name>       VLM model name, overriding the profile's (default: from .docc/ingest.yaml)
   --backend <name>     chat (one call per page) or mineru (layout pass, then one call per block)
   --endpoint <url>     VLM chat completions endpoint (default: from .docc/ingest.yaml)
   --output <path>      output path (single input file only; default: input with .md extension)
@@ -431,7 +432,8 @@ func cmdIngest(args []string) int {
 		jsonOut       = fs.Bool("json", false, "machine-readable output")
 		dpi           = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
 		noAnchor      = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
-		model         = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
+		profile       = fs.String("profile", "", "ingest profile to transcribe with (default: the config's `use:`)")
+		model         = fs.String("model", "", "VLM model name, overriding the profile's (default: from .docc/ingest.yaml)")
 		backend       = fs.String("backend", "", "transcription backend: chat or mineru (default: from .docc/ingest.yaml, or chat)")
 		endpoint      = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
 		output        = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
@@ -487,7 +489,7 @@ func cmdIngest(args []string) int {
 		}
 	}
 
-	cfg, err := resolveIngestConfig(files[0])
+	cfg, err := resolveIngestConfig(files[0], *profile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "docc:", err)
 		return 2
@@ -606,6 +608,7 @@ func cmdStructure(args []string) int {
 	fs := flag.NewFlagSet("structure", flag.ContinueOnError)
 	var (
 		output   = fs.String("output", "", "output path (default: rewrite the input in place)")
+		profile  = fs.String("profile", "", "ingest profile to structure with; must be a chat profile")
 		model    = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
 		endpoint = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
 		jsonOut  = fs.Bool("json", false, "machine-readable output")
@@ -625,7 +628,7 @@ func cmdStructure(args []string) int {
 		return 2
 	}
 
-	cfg, err := resolveIngestConfig(input)
+	cfg, err := resolveIngestConfig(input, *profile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "docc:", err)
 		return 2
@@ -638,6 +641,16 @@ func cmdStructure(args []string) int {
 	}
 	if cfg.Model == "" {
 		fmt.Fprintln(os.Stderr, "docc structure: no model configured — pass --model or set model in .docc/ingest.yaml")
+		return 2
+	}
+	// This pass sends prose and takes a list back, which is a chat call. A
+	// project whose transcription profile is layout-first would otherwise send
+	// that prompt to a model that answers four fixed task names and nothing
+	// else, and get a plausible-looking non-answer rather than an error — the
+	// same failure profiles exist to make unwriteable for ingest.
+	if cfg.Backend == ingest.BackendMinerU {
+		fmt.Fprintf(os.Stderr, "docc structure: the selected profile speaks the %s protocol, whose prompts are four fixed task names;\n"+
+			"  this pass sends prose and needs a chat model — select one with --profile, or name it with --model\n", ingest.BackendMinerU)
 		return 2
 	}
 
@@ -802,15 +815,29 @@ func checkIngestOutput(path string, force bool) error {
 // resolves the schema directory: nearest .docc above the first input file. A
 // project that has no ingest.yaml, or no .docc directory at all, still gets
 // Defaults() — ingest works from flags alone.
-func resolveIngestConfig(start string) (ingest.Config, error) {
+// resolveIngestConfig loads the project's ingest configuration and resolves
+// profile, or the config's own `use:` when profile is empty.
+func resolveIngestConfig(start, profile string) (ingest.Config, error) {
 	proj, err := project.Resolve(start)
 	if err != nil {
 		if errors.Is(err, project.ErrNotFound) {
+			// Defaults are a whole configuration, but a profile is a name that
+			// only a config file can define. Silently ignoring it would run the
+			// default model under the default protocol while the user believes
+			// they selected something else, which is the failure this flag was
+			// added to prevent.
+			if profile != "" {
+				return ingest.Config{}, fmt.Errorf("--profile %s: no .docc project found above %s, so there are no profiles to select from", profile, start)
+			}
 			return ingest.Defaults(), nil
 		}
 		return ingest.Config{}, err
 	}
-	return ingest.LoadConfig(proj.IngestConfigPath())
+	f, err := ingest.LoadFile(proj.IngestConfigPath())
+	if err != nil {
+		return ingest.Config{}, err
+	}
+	return f.Resolve(profile)
 }
 
 // parsePageRange parses --pages as "N" or "N-M", both 1-based and inclusive.

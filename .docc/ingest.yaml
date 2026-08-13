@@ -1,82 +1,65 @@
 ---
+# Ingest configuration.
+#
+# The measurements behind these choices — the model comparison, the DPI study,
+# what the layout-first protocol changed — are in docs/ingest-todo.md. This file
+# is the settings; that file is the evidence.
+
 endpoint: http://localhost:8080/v1/chat/completions
 
-# ── Model selection ──────────────────────────────────────────────────────
-# Swap between these by uncommenting one and commenting the rest. The value
-# must match a section name in models-router.ini — and that section must
-# carry an `mmproj` line, or the model serves text only and every page here
-# fails. All four below have one.
-#
-# On 8 GB the binding constraint is fitting the vision projector on the GPU
-# alongside the weights. A projector left on the CPU costs minutes per page,
-# which dwarfs any quality difference between these three.
-
-# olmOCR-2-7B       — dedicated OCR VLM, best-in-class on olmOCR-bench (82.4)
-#                     4467 MiB + 1295 MiB projector — fits with room to spare
-# model: olmocr-2-7b
-
-# Qwen3.5-9B        — general-purpose VLM, strong OCR (78.1 on olmOCR-bench)
-#                     5427 MiB + 880 MiB projector — fits, but only at 8k
-#                     context and with speculative decoding disabled
-# model: unsloth/Qwen3.5-9B-GGUF:Q4_K_M
-
-# Gemma-4-E4B       — smaller (4B), has audio too; the roomiest of the three
-#                     4300 MiB + 534 MiB projector. Weakest at dense OCR.
-# model: ggml-org/gemma-4-E4B-it-GGUF:Q4_0
-
-# MinerU2.5-Pro-2605 — layout-first, and the one this project runs. Not a
-#                     general-purpose VLM: it answers four task names and
-#                     nothing else, and the layout pass only fires on a square
-#                     1036x1036 image, which docc builds for it.
-#                     380 MiB + 1264 MiB projector — roomiest profile by far.
-model: mineru-pro-2605
-
-# The layout-first protocol: one call locates and types every block on the
-# page, then each block is read from a crop at full resolution. Chosen on the
-# round trip in docs/ingest-todo.md — recall 0.988 against 0.982 for anchored
-# olmOCR and Qwen, in half the wall time, from a 1.2B model.
-#
-# Two things it is worse at, both open:
-#   - precision 0.703 against 0.758, so it invents more than anchored chat
-#   - it marks thirteen headings on a page that has eight, identically on both
-#     MinerU checkpoints, so a newer model will not fix it
-#
-# Switch back with `--backend chat --model unsloth/Qwen3.5-9B-GGUF:Q4_K_M`
-# when a document needs precision more than it needs structure.
-backend: mineru
+# The profile this project transcribes with. A profile is a model together with
+# the protocol its weights answer: the two are one choice, and pairing them
+# wrongly produces a page of plausible garbage rather than an error.
+use: layout
 
 temperature: 0.1
-
-# Measured on Replik.pdf p30 (dense German legal prose), fixed seed, projector
-# on the GPU — so these differences are the image, not sampling noise:
-#
-#   dpi=110  11.0s  |  dpi=150  11.4s  |  dpi=200  12.0s
-#
-# Speed is nearly flat, because with the projector on the GPU the run is
-# dominated by generating ~800 tokens, not by encoding the image. So DPI is
-# not a speed knob at all here — pick it on fidelity.
-#
-# The only textual difference between 150 and 200 was "Steuerklärung" vs
-# "Steuererklärung". The PDF's own text layer reads "Steuerklärung" — the
-# author's typo — so 200 reproduced the source and 150 silently corrected it.
-# For a legal document, faithful beats plausible: a transcription that fixes
-# the source is a transcription you cannot cite. 110 and 150 were identical,
-# which means the two of them share that behaviour.
-#
-# 150 is kept because one page is not enough to choose on, and it stays inside
-# what olmOCR was trained for (it renders to a 1288 px longest edge, ~110 dpi
-# for A4). If silent normalisation shows up again, raise this to 200 — the
-# extra 0.6s per page is nothing next to a wrong quotation.
 dpi: 150
-
-# Kept on although the mineru backend cannot use it — its prompt is the task
-# name and nothing else, so there is nowhere to put a text layer, and it says
-# so once at preflight. The setting is here for the chat fallback above, where
-# anchoring is worth 0.116 of precision and is the whole reason that fallback
-# is worth having.
 anchor: true
 
-# The router loads the model on demand, inside the first request, and that
-# load is silent time. Generous enough to cover a cold start; the watchdog is
-# still there to catch a server that actually died.
+# The router loads the model on demand, inside the first request, and that load
+# is silent time. Generous enough to cover a cold start; the watchdog still
+# catches a server that actually died.
 stall_timeout: 5m
+
+# Every model below must match a section in models-router.ini, and that section
+# must carry an `mmproj` line — without one the model serves text only and every
+# page fails. On 8 GB the binding constraint is fitting the vision projector on
+# the GPU alongside the weights; a projector left on the CPU costs minutes per
+# page, which dwarfs any quality difference between these.
+profiles:
+  # Layout-first: one call locates and types every block on the page, then each
+  # block is read from a crop at full resolution. Recall 0.988 and eight of
+  # eight headings, in half the wall time of anchored chat, from a 1.2B model.
+  # Not a general-purpose VLM — it answers four task names and nothing else.
+  # 380 MiB + 1264 MiB projector, the roomiest profile by far.
+  layout:
+    model: mineru-pro-2605
+    backend: mineru
+    # The protocol's prompt is a task name. There is nowhere to put a text
+    # layer, so anchoring is not merely off here, it is unexpressible.
+    anchor: false
+
+  # General-purpose VLM, strong OCR. Higher precision than layout-first (0.758
+  # against 0.703) and no reliable heading structure, so it is what a document
+  # needs when fidelity matters more than sections.
+  # 5427 MiB + 880 MiB projector — fits, but only at 8k context and with
+  # speculative decoding disabled.
+  qwen:
+    model: unsloth/Qwen3.5-9B-GGUF:Q4_K_M
+    backend: chat
+
+  # Dedicated OCR VLM, best-in-class on olmOCR-bench (82.4), and its prose
+  # scores match qwen's almost exactly. It writes every heading as plain text,
+  # which the word scores cannot see and every downstream section check can.
+  # 4467 MiB + 1295 MiB projector.
+  olmocr:
+    model: olmocr-2-7b
+    backend: chat
+
+  # Smaller and roomiest, with audio too. Weakest at dense OCR — recall 0.771
+  # against 0.982 — and the anchored run once took the server down. Kept
+  # declared because measuring it again should not mean rewriting config.
+  # 4300 MiB + 534 MiB projector.
+  gemma:
+    model: ggml-org/gemma-4-E4B-it-GGUF:Q4_0
+    backend: chat

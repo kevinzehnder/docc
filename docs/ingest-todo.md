@@ -74,6 +74,33 @@ Four findings:
 A caveat on the fixture: on prose alone it cannot separate olmOCR from Qwen,
 which is what a second, harder document is for.
 
+### Why 150 dpi
+
+Measured on Replik.pdf p30 (dense German legal prose), fixed seed, projector on
+the GPU — so these differences are the image, not sampling noise:
+
+| dpi | wall time |
+|---|---|
+| 110 | 11.0s |
+| 150 | 11.4s |
+| 200 | 12.0s |
+
+Speed is nearly flat, because with the projector on the GPU the run is dominated
+by generating ~800 tokens rather than by encoding the image. **DPI is not a
+speed knob here — pick it on fidelity.**
+
+The only textual difference between 150 and 200 was `Steuerklärung` against
+`Steuererklärung`. The PDF's own text layer reads `Steuerklärung` — the author's
+typo — so 200 reproduced the source and 150 silently corrected it. For a legal
+document, faithful beats plausible: a transcription that fixes its source is a
+transcription you cannot cite. 110 and 150 were identical, so the two of them
+share that behaviour.
+
+150 is kept because one page is not enough to choose on, and it stays inside
+what olmOCR was trained for (it renders to a 1288 px longest edge, ~110 dpi for
+A4). If silent normalisation shows up again, raise it to 200 — the extra 0.6s
+per page is nothing next to a wrong quotation.
+
 ### What the layout-first backend changed
 
 `--backend mineru` runs MinerU2.5's two-pass protocol instead of one call per

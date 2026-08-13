@@ -374,6 +374,44 @@ one level: the layout pass reports *that* a block is a heading, not how deep,
 and inferring depth from the box would guess wrong on the first document that
 sets a heading in a larger font for emphasis.
 
+### Profiles
+
+A model and a backend are one choice, not two. A MinerU checkpoint cannot answer
+a prose transcription prompt and a general-purpose VLM has never seen
+`Layout Detection:`, so most of the pairings two independent settings can express
+produce a page of plausible garbage rather than an error — and a model name is an
+arbitrary label on somebody's router, so nothing can detect the mismatch by
+inspecting it.
+
+`.docc/ingest.yaml` therefore declares them together, and `use:` picks one:
+
+```yaml
+endpoint: http://localhost:8080/v1/chat/completions
+use: layout
+
+dpi: 150
+anchor: true
+
+profiles:
+  layout:
+    model: mineru-pro-2605
+    backend: mineru
+    anchor: false     # the protocol has nowhere to put a text layer
+  qwen:
+    model: unsloth/Qwen3.5-9B-GGUF:Q4_K_M
+    backend: chat
+```
+
+Top-level settings are what each profile starts from, and the profile wins where
+they disagree — `anchor` belongs to the protocol rather than to the project,
+which is why it appears in both places above. `endpoint`, `temperature`, `seed`
+and `stall_timeout` describe the server and the sampler and are shared.
+
+`--profile qwen` selects one for a single run; `--model` and `--backend` still
+override the resolved values for a one-off. A file with no `profiles:` block is
+still a whole configuration — a project with one model never has to learn what a
+profile is.
+
 ### Structuring an ingested draft
 
 `docc structure` is a second pass over a draft ingest already produced. It finds
@@ -382,13 +420,11 @@ and rewrites them into `::: beweis` fenced divs with the bracketed labels the
 schema requires:
 
 ```
-BO: Schreiben der Beklagten an die Klägerin vom 20.09.2015 Beilage 7
-Christian Magnani, Mitglied der Geschäftsleitung Klägerin Parteibefragung
-```
+::: beweis
 
-becomes
-
-```markdown
+- [Beilage 7] Schreiben der Beklagten an die Klägerin vom 20.09.2015
+- [Parteibefragung] Christian Magnani, Mitglied der Geschäftsleitung Klägerin
+:::
 ::: beweis
 
 - [Beilage 7] Schreiben der Beklagten an die Klägerin vom 20.09.2015
