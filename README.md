@@ -394,11 +394,12 @@ the same way, never as a fatal error.
 `randziffer_sequence`: a gap means the transcription lost text, a repeat means
 two paragraphs were merged, and a step backwards means pages were reordered.
 
-`--pages` (`N` or `N-M`, 1-based, inclusive) limits conversion to a page range
-— worth using on a first run against a long document, since every page is a
-VLM call. It requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH` for PDF
-input, the same way `docc build --to pdf` requires LibreOffice; a plain image
-input skips rasterization entirely.
+`--pages` (`N` or `N-M`, 1-based, inclusive) limits **PDF** conversion to a
+page range — worth using on a first run against a long document, since every
+page is a VLM call. It is rejected for image input, which is always one page.
+PDF input requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH`, the
+same way `docc build --to pdf` requires LibreOffice; a plain image skips
+rasterization entirely.
 
 The output is a `.md` file with a banner comment marking it machine-generated
 and low-confidence pages called out by number — pages with no text layer to
@@ -434,7 +435,7 @@ converts the rest:
 
 ```
 <!-- INCOMPLETE — docc ingest stopped after 3 of 17 pages: interrupted -->
-<!-- convert the rest with: docc ingest --pages 4-17 klage_mueller.pdf -->
+<!-- convert the rest with: docc ingest --pages 4-17 --output klage_mueller.pages-4-17.md klage_mueller.pdf -->
 ```
 
 The page that failed is not included even if it was half transcribed — a

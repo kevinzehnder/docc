@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,7 +34,7 @@ func TestRenderPagesRealBinary(t *testing.T) {
 	pdfPath := writeMinimalPDF(t, t.TempDir(), "Render Test")
 	outDir := t.TempDir()
 
-	pages, err := RenderPages(pdfPath, outDir, RasterOptions{DPI: 72})
+	pages, err := RenderPages(context.Background(), pdfPath, outDir, RasterOptions{DPI: 72})
 	if err != nil {
 		t.Fatalf("RenderPages: %v", err)
 	}
@@ -52,7 +53,7 @@ func TestRenderPagesMissingFile(t *testing.T) {
 	if _, err := exec.LookPath("pdftoppm"); err != nil {
 		t.Skip("pdftoppm not on PATH")
 	}
-	_, err := RenderPages("/nonexistent/file.pdf", t.TempDir(), RasterOptions{})
+	_, err := RenderPages(context.Background(), "/nonexistent/file.pdf", t.TempDir(), RasterOptions{})
 	if err == nil {
 		t.Fatal("expected an error rendering a nonexistent PDF")
 	}

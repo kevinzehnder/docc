@@ -471,6 +471,14 @@ func cmdIngest(args []string) int {
 		fmt.Fprintln(os.Stderr, "docc ingest:", err)
 		return 2
 	}
+	if *pages != "" {
+		for _, input := range files {
+			if !ingest.IsPDF(input) {
+				fmt.Fprintf(os.Stderr, "docc ingest: --pages applies only to PDF input; %s is an image\n", input)
+				return 2
+			}
+		}
+	}
 
 	cfg, err := resolveIngestConfig(files[0])
 	if err != nil {
@@ -529,7 +537,7 @@ func cmdIngest(args []string) int {
 
 		switch {
 		case err != nil && md != "":
-			if werr := os.WriteFile(outPath, []byte(md), 0o644); werr != nil { //nolint:gosec // draft output, not a secret
+			if werr := ingest.WriteDraft(outPath, md); werr != nil {
 				fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, werr)
 				exitCode = 1
 				continue
@@ -550,7 +558,7 @@ func cmdIngest(args []string) int {
 			exitCode = 1
 
 		default:
-			if err := os.WriteFile(outPath, []byte(md), 0o644); err != nil { //nolint:gosec // draft output, not a secret
+			if err := ingest.WriteDraft(outPath, md); err != nil {
 				fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
 				exitCode = 1
 				continue

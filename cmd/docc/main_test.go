@@ -16,6 +16,18 @@ func TestInitCommand(t *testing.T) {
 	}
 }
 
+func TestIngestRejectsPageRangeForImage(t *testing.T) {
+	dir := t.TempDir()
+	image := filepath.Join(dir, "scan.png")
+	if err := os.WriteFile(image, []byte("not decoded before the argument check"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := run([]string{"ingest", "--pages", "2", image}); got != 2 {
+		t.Errorf("run(ingest --pages image) = %d, want 2", got)
+	}
+}
+
 func TestParsePageRange(t *testing.T) {
 	cases := []struct {
 		in          string

@@ -3,35 +3,25 @@
 The pipeline works end to end: `docc ingest` → `docc structure` → `docc check`.
 What follows is the work that is not done, in the order it is worth doing.
 
-## 1. There is no evaluation harness
+## 1. The evaluation harness is thin
 
-**This is the largest gap.** Every decision the ingest design rests on — the
-projector on the GPU, DPI 150, marking Randziffern in code rather than in the
-prompt, the structuring prompt's handling of trailing attachment labels — was
-established by running shell commands by hand and reading the output. None of it
-is committed, none of it is repeatable, and nothing would notice if a prompt
-change or a model swap made any of it worse.
+`task test:eval` exists and works: it renders `testdata/good/legal_valid.md` to
+PDF through docc's own build path, transcribes it back, and scores the result
+against the source it started from. Ground truth is exact because we wrote the
+document, the fixture is committed, and no client file is involved.
 
-Every automated test in the repository talks to an `httptest` fake. That is
-right for the plumbing — streaming, the stall watchdog, the guards, region
-detection — but it means **no test has ever seen a model's output**.
+What it does not yet have:
 
-What a harness needs:
+- **More than one document.** One four-page brief is enough to catch a
+  regression and not enough to choose a model. It needs a second fixture with
+  the things this one lacks: a table, a footnote, a page break mid-paragraph.
+- **A stored baseline.** Scores are printed and forgotten. Writing them to a
+  local file would turn "did this prompt change help?" into a diff.
+- **Scanned input.** Every fixture it renders is born-digital and clean. Real
+  scans are skewed and noisy, and nothing measures that; `-doc` scores an
+  external PDF but only structurally when there is no text layer.
 
-- A committed corpus: a handful of pages with known-correct expected output.
-  These cannot be client documents, so they have to be written for the purpose —
-  a synthetic Swiss brief with Randziffern, offers of proof, umlauts, a table,
-  and a footnote, rendered to PDF once and committed alongside its expected
-  markdown.
-- Mechanical scoring, not eyeballing: characters correct against the expected
-  text, Randziffern found vs present, offers of proof converted, page numbers
-  and letterheads leaked, citations left intact.
-- A build tag or `-short` guard so it never runs in `task`, since it needs a
-  loaded model and minutes of GPU time.
-- One row per model, so `olmocr-2-7b`, `Qwen3.5-9B` and `gemma-4-E4B` can be
-  compared on the same pages rather than by recollection.
-
-Two traps worth writing down before starting:
+Two traps already learned, kept here because they cost time once:
 
 - **A fixed seed means repeating a run cannot estimate variance.** Identical
   input gives identical output. Raise n by adding *pages*, not repeats. A
@@ -41,6 +31,29 @@ Two traps worth writing down before starting:
   reproduced a typo that was genuinely in the PDF's text layer, and at 150 it
   silently corrected it. The corrected version reads better and is wrong: a
   transcription that fixes its source cannot be cited.
+
+### What the first run found
+
+Against `unsloth/Qwen3.5-9B-GGUF:Q4_K_M`, four pages, DPI 150:
+
+| | precision | recall | Randziffern | leaked |
+|---|---|---|---|---|
+| vision-only | 0.642 | 0.982 | 1 of 4 | 1 letterhead |
+| anchored | 0.758 | 0.982 | 1 of 4 | 1 letterhead |
+
+Recall is the number to trust — the ground truth is every word the document is
+known to contain. Precision has a floor well below 1 that is not the model's
+fault: a theme prints boilerplate of its own, which is on the page, correctly
+transcribed, and in no source to compare against.
+
+Two findings worth acting on:
+
+- **Anchoring measurably helps** — precision 0.642 to 0.758 on the same pages.
+  It had never been measured, only assumed.
+- **Randziffern are being missed on our own documents.** docc rendered four
+  margin numbers and the transcription recovered one. This is the same detection
+  problem the prompt rewrite improved on a scanned brief, still unsolved on a
+  clean render, and now visible on every run.
 
 ## 2. Ingest still leaks running headers and footers
 

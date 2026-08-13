@@ -65,7 +65,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 
 		start := time.Now()
 		emit(Event{Kind: EventRasterizing})
-		rendered, err := RenderPages(inputPath, workDir, RasterOptions{DPI: cfg.DPI, First: opts.First, Last: opts.Last})
+		rendered, err := RenderPages(ctx, inputPath, workDir, RasterOptions{DPI: cfg.DPI, First: opts.First, Last: opts.Last})
 		if err != nil {
 			return "", nil, err
 		}
@@ -111,7 +111,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		var anchorText string
 		hadAnchor := false
 		if cfg.Anchor && isPDF {
-			anchors, err := ExtractAnchors(inputPath, page.Index, 0)
+			anchors, err := ExtractAnchors(ctx, inputPath, page.Index, 0)
 			if err != nil {
 				return stop(page.Index, fmt.Errorf("page %d: %w", page.Index, err))
 			}

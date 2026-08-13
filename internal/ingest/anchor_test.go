@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"context"
 	"os/exec"
 	"strings"
 	"testing"
@@ -85,7 +86,7 @@ func TestExtractAnchorsRealBinary(t *testing.T) {
 	}
 	pdfPath := writeMinimalPDF(t, t.TempDir(), "Anchor Test")
 
-	anchors, err := ExtractAnchors(pdfPath, 1, 10*time.Second)
+	anchors, err := ExtractAnchors(context.Background(), pdfPath, 1, 10*time.Second)
 	if err != nil {
 		t.Fatalf("ExtractAnchors: %v", err)
 	}
@@ -107,7 +108,7 @@ func TestExtractAnchorsOutOfRangePage(t *testing.T) {
 	// pdftotext itself rejects a page range past the document's end (exit
 	// 99), so this is an error case, not an empty-result case — the caller
 	// (Convert) only ever requests pages RenderPages actually produced.
-	if _, err := ExtractAnchors(pdfPath, 2, 10*time.Second); err == nil {
+	if _, err := ExtractAnchors(context.Background(), pdfPath, 2, 10*time.Second); err == nil {
 		t.Fatal("expected an error requesting a page past the end of the document")
 	}
 }

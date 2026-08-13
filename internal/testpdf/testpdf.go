@@ -107,7 +107,7 @@ func writeTrailer(buf *bytes.Buffer, offsets []int, count int) {
 
 func writeFile(t *testing.T, path string, b []byte) string {
 	t.Helper()
-	if err := os.WriteFile(path, b, 0o644); err != nil {
+	if err := os.WriteFile(path, b, 0o644); err != nil { //nolint:gosec // a test fixture in the test's own temp dir
 		t.Fatal(err)
 	}
 	return path
