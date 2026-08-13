@@ -298,3 +298,52 @@ func TestClientSendsSeedZeroExplicitly(t *testing.T) {
 		t.Errorf("request body does not carry an explicit seed: %s", body)
 	}
 }
+
+// The data URL has to name the type it actually carries: a JPEG announced as
+// PNG works only against a server that sniffs the bytes.
+func TestEncodeImageDeclaresTheRealMediaType(t *testing.T) {
+	dir := t.TempDir()
+	for _, tt := range []struct{ name, want string }{
+		{"page.png", "data:image/png;base64,"},
+		{"scan.jpg", "data:image/jpeg;base64,"},
+		{"scan.JPEG", "data:image/jpeg;base64,"},
+		{"shot.webp", "data:image/webp;base64,"},
+		{"anim.gif", "data:image/gif;base64,"},
+	} {
+		path := filepath.Join(dir, tt.name)
+		if err := os.WriteFile(path, []byte("bytes"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		got, err := encodeImage(path)
+		if err != nil {
+			t.Fatalf("encodeImage(%s): %v", tt.name, err)
+		}
+		if !strings.HasPrefix(got, tt.want) {
+			t.Errorf("encodeImage(%s) declares %.30q, want prefix %q", tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestCompletePageSendsTheImagesRealMediaType(t *testing.T) {
+	var gotReq chatRequest
+	srv := sseFrames(t, func(r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotReq); err != nil {
+			t.Errorf("decode request body: %v", err)
+		}
+	}, dataFrame("x", "stop"), "data: [DONE]")
+	defer srv.Close()
+
+	jpg := filepath.Join(t.TempDir(), "scan.jpg")
+	if err := os.WriteFile(jpg, []byte{0xFF, 0xD8, 0xFF}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
+	if _, _, err := c.CompletePage(context.Background(), jpg, "prompt"); err != nil {
+		t.Fatalf("CompletePage: %v", err)
+	}
+	url := gotReq.Messages[0].Content[1].ImageURL.URL
+	if !strings.HasPrefix(url, "data:image/jpeg;base64,") {
+		t.Errorf("image part declares %.30q, want image/jpeg", url)
+	}
+}

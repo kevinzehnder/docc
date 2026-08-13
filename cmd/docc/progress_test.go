@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -187,5 +189,97 @@ func TestShortDurationAndCounts(t *testing.T) {
 	}
 	if got := shortName(strings.Repeat("a", 40)); len([]rune(got)) != 30 {
 		t.Errorf("shortName capped to %d runes, want 30 — a longer name wraps the status line and \\r then leaves debris", len([]rune(got)))
+	}
+}
+
+func TestTTYProgressFinishClearsAndSummarises(t *testing.T) {
+	p, clock, buf := newTestTTY()
+	p.begin("scan.pdf")
+	p.event(ingest.Event{Kind: ingest.EventPageStart, Page: 1, Seq: 1, Total: 2})
+	p.event(ingest.Event{Kind: ingest.EventPageDone, Page: 1, Seq: 1, Total: 2, Tokens: 10, Elapsed: time.Second})
+	p.redraw()
+	buf.Reset()
+	clock.advance(7 * time.Second)
+
+	p.finish(nil)
+	got := buf.String()
+	if !strings.HasPrefix(got, "\r") {
+		t.Errorf("finish must erase the status line first, got %q", got)
+	}
+	if !strings.Contains(got, "1 page in 7s") {
+		t.Errorf("finish output = %q, want a singular-page summary", got)
+	}
+	if p.lastWidth != 0 {
+		t.Error("finish left the renderer thinking a status line is still on screen")
+	}
+}
+
+// A failed run's error is printed by the caller; the renderer must not add a
+// summary claiming the run finished.
+func TestTTYProgressFinishStaysQuietOnError(t *testing.T) {
+	p, _, buf := newTestTTY()
+	p.event(ingest.Event{Kind: ingest.EventPageStart, Page: 1, Seq: 1, Total: 2})
+	p.event(ingest.Event{Kind: ingest.EventPageDone, Page: 1, Seq: 1, Total: 2, Tokens: 10, Elapsed: time.Second})
+	p.redraw()
+	buf.Reset()
+
+	p.finish(errors.New("page 2: boom"))
+	if strings.Contains(buf.String(), "in ") {
+		t.Errorf("finish printed a summary for a failed run: %q", buf.String())
+	}
+}
+
+// The ticker is what animates the spinner through the minute of silence
+// before a page's first token, when no events arrive at all.
+func TestTTYProgressRedrawsWithoutEvents(t *testing.T) {
+	var buf lockedBuffer
+	p := newProgress(&buf, progressTTY)
+	p.begin("scan.pdf")
+	p.event(ingest.Event{Kind: ingest.EventPageStart, Page: 1, Seq: 1, Total: 9})
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if strings.Contains(buf.String(), "page 1/9") {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	p.finish(nil)
+
+	if !strings.Contains(buf.String(), "page 1/9") {
+		t.Errorf("the redraw goroutine never drew a status line: %q", buf.String())
+	}
+}
+
+// lockedBuffer is a bytes.Buffer safe to read while the redraw goroutine writes.
+type lockedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func TestPlainProgressFlagsTruncatedPages(t *testing.T) {
+	var buf bytes.Buffer
+	p := &plainProgress{w: &buf}
+	p.event(ingest.Event{Kind: ingest.EventPageDone, Seq: 1, Total: 1, Tokens: 4096, Elapsed: time.Minute, Truncated: true})
+	p.event(ingest.Event{Kind: ingest.EventPageFailed, Seq: 1, Total: 1, Elapsed: 3 * time.Second})
+
+	got := buf.String()
+	if !strings.Contains(got, "cut off at max_tokens") {
+		t.Errorf("a page that hit the token cap must say so: %q", got)
+	}
+	if !strings.Contains(got, "failed after 3s") {
+		t.Errorf("a failed page should be reported with its elapsed time: %q", got)
 	}
 }
