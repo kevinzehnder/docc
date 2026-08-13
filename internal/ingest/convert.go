@@ -29,6 +29,10 @@ type ConvertOptions struct {
 	// type says its titles look like rather than from what the model felt
 	// like marking on this page.
 	Outline []OutlineRule
+	// OutlineStrict unmarks headings the Outline does not recognize. It is the
+	// caller asserting that the scheme is this document's, which only somebody
+	// who has looked at the document can know.
+	OutlineStrict bool
 	// Progress, if non-nil, receives one Event per pipeline milestone. It is
 	// called synchronously from the goroutine driving the conversion,
 	// including once per streamed chunk, so it must not block: a renderer
@@ -90,7 +94,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 	// runs after the last page, not during, because the chain cannot be
 	// recognized from its first link.
 	rz := rzNormalizer{strip: opts.StripRandziffern}
-	outline := outlineNormalizer{rules: opts.Outline}
+	outline := outlineNormalizer{rules: opts.Outline, strict: opts.OutlineStrict}
 
 	// numberPages marks the Randziffern across everything transcribed so far.
 	// Both exits call it — a run that died on page 39 of 40 still has a

@@ -86,6 +86,10 @@ func TestRoundTrip(t *testing.T) {
 							md, pages, err := ingest.Convert(context.Background(), pdfPath, runCfg, ingest.ConvertOptions{
 								DocType: "legal",
 								Outline: outlineFor(t, root, "legal"),
+								// The fixture is ours, so its scheme is known
+								// rather than guessed — which is exactly the
+								// condition --outline-strict states.
+								OutlineStrict: true,
 							})
 							if err != nil {
 								t.Fatalf("convert: %v", err)

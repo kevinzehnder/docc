@@ -122,8 +122,17 @@ func TestOutlineDoesNotPromoteOrderedListItems(t *testing.T) {
 				}
 			}
 
-			// A real numbered heading still has to be marked, or the constraint
-			// has simply disabled the level.
+			// Where a numbered level is claimed at all, a real numbered heading
+			// still has to be marked — otherwise the constraint has not tamed
+			// the level, it has disabled it.
+			//
+			// `legal` claims no numbered level on purpose: its decimal third
+			// level and its Beilagen list are the same string on the page, so
+			// it marks neither. See the schema for why that is the right way
+			// round.
+			if docType == "legal" {
+				return
+			}
 			if got := o.Apply("1. Werklohnforderung"); got == "1. Werklohnforderung" {
 				t.Errorf("a short numbered title was not marked: %q", got)
 			}

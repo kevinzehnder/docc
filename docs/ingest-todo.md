@@ -82,19 +82,24 @@ that these are comparable:
 
 | backend | model | mode | words P / R | F1 | headings | Randziffern | 4 pages |
 |---|---|---|---|---|---|---|---|
-| mineru | Pro-2605, `--type` | — | **0.755 / 0.988** | **0.856** | 15 of 8 | **4 of 4** | **11s** |
-| chat | Qwen3.5-9B, `--type` | anchored | 0.744 / 0.982 | 0.847 | 14 of 8 | **4 of 4** | 29s |
-| chat | Qwen3.5-9B, `--type` | vision-only | 0.634 / 0.982 | 0.770 | 14 of 8 | **4 of 4** | 34s |
+| mineru | Pro-2605, `--type --outline-strict` | — | **0.755 / 0.988** | **0.856** | **8 of 8** | **4 of 4** | **11s** |
+| mineru | Pro-2605, `--type` | — | 0.755 / 0.988 | 0.856 | 15 of 8 | 4 of 4 | 11s |
+| chat | Qwen3.5-9B, `--type` | anchored | 0.744 / 0.982 | 0.847 | 14 of 8 | 4 of 4 | 29s |
 | mineru | Pro-2605, no type | — | 0.703 / 0.988 | 0.821 | 13 of 8 | 1 of 4 | 13s |
 | mineru | 2509, no type | — | 0.667 / 0.946 | 0.782 | 13 of 8 | 1 of 4 | 12s |
 | chat | olmOCR / Qwen, no type | anchored | 0.758 / 0.982 | 0.855 | 0 / 4 of 8 | 1 of 4 | 30s |
 
-The top row is the whole pipeline — the backend, the Pro checkpoint, and the
-schema's declared outline — ahead of anchored chat on every word metric at a
-third of the wall time, from a 1.2B model against a 9B. Precision across every
-row is about 0.01 lower than before the Randziffer fix, because a `[Rz N]`
-marker is two tokens that are correctly on the page and in no source; the
-comparison is unaffected since it moved everything equally.
+**The structure of the top row is exact.** Eight headings of eight at their
+correct levels, four Randziffern of four with no sequence break, no page number
+leaked. That is the whole reason this backend exists, and it took the model, the
+schema's outline, and two normalizers that read the document before deciding
+anything.
+
+The words are not exact and will not be. Recall 0.988 is one dropped word,
+`klageschrift`, which every model in this file drops. Precision has a floor
+well below 1 that is not the model's fault, documented above: the theme prints
+boilerplate that is on the page, correctly transcribed, and in no source to
+compare against.
 
 - **The fidelity question was the checkpoint, not the protocol.** 2509 dropped
   eight ordinary body words against the chat backends' two; Pro-2605, same code,

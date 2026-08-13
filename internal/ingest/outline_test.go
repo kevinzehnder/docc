@@ -68,6 +68,37 @@ func TestOutlineLeavesUnrecognizedHeadingsAlone(t *testing.T) {
 	}
 }
 
+// strict is the caller saying the scheme is this document's, not a guess about
+// it. Then a heading matching no rule is one the model invented, and unmarking
+// it is right — which is what takes the round-trip fixture from fifteen
+// headings to its actual eight.
+func TestOutlineStrictUnmarksWhatItDoesNotRecognize(t *testing.T) {
+	o := outlineNormalizer{rules: legalOutline(t), strict: true}
+	got := o.Apply(strings.Join([]string{
+		"## I. FORMELLES",
+		"",
+		"## EINSCHREIBEN",
+		"",
+		"## Die vorliegende Eingabe erfolgt innert Frist.",
+	}, "\n"))
+
+	if !strings.Contains(got, "## I. FORMELLES") {
+		t.Errorf("a recognized heading was lost:\n%s", got)
+	}
+	for _, gone := range []string{"## EINSCHREIBEN", "## Die vorliegende"} {
+		if strings.Contains(got, gone) {
+			t.Errorf("strict kept %q:\n%s", gone, got)
+		}
+	}
+	// Unmarked, never deleted: losing a marker is recoverable, losing the line
+	// is not.
+	for _, kept := range []string{"EINSCHREIBEN", "Die vorliegende Eingabe erfolgt innert Frist."} {
+		if !strings.Contains(got, kept) {
+			t.Errorf("strict dropped the text %q:\n%s", kept, got)
+		}
+	}
+}
+
 // Re-levelling, not just marking: a model that marked a heading at the wrong
 // depth is as wrong as one that did not mark it.
 func TestOutlineCorrectsTheLevel(t *testing.T) {

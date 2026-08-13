@@ -143,13 +143,6 @@ styles:
   bullet_list: Aufzaehlung
   "div.beweis": Beweismittel
 
-# Numbering the markdown does not express. The headings carry an I. / A. / 1.
-# outline from RECHTSBEGEHREN onwards, and every paragraph of prose after that
-# heading carries a continuous Randziffer. Both name a definition in the theme,
-# which is where they get their appearance.
-#
-# Changing where either starts is this one line — set start_at_heading to
-# BEGRÜNDUNG and the Rechtsbegehren falls outside the outline.
 # What our own briefs look like once rendered, for transcribing one back.
 #
 # The source markdown carries no numbers at all — `# RECHTSBEGEHREN`, not
@@ -158,8 +151,8 @@ styles:
 # so it sees the labels the source does not have, and this is what tells it they
 # are an outline rather than the first word of a sentence.
 #
-# The levels therefore mirror LegalHeadingNumbering in the theme: upperRoman,
-# then upperLetter, then decimal. If one moves, the other has to.
+# The levels therefore mirror LegalHeadingNumbering in the theme, which is why
+# a change to one has to be a change to both.
 outline:
   default: roman-first
   schemes:
@@ -170,21 +163,27 @@ outline:
       # A. Zuständigkeit
       - pattern: '^[A-ZÄÖÜ]\.\s+\S'
         level: 2
-      # 1. Werklohnforderung
+      # No third level.
       #
-      # The length cap and the closing character class are what keep this off
-      # an ordered list, which is written `1. ` too and is indistinguishable
-      # from a third-level heading by its opening alone. A Rechtsbegehren is a
-      # numbered list of sentences — "1. Die Beklagte sei zu verpflichten, der
-      # Klägerin CHF 42'000.00 … zu bezahlen;" — and without this every prayer
-      # for relief in the corpus becomes a section title.
+      # LegalHeadingNumbering does define one, decimal, so `1. Werklohnforderung`
+      # is a legitimate heading in a rendered brief. It is also exactly what a
+      # numbered attachment list looks like — "1. Werkvertrag vom 3. März 2024"
+      # under Beilagen — and on the page the two are the same string. Claiming
+      # the level marked both; leaving it out marks neither.
       #
-      # So: a title is short and does not end in sentence punctuation. Both
-      # halves are needed, since a short prayer still ends in a semicolon and a
-      # long title still would not.
-      - pattern: '^\d{1,2}\.\s+\S.{0,58}[^.;:,]$'
-        level: 3
+      # Which is the right way round: a level-3 heading that stays prose is one
+      # `###` a reviewer adds, while an attachment promoted to a section title
+      # is structure the document does not have, and `docc check` would then
+      # validate a shape nobody wrote. If a corpus turns up that needs the level,
+      # it needs a signal beyond the leading number to earn it.
 
+# Numbering the markdown does not express. The headings carry an I. / A. / 1.
+# outline from RECHTSBEGEHREN onwards, and every paragraph of prose after that
+# heading carries a continuous Randziffer. Both name a definition in the theme,
+# which is where they get their appearance.
+#
+# Changing where either starts is this one line — set start_at_heading to
+# BEGRÜNDUNG and the Rechtsbegehren falls outside the outline.
 render:
   heading_numbering:
     definition: LegalHeadingNumbering

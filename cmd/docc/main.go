@@ -70,6 +70,7 @@ ingest flags:
   --output <path>      output path (single input file only; default: input with .md extension)
   --schema-dir <dir>   schema directory, consulted when --type is given
   --outline <name>     section-title scheme to mark headings by (default: the --type's own)
+  --outline-strict     also unmark headings that scheme does not recognize
   --force              overwrite an output file that docc ingest did not write
   --json               machine-readable output
 
@@ -426,18 +427,19 @@ func cmdBuild(args []string) int {
 func cmdIngest(args []string) int {
 	fs := flag.NewFlagSet("ingest", flag.ContinueOnError)
 	var (
-		docType     = fs.String("type", "", "document_type to write into the output frontmatter")
-		jsonOut     = fs.Bool("json", false, "machine-readable output")
-		dpi         = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
-		noAnchor    = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
-		model       = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
-		backend     = fs.String("backend", "", "transcription backend: chat or mineru (default: from .docc/ingest.yaml, or chat)")
-		endpoint    = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
-		output      = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
-		pages       = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
-		force       = fs.Bool("force", false, "overwrite an output file that docc ingest did not write")
-		schemaDir   = fs.String("schema-dir", "", "schema directory (default: nearest .docc/schemas)")
-		outlineName = fs.String("outline", "", "section-title scheme to recognize headings by (default: the --type's own)")
+		docType       = fs.String("type", "", "document_type to write into the output frontmatter")
+		jsonOut       = fs.Bool("json", false, "machine-readable output")
+		dpi           = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
+		noAnchor      = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
+		model         = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
+		backend       = fs.String("backend", "", "transcription backend: chat or mineru (default: from .docc/ingest.yaml, or chat)")
+		endpoint      = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
+		output        = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
+		pages         = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
+		force         = fs.Bool("force", false, "overwrite an output file that docc ingest did not write")
+		schemaDir     = fs.String("schema-dir", "", "schema directory (default: nearest .docc/schemas)")
+		outlineName   = fs.String("outline", "", "section-title scheme to recognize headings by (default: the --type's own)")
+		outlineStrict = fs.Bool("outline-strict", false, "also unmark headings the scheme does not recognize")
 	)
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -544,6 +546,7 @@ func cmdIngest(args []string) int {
 			First: firstPage, Last: lastPage, DocType: *docType,
 			StripRandziffern: strip,
 			Outline:          outline,
+			OutlineStrict:    *outlineStrict,
 			Progress: func(ev ingest.Event) {
 				if ev.Total > 0 {
 					attempted = ev.Total

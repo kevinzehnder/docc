@@ -493,10 +493,14 @@ its filings some way nobody anticipated is unusual rather than wrong. So ingest
 only ever *promotes*: a line matching a rule becomes a heading at that level, and
 a line matching nothing is left exactly as the model produced it — marked or not.
 
-The tempting other half, unmarking a heading that matches no rule, would also
-clear up the layout backend's over-marking. It is not done, because it would
-silently strip the real structure out of precisely the documents whose structure
-could not be predicted. Over-marking is left for a reviewer to delete.
+`--outline-strict` turns that around, and it is the one case where unmarking is
+right. A scheme the schema offers is a guess about a document nobody has read; a
+scheme confirmed with `--outline-strict` is a statement about a document the
+caller has. Under it a heading matching no rule is one the model invented, and
+it is returned to prose — the text is kept either way.
+
+That is what the round-trip fixture needs to transcribe exactly: fifteen marked
+headings become its actual eight, at their correct levels.
 
 ## Themes
 
