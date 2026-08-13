@@ -31,3 +31,9 @@ go.work.sum
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# ── Local documents ───────────────────────────────────────────────────────────
+# Scratch inputs for docc ingest: real client PDFs and whatever they transcribe
+# to. Test fixtures belong in testdata/, which is committed on purpose — this
+# is the directory that must never be swept in by a git add -A.
+assets/
