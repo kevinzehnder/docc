@@ -61,6 +61,20 @@ frontmatter:
 # leaving it to whichever model transcribed the page — measured on one brief,
 # the chat backend marked four of eight and the layout-first backend thirteen.
 #
+# This is the I./A./1./a) order of the UZH Merkblatt für (rechts-)wissen-
+# schaftliche Arbeiten, whose worked example runs
+#
+#     I.
+#       A.
+#          1.
+#            a)
+#
+# with a part title above it. That title is not in the Merkblatt, which governs
+# academic writing; a filed brief opens its parts with BEGRÜNDUNG: or ANTRÄGE:
+# and this corpus is filings. See legal_reference_klassisch for the A./I. order
+# the LL.M. sheet calls the "übliche" one — the two swap the top two levels, so
+# they cannot be one declaration.
+#
 # First match wins, so order is load-bearing here, and so is the shape of the
 # Roman pattern. The obvious `[IVXLCDM]+` is wrong: C and D are Roman numerals,
 # so `C. STREITWERT` and `D. KOSTEN` would come out a level too shallow, which
@@ -84,6 +98,12 @@ outline:
   # subsections.
   - pattern: '^[A-ZÄÖÜ]\.\s+\S'
     level: 3
+  # 1. Vorbemerkungen
+  - pattern: '^\d{1,2}\.\s+\S'
+    level: 4
+  # a) Erstens     aa) Erstens
+  - pattern: '^[a-zäöü]{1,2}\)\s+\S'
+    level: 5
 
 styles:
   h1: Ueberschrift1

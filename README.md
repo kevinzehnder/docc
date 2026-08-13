@@ -467,6 +467,27 @@ A title no pattern covers keeps its text and loses its marker, which a reviewer
 can see and fix. A type that declares no `outline:` is left exactly as the model
 wrote it.
 
+Three schemes are in `testdata/schemas/`, following the UZH guidance for legal
+writing. They differ only in `outline:` — the two variants `extends:` the first
+and inherit its frontmatter, rules, styles and theme:
+
+| type | L1 | L2 | L3 | L4 | L5 |
+| --- | --- | --- | --- | --- | --- |
+| `legal_reference` | `BEGRÜNDUNG:` | `I.` | `A.` | `1.` | `a)` |
+| `legal_reference_klassisch` | `A.` | `I.` | `1.` | `a)` | `aa)` |
+| `legal_reference_dezimal` | `1` | `1.1` | `1.1.1` | `1.1.1.1` | |
+
+They exist as separate types rather than one bigger declaration because the top
+two levels are *inverted* between the first two — `I.` is level 2 in one and
+level 1 in the other — and no ordering of patterns can serve both. The guidance
+is explicit that a document uses one scheme throughout and not `Mischformen`, so
+the choice belongs to the document type, made once when the transcription
+starts.
+
+Where the schemes overlap, the more frequent reading wins and the schema says
+so: in `legal_reference_klassisch` a bare `I.` is read as the Roman numeral
+opening a section, not as the ninth top-level letter.
+
 `docc check` then verifies the sequence of a reference document with
 `randziffer_sequence`: a gap means the transcription lost text, a repeat means
 two paragraphs were merged, and a step backwards means pages were reordered.
