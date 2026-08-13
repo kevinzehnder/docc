@@ -1,7 +1,6 @@
 package ingest
 
 import (
-	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -65,61 +64,12 @@ const marginGap = 0.02
 // and a number alone in the gutter becomes a [Rz N] marker on the paragraph it
 // sits beside. Only the last of those is a guess, and the Randziffer sequence
 // check in rzNormalizer is what catches it when it is wrong.
+//
+// It is now the composition of the two halves it used to conflate: Nodes
+// decides what the page contains, Render decides how that is written down. The
+// passes between them are the point — see Node.
 func AssembleBlocks(blocks []Block) string {
-	body, margins := splitGutter(blocks)
-
-	var out []string
-	for _, b := range body {
-		text := strings.TrimSpace(b.Text)
-
-		switch {
-		case visual[b.Type]:
-			out = append(out, fmt.Sprintf("<!-- %s on the page here, not transcribed -->", b.Type))
-			continue
-		case text == "":
-			continue
-		}
-
-		if rz, ok := margins[b.index]; ok {
-			// Prefixed rather than put on its own line: rzNormalizer reads a
-			// paragraph's opening, and a lone [Rz 55] above a paragraph is not
-			// something docc's frontend has any meaning for either.
-			text = fmt.Sprintf("[Rz %s] %s", rz, text)
-		}
-		out = append(out, render(b.Type, text))
-	}
-	return strings.Join(out, "\n\n")
-}
-
-// render wraps one block's recognized text in the markup its type calls for.
-func render(blockType, text string) string {
-	switch blockType {
-	case "doc_title":
-		return "# " + oneLine(text)
-	case "title", "paragraph_title":
-		// One level for every heading: MinerU's layout pass reports that a
-		// block is a heading, not how deep it is, and inferring depth from
-		// bbox height guesses wrong on the first document that uses a larger
-		// font for emphasis. The reviewer sets the levels.
-		return "## " + oneLine(text)
-	case "list_item":
-		return "- " + oneLine(text)
-	case "equation":
-		return "$$\n" + text + "\n$$"
-	case "table":
-		// Kept as the HTML the model produced. Converting to a pipe table
-		// would lose exactly the merged cells that make a table worth
-		// transcribing carefully.
-		return text
-	case "code", "algorithm":
-		return "```\n" + text + "\n```"
-	default:
-		return text
-	}
-}
-
-func oneLine(s string) string {
-	return strings.Join(strings.Fields(s), " ")
+	return Render(Nodes(blocks))
 }
 
 // positioned pairs a block with its index in the body slice, so that a gutter

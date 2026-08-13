@@ -111,22 +111,6 @@ func TestAssembleBlocksAnnouncesImages(t *testing.T) {
 	}
 }
 
-func TestRenderWrapsByType(t *testing.T) {
-	cases := []struct{ kind, text, want string }{
-		{"doc_title", "Replik", "# Replik"},
-		{"title", "Zu Rz. 80", "## Zu Rz. 80"},
-		{"list_item", "Parteibefragung", "- Parteibefragung"},
-		{"equation", "a = b", "$$\na = b\n$$"},
-		{"table", "<table><tr><td>x</td></tr></table>", "<table><tr><td>x</td></tr></table>"},
-		{"text", "Der Kläger.", "Der Kläger."},
-	}
-	for _, c := range cases {
-		if got := render(c.kind, c.text); got != c.want {
-			t.Errorf("render(%q, %q) = %q, want %q", c.kind, c.text, got, c.want)
-		}
-	}
-}
-
 // The body's left edge is read off the page rather than assumed, so that an
 // indented quotation does not turn every paragraph after it into a margin note.
 func TestBodyLeftIgnoresOneIndentedBlock(t *testing.T) {
