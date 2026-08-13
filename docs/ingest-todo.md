@@ -66,9 +66,10 @@ Four findings:
   `proxy error: Could not establish connection` — consistent with the
   oversized `ctx-size` in its router profile (see below), still unconfirmed.
 - **Randziffern are missed on our own documents.** docc rendered four margin
-  numbers; every model recovered one. The same detection problem the prompt
-  rewrite improved on a scanned brief, unsolved on a clean render, and now
-  visible on every run.
+  numbers; every model recovered one. ~~The same detection problem the prompt
+  rewrite improved on a scanned brief.~~ **Not a detection problem at all** —
+  see the correction below. Every model transcribed all four correctly and the
+  normalizer threw them away.
 
 A caveat on the fixture: on prose alone it cannot separate olmOCR from Qwen,
 which is what a second, harder document is for.
@@ -81,28 +82,35 @@ that these are comparable:
 
 | backend | model | mode | words P / R | F1 | headings | Randziffern | 4 pages |
 |---|---|---|---|---|---|---|---|
-| mineru | Pro-2605, `--type` | — | **0.763 / 0.988** | **0.861** | 15 of 8 | 1 of 4 | **8s** |
+| mineru | Pro-2605, `--type` | — | **0.755 / 0.988** | **0.856** | 15 of 8 | **4 of 4** | **11s** |
+| chat | Qwen3.5-9B, `--type` | anchored | 0.744 / 0.982 | 0.847 | 14 of 8 | **4 of 4** | 29s |
+| chat | Qwen3.5-9B, `--type` | vision-only | 0.634 / 0.982 | 0.770 | 14 of 8 | **4 of 4** | 34s |
 | mineru | Pro-2605, no type | — | 0.703 / 0.988 | 0.821 | 13 of 8 | 1 of 4 | 13s |
 | mineru | 2509, no type | — | 0.667 / 0.946 | 0.782 | 13 of 8 | 1 of 4 | 12s |
-| chat | olmOCR-2-7B | anchored | 0.758 / 0.982 | 0.855 | 0 of 8 | 1 of 4 | 30s |
-| chat | Qwen3.5-9B | anchored | 0.758 / 0.982 | 0.855 | 4 of 8 | 1 of 4 | 30s |
-| chat | either | vision-only | 0.642 / 0.982 | 0.777 | 0 / 4 of 8 | 1 of 4 | 35s |
+| chat | olmOCR / Qwen, no type | anchored | 0.758 / 0.982 | 0.855 | 0 / 4 of 8 | 1 of 4 | 30s |
 
 The top row is the whole pipeline — the backend, the Pro checkpoint, and the
-schema's declared outline — and it is ahead of anchored chat on every word
-metric at roughly a quarter of the wall time, from a 1.2B model against a 7B and
-a 9B.
+schema's declared outline — ahead of anchored chat on every word metric at a
+third of the wall time, from a 1.2B model against a 9B. Precision across every
+row is about 0.01 lower than before the Randziffer fix, because a `[Rz N]`
+marker is two tokens that are correctly on the page and in no source; the
+comparison is unaffected since it moved everything equally.
 
 - **The fidelity question was the checkpoint, not the protocol.** 2509 dropped
   eight ordinary body words against the chat backends' two; Pro-2605, same code,
   drops one — `klageschrift`, which every model here drops.
-- **Randziffern did not improve, and the reason is geometric.** On a scanned
-  third-party brief the layout pass separates the gutter cleanly — body at
-  x=0.131, margin numbers at x=0.085 — and `[Rz 55]`, `[Rz 56]` come out
-  correct. On our own render it emits no gutter block at all: every block starts
-  at x=0.067 or x=0.113, because the theme sets the Randziffer close enough to
-  the body that the model reads them as one region. The win is real on the
-  documents ingest exists for and invisible on the fixture that measures it.
+- **Randziffern are 4 of 4, and were never a detection problem.** This was
+  recorded for a day as a model failure: "docc rendered four margin numbers;
+  every model recovered one." Every model in fact transcribed all four
+  perfectly. `rzNormalizer` threw them away, because it accepted the first
+  bare number in the document as the start of the sequence and the first bare
+  number is `5400 Baden` in the letterhead. Having anchored the count at 5400 it
+  rejected 1, 2, 3 and 4 for not continuing from 5401 — and the "1 found" in
+  every row above was the postal code. The chain is now chosen after reading the
+  whole document rather than from its first link, and both backends score 4 of 4.
+  The lesson is the one this file already knew and applied to the wrong half of
+  the problem: the sequence is the safeguard, and a safeguard consulted one
+  element at a time is not one.
 - **Headings: the eight real ones are now exactly right.** `I. RECHTSBEGEHREN`
   through `V. FAZIT`, each at its correct level, which no model managed unaided.
   The remaining seven are over-marking left in place on purpose: five are the

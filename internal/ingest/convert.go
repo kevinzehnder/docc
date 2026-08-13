@@ -85,12 +85,26 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 	}
 
 	results := make([]PageResult, 0, len(pages))
-	// One normalizer for the whole document: Randziffern count up across
-	// pages, and the sequence is what tells a paragraph number from a year.
+	// One normalizer for the whole document: Randziffern count up across pages,
+	// and the sequence is what tells a paragraph number from a postal code. It
+	// runs after the last page, not during, because the chain cannot be
+	// recognized from its first link.
 	rz := rzNormalizer{strip: opts.StripRandziffern}
-	// Headings are settled before Randziffern are read, so that a heading the
-	// outline demotes to prose is offered to rz as prose.
 	outline := outlineNormalizer{rules: opts.Outline}
+
+	// numberPages marks the Randziffern across everything transcribed so far.
+	// Both exits call it — a run that died on page 39 of 40 still has a
+	// numbered document, which is the difference between a partial draft worth
+	// resuming and one worth discarding.
+	numberPages := func() {
+		bodies := make([]string, len(results))
+		for i, res := range results {
+			bodies[i] = res.Markdown
+		}
+		for i, body := range rz.Apply(bodies) {
+			results[i].Markdown = body
+		}
+	}
 
 	// stop hands back whatever was transcribed before failedAt, marked so that
 	// neither a reader nor a later docc run mistakes it for the whole document.
@@ -98,6 +112,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		if len(results) == 0 {
 			return "", nil, err
 		}
+		numberPages()
 		reason := err.Error()
 		if errors.Is(err, context.Canceled) {
 			reason = "interrupted"
@@ -152,7 +167,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		}
 
 		res := ParsePageResponse(page.Index, out.Markdown)
-		res.Markdown = rz.Apply(outline.Apply(res.Markdown))
+		res.Markdown = outline.Apply(res.Markdown)
 		res.HadAnchor = hadAnchor
 		switch {
 		case out.Truncated:
@@ -174,6 +189,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		})
 	}
 
+	numberPages()
 	md := Assemble(results, AssembleOptions{
 		SourceFile: filepath.Base(inputPath),
 		DocType:    opts.DocType,
