@@ -18,6 +18,12 @@ import (
 // Config holds the settings for talking to a local VLM. Zero value is not
 // usable directly — call Defaults() or Load, which applies it.
 type Config struct {
+	// Backend selects the protocol used to transcribe a page: "chat" sends the
+	// whole page image with a prompt and takes markdown back, "mineru" detects
+	// the layout first and recognizes each block from its own crop. Empty
+	// means "chat", so a configuration written before this setting existed
+	// keeps working under yaml.Strict.
+	Backend string `yaml:"backend"`
 	// Endpoint is the OpenAI-compatible chat completions URL, e.g. a llama.cpp
 	// llama-server instance.
 	Endpoint string `yaml:"endpoint"`
@@ -52,6 +58,7 @@ type Config struct {
 // Defaults returns the configuration used when no .docc/ingest.yaml exists.
 func Defaults() Config {
 	return Config{
+		Backend:     BackendChat,
 		Endpoint:    "http://localhost:8080/v1/chat/completions",
 		Temperature: 0.1,
 		DPI:         200,

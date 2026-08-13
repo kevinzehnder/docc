@@ -72,10 +72,17 @@ type chatRequest struct {
 	MaxTokens   int     `json:"max_tokens,omitempty"`
 	// Seed carries no omitempty: 0 is a valid seed, and leaving the field out
 	// is what makes a server pick a random one.
-	Seed          int            `json:"seed"`
-	Messages      []chatMessage  `json:"messages"`
-	Stream        bool           `json:"stream,omitempty"`
-	StreamOptions *streamOptions `json:"stream_options,omitempty"`
+	Seed int `json:"seed"`
+	// PresencePenalty and FrequencyPenalty are omitted when zero, which is the
+	// OpenAI default and what every chat-backend request wants. MinerU's
+	// recognition pass sets them: a crop of a table or a column of figures is
+	// exactly the input on which an unpenalized decoder falls into repeating a
+	// row forever.
+	PresencePenalty  float64        `json:"presence_penalty,omitempty"`
+	FrequencyPenalty float64        `json:"frequency_penalty,omitempty"`
+	Messages         []chatMessage  `json:"messages"`
+	Stream           bool           `json:"stream,omitempty"`
+	StreamOptions    *streamOptions `json:"stream_options,omitempty"`
 }
 
 type streamOptions struct {
@@ -134,20 +141,51 @@ type Completion struct {
 //
 // imagePath may be empty for a text-only call; prompt is never empty.
 func (c *Client) CompletePageStream(ctx context.Context, imagePath, prompt string, onDelta func(string)) (Completion, error) {
-	parts := []contentPart{{Type: "text", Text: prompt}}
+	var dataURL string
 	if imagePath != "" {
-		dataURL, err := encodeImage(imagePath)
-		if err != nil {
+		var err error
+		if dataURL, err = encodeImage(imagePath); err != nil {
 			return Completion{}, err
 		}
+	}
+	return c.CompleteImage(ctx, dataURL, prompt, CallOptions{}, onDelta)
+}
+
+// CallOptions carries the per-call sampling settings that differ between
+// tasks. The zero value is what every chat-backend call wants; MinerU's
+// recognition pass varies them by block type.
+type CallOptions struct {
+	PresencePenalty  float64
+	FrequencyPenalty float64
+	// MaxTokens overrides the client's own cap when non-zero. A single
+	// cropped block does not need a whole page's budget, and a smaller cap
+	// bounds how long a decoder that starts repeating can run.
+	MaxTokens int
+}
+
+// CompleteImage is CompletePageStream for an image already in memory: dataURL
+// is a "data:" URL, or empty for a text-only call. It exists because a backend
+// that crops and rescales pages itself has no file to name — writing every crop
+// to disk to read it straight back would be the only reason a temp directory
+// had to reach the backend at all.
+func (c *Client) CompleteImage(ctx context.Context, dataURL, prompt string, opts CallOptions, onDelta func(string)) (Completion, error) {
+	parts := []contentPart{{Type: "text", Text: prompt}}
+	if dataURL != "" {
 		parts = append(parts, contentPart{Type: "image_url", ImageURL: &imageURL{URL: dataURL}})
 	}
 
+	maxTokens := c.MaxTokens
+	if opts.MaxTokens > 0 {
+		maxTokens = opts.MaxTokens
+	}
+
 	return c.stream(ctx, chatRequest{
-		Model:       c.Model,
-		Temperature: c.Temperature,
-		MaxTokens:   c.MaxTokens,
-		Seed:        c.Seed,
+		Model:            c.Model,
+		Temperature:      c.Temperature,
+		MaxTokens:        maxTokens,
+		Seed:             c.Seed,
+		PresencePenalty:  opts.PresencePenalty,
+		FrequencyPenalty: opts.FrequencyPenalty,
 		Messages: []chatMessage{
 			{Role: "user", Content: parts},
 		},

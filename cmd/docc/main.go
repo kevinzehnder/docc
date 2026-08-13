@@ -64,6 +64,7 @@ ingest flags:
   --pages <n|n-m>      page range to convert, e.g. 3 or 3-5 (default: the whole document)
   --no-anchor          disable born-digital text-layer anchoring
   --model <name>       VLM model name (default: from .docc/ingest.yaml)
+  --backend <name>     chat (one call per page) or mineru (layout pass, then one call per block)
   --endpoint <url>     VLM chat completions endpoint (default: from .docc/ingest.yaml)
   --output <path>      output path (single input file only; default: input with .md extension)
   --schema-dir <dir>   schema directory, consulted when --type is given
@@ -428,6 +429,7 @@ func cmdIngest(args []string) int {
 		dpi       = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
 		noAnchor  = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
 		model     = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
+		backend   = fs.String("backend", "", "transcription backend: chat or mineru (default: from .docc/ingest.yaml, or chat)")
 		endpoint  = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
 		output    = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
 		pages     = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
@@ -493,6 +495,9 @@ func cmdIngest(args []string) int {
 	}
 	if *model != "" {
 		cfg.Model = *model
+	}
+	if *backend != "" {
+		cfg.Backend = *backend
 	}
 	if *endpoint != "" {
 		cfg.Endpoint = *endpoint

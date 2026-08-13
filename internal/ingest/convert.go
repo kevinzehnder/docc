@@ -49,8 +49,11 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		return "", nil, err
 	}
 
-	client := NewClient(cfg)
-	if err := client.Ping(ctx, func(msg string) { emit(Event{Kind: EventWarning, Delta: msg}) }); err != nil {
+	backend, err := NewBackend(cfg)
+	if err != nil {
+		return "", nil, err
+	}
+	if err := backend.Ping(ctx, func(msg string) { emit(Event{Kind: EventWarning, Delta: msg}) }); err != nil {
 		return "", nil, err
 	}
 
@@ -121,13 +124,8 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 			}
 		}
 
-		prompt, err := BuildPrompt(anchorText)
-		if err != nil {
-			return stop(page.Index, err)
-		}
-
 		tokens := 0
-		out, err := client.CompletePageStream(ctx, page.PNGPath, prompt, func(delta string) {
+		out, err := backend.Page(ctx, page, anchorText, func(delta string) {
 			tokens++
 			emit(Event{
 				Kind: EventPageDelta, Page: page.Index, Seq: seq, Total: len(pages),
@@ -144,7 +142,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 			return stop(page.Index, err)
 		}
 
-		res := ParsePageResponse(page.Index, out.Content)
+		res := ParsePageResponse(page.Index, out.Markdown)
 		res.Markdown = rz.Apply(res.Markdown)
 		res.HadAnchor = hadAnchor
 		switch {
