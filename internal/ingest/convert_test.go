@@ -172,7 +172,7 @@ func TestConvertKeepsCompletedPagesWhenOneFails(t *testing.T) {
 		"page one text",
 		"page two text",
 		"<!-- INCOMPLETE — docc ingest stopped after 2 of 3 pages:",
-		"--pages 3 multipage.pdf",
+		"--pages 3 --output multipage.pages-3.md multipage.pdf",
 		"transcription stops here",
 	}
 	for _, w := range want {

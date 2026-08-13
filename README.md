@@ -378,6 +378,14 @@ low-confidence markers exist to prevent. The exit status is 1 and, in text
 mode, the path of a partial draft is reported on stderr rather than stdout, so
 a script reading stdout never receives half a document.
 
+Resuming writes a **separate** file, which you append; nothing merges the two
+automatically. That is also why ingest refuses to overwrite two kinds of
+existing output: a file whose generated-by banner is gone, because a person
+has edited it, and a partial draft, because the pages it holds came from a run
+that stopped and a resume converts a different range. Re-running a conversion
+over its own finished output is the ordinary iteration loop and stays silent.
+`--force` overrides both.
+
 Configure the endpoint, model and precision knobs in `.docc/ingest.yaml`,
 overridable per run with flags:
 
@@ -388,8 +396,14 @@ temperature: 0.1   # low by default — determinism over range, for a small corp
 dpi: 200
 anchor: true       # inject the PDF's own text layer into the prompt as ground truth
 max_tokens: 4096   # caps each page's response; a dense page needs more than a chat reply
+seed: 0            # fixes the sampler, so the same page transcribes the same way twice
 stall_timeout: 3m  # give up when the server sends nothing at all for this long
 ```
+
+`seed` exists because everything else docc emits is reproducible, and a
+transcription that differs between two identical runs cannot be diffed to see
+what a prompt change actually did. It is sent on every request, including the
+default 0 — omitting the field is what makes a server pick a random one.
 
 `stall_timeout` bounds silence, not the request: a page that legitimately
 takes six minutes is fine, a server that dies mid-generation is not, and a

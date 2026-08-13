@@ -37,6 +37,11 @@ type Config struct {
 	// list, a big table — can need more than a typical chat reply; too low
 	// a value silently truncates the transcription rather than erroring.
 	MaxTokens int `yaml:"max_tokens"`
+	// Seed fixes the sampler, so that converting the same page twice produces
+	// the same text. Everything else docc emits is reproducible — see
+	// pkg/docx — and a transcription that differs run to run cannot be
+	// diffed to see what a prompt change actually did.
+	Seed int `yaml:"seed"`
 	// StallTimeout bounds the silence between two streamed response chunks.
 	// It replaces a whole-request deadline, which cannot tell a slow page
 	// from a dead server. Raise it for hardware where the first token of a

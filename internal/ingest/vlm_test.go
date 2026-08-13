@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -256,5 +257,44 @@ func TestClientCancellationIsNotReportedAsAStall(t *testing.T) {
 	}
 	if strings.Contains(err.Error(), "sent nothing for") {
 		t.Errorf("error = %v, want a cancelled run not to be reported as a stalled server", err)
+	}
+}
+
+// docc is reproducible everywhere else it emits something; a transcription
+// that differs between two identical runs cannot be diffed to see what a
+// prompt change did.
+func TestClientSendsSeed(t *testing.T) {
+	var gotReq chatRequest
+	srv := sseFrames(t, func(r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotReq); err != nil {
+			t.Errorf("decode request body: %v", err)
+		}
+	}, dataFrame("x", "stop"), "data: [DONE]")
+	defer srv.Close()
+
+	c := &Client{Endpoint: srv.URL, Seed: 42, HTTPClient: srv.Client()}
+	if _, _, err := c.CompletePage(context.Background(), "", "prompt"); err != nil {
+		t.Fatalf("CompletePage: %v", err)
+	}
+	if gotReq.Seed != 42 {
+		t.Errorf("request seed = %d, want 42", gotReq.Seed)
+	}
+}
+
+func TestClientSendsSeedZeroExplicitly(t *testing.T) {
+	var body []byte
+	srv := sseFrames(t, func(r *http.Request) {
+		body, _ = io.ReadAll(r.Body)
+	}, dataFrame("x", "stop"), "data: [DONE]")
+	defer srv.Close()
+
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
+	if _, _, err := c.CompletePage(context.Background(), "", "prompt"); err != nil {
+		t.Fatalf("CompletePage: %v", err)
+	}
+	// Omitting the field is what makes a server choose a random seed, so the
+	// default seed of 0 has to appear on the wire.
+	if !strings.Contains(string(body), `"seed":0`) {
+		t.Errorf("request body does not carry an explicit seed: %s", body)
 	}
 }

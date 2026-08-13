@@ -65,6 +65,7 @@ ingest flags:
   --model <name>       VLM model name (default: from .docc/ingest.yaml)
   --endpoint <url>     VLM chat completions endpoint (default: from .docc/ingest.yaml)
   --output <path>      output path (single input file only; default: input with .md extension)
+  --force              overwrite an output file that docc ingest did not write
   --json               machine-readable output
 
 exit codes:
@@ -426,6 +427,7 @@ func cmdIngest(args []string) int {
 		endpoint = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
 		output   = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
 		pages    = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
+		force    = fs.Bool("force", false, "overwrite an output file that docc ingest did not write")
 	)
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -439,17 +441,24 @@ func cmdIngest(args []string) int {
 		fmt.Fprintln(os.Stderr, "docc ingest: --output requires exactly one input file")
 		return 2
 	}
-	// Every input is checked before any of them is converted: a run that
-	// transcribes the first file and only then discovers the second is a typo
-	// has spent minutes of VLM time to report a usage error.
-	badInput := false
+	// Every input and every destination is checked before any of them is
+	// converted: a run that transcribes the first file and only then discovers
+	// the second is a typo has spent minutes of VLM time to report a usage
+	// error, and one that discovers the collision afterwards has already
+	// written over the file it was meant to protect.
+	badArgs := false
 	for _, input := range files {
 		if err := ingest.CheckInput(input); err != nil {
 			fmt.Fprintln(os.Stderr, "docc ingest:", err)
-			badInput = true
+			badArgs = true
+			continue
+		}
+		if err := checkIngestOutput(ingestOutputPath(input, *output), *force); err != nil {
+			fmt.Fprintln(os.Stderr, "docc ingest:", err)
+			badArgs = true
 		}
 	}
-	if badInput {
+	if badArgs {
 		return 2
 	}
 	firstPage, lastPage, err := parsePageRange(*pages)
@@ -487,10 +496,7 @@ func cmdIngest(args []string) int {
 
 	exitCode := 0
 	for _, input := range files {
-		outPath := *output
-		if outPath == "" {
-			outPath = strings.TrimSuffix(input, filepath.Ext(input)) + ".md"
-		}
+		outPath := ingestOutputPath(input, *output)
 
 		prog := newProgress(os.Stderr, progressModeFor(*jsonOut))
 		prog.begin(input)
@@ -542,6 +548,46 @@ func cmdIngest(args []string) int {
 		}
 	}
 	return exitCode
+}
+
+// ingestOutputPath is where one input's draft goes: the explicit --output, or
+// the input's own name with a .md extension.
+func ingestOutputPath(input, output string) string {
+	if output != "" {
+		return output
+	}
+	return strings.TrimSuffix(input, filepath.Ext(input)) + ".md"
+}
+
+// checkIngestOutput refuses to write over work that cannot be recovered.
+//
+// Re-running a conversion over ingest's own finished output is the normal
+// iteration loop and stays silent — the same command reproduces it. Two cases
+// are not reproducible: a file whose generated-by banner is gone has been
+// adapted by hand, and a partial draft holds the pages of a run that stopped,
+// which a resume over a different page range will not produce again.
+func checkIngestOutput(path string, force bool) error {
+	if force {
+		return nil
+	}
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	info, err := ingest.InspectDraft(path)
+	if err != nil {
+		return err
+	}
+	switch {
+	case !info.Generated:
+		return fmt.Errorf("%s already exists and was not written by docc ingest — it may hold edits; write elsewhere with --output, or pass --force to overwrite it", path)
+	case info.Incomplete:
+		return fmt.Errorf("%s holds a partial draft from a run that stopped early — overwriting it loses those pages; write elsewhere with --output, or pass --force", path)
+	default:
+		return nil
+	}
 }
 
 // resolveIngestConfig loads .docc/ingest.yaml the same way loadSchemas

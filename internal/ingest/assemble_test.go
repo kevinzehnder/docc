@@ -1,6 +1,8 @@
 package ingest
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -66,7 +68,8 @@ func TestAssembleMarksIncompleteRun(t *testing.T) {
 
 	want := []string{
 		"<!-- INCOMPLETE — docc ingest stopped after 2 of 17 pages: interrupted -->",
-		"<!-- convert the rest with: docc ingest --pages 3-17 klage.pdf -->",
+		"<!-- convert the rest with: docc ingest --pages 3-17 --output klage.pages-3-17.md klage.pdf -->",
+		"resuming does not merge",
 		"<!-- transcription stops here — pages 3-17 were not converted -->",
 		// The existing per-page notes are orthogonal and must survive.
 		"page 2: low confidence",
@@ -87,7 +90,7 @@ func TestAssembleIncompleteSinglePageResumeRange(t *testing.T) {
 		Incomplete: &Incomplete{Completed: 1, Total: 2, NextPage: 2, LastPage: 2, Reason: "interrupted"},
 	})
 
-	if !strings.Contains(got, "--pages 2 two.pdf") {
+	if !strings.Contains(got, "--pages 2 --output two.pages-2.md two.pdf") {
 		t.Errorf("a one-page remainder should read as --pages 2, not 2-2, got:\n%s", got)
 	}
 }
@@ -98,5 +101,62 @@ func TestAssembleOmitsDocTypeWhenEmpty(t *testing.T) {
 
 	if strings.Contains(got, "document_type:") {
 		t.Errorf("did not expect a document_type line when DocType is empty, got:\n%s", got)
+	}
+}
+
+// The resume command must never default its output to the same path the
+// partial draft was written to: that overwrites the pages it exists to save.
+func TestAssembleResumeCommandDoesNotTargetTheDraftItself(t *testing.T) {
+	got := Assemble([]PageResult{{Index: 1, Markdown: "first"}}, AssembleOptions{
+		SourceFile: "klage.pdf",
+		Incomplete: &Incomplete{Completed: 1, Total: 17, NextPage: 2, LastPage: 17, Reason: "interrupted"},
+	})
+
+	if !strings.Contains(got, "--output klage.pages-2-17.md") {
+		t.Errorf("resume command must name an explicit --output, got:\n%s", got)
+	}
+	// klage.md is where this very draft lives.
+	if strings.Contains(got, "--output klage.md") {
+		t.Error("resume command points at the draft's own path — running it would destroy the completed pages")
+	}
+}
+
+func TestInspectDraft(t *testing.T) {
+	dir := t.TempDir()
+
+	generated := filepath.Join(dir, "gen.md")
+	if err := os.WriteFile(generated, []byte(Assemble(
+		[]PageResult{{Index: 1, Markdown: "text"}},
+		AssembleOptions{SourceFile: "x.pdf"},
+	)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	edited := filepath.Join(dir, "edited.md")
+	if err := os.WriteFile(edited, []byte("---\ndocc: 1\n---\n\n# Hand-written\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	partial := filepath.Join(dir, "partial.md")
+	if err := os.WriteFile(partial, []byte(Assemble(
+		[]PageResult{{Index: 1, Markdown: "text"}},
+		AssembleOptions{
+			SourceFile: "x.pdf",
+			Incomplete: &Incomplete{Completed: 1, Total: 9, NextPage: 2, LastPage: 9, Reason: "interrupted"},
+		},
+	)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, err := InspectDraft(generated); err != nil || !got.Generated || got.Incomplete {
+		t.Errorf("InspectDraft on a finished draft = %+v, %v; want generated and complete", got, err)
+	}
+	if got, err := InspectDraft(edited); err != nil || got.Generated {
+		t.Errorf("InspectDraft on a hand-written file = %+v, %v; want not generated", got, err)
+	}
+	if got, err := InspectDraft(partial); err != nil || !got.Generated || !got.Incomplete {
+		t.Errorf("InspectDraft on a partial draft = %+v, %v; want generated and incomplete", got, err)
+	}
+	if _, err := InspectDraft(filepath.Join(dir, "missing.md")); err == nil {
+		t.Error("InspectDraft on a missing file: want an error, so a caller cannot read absence as permission")
 	}
 }

@@ -28,6 +28,8 @@ type Client struct {
 	// table — needs more than a typical chat reply, and an unset limit
 	// leaves the page silently truncated at whatever the server defaults to.
 	MaxTokens int
+	// Seed fixes the sampler so the same page transcribes the same way twice.
+	Seed int
 	// StallTimeout bounds the silence between two streamed chunks. Zero means
 	// defaultStallTimeout.
 	StallTimeout time.Duration
@@ -48,6 +50,7 @@ func NewClient(cfg Config) *Client {
 		Model:        cfg.Model,
 		Temperature:  cfg.Temperature,
 		MaxTokens:    cfg.MaxTokens,
+		Seed:         cfg.Seed,
 		StallTimeout: cfg.StallTimeout,
 		// No whole-request deadline: a page that legitimately takes six
 		// minutes is indistinguishable from a hung server under one, and the
@@ -64,9 +67,12 @@ func (c *Client) stallTimeout() time.Duration {
 }
 
 type chatRequest struct {
-	Model         string         `json:"model"`
-	Temperature   float64        `json:"temperature"`
-	MaxTokens     int            `json:"max_tokens,omitempty"`
+	Model       string  `json:"model"`
+	Temperature float64 `json:"temperature"`
+	MaxTokens   int     `json:"max_tokens,omitempty"`
+	// Seed carries no omitempty: 0 is a valid seed, and leaving the field out
+	// is what makes a server pick a random one.
+	Seed          int            `json:"seed"`
 	Messages      []chatMessage  `json:"messages"`
 	Stream        bool           `json:"stream,omitempty"`
 	StreamOptions *streamOptions `json:"stream_options,omitempty"`
@@ -141,6 +147,7 @@ func (c *Client) CompletePageStream(ctx context.Context, imagePath, prompt strin
 		Model:       c.Model,
 		Temperature: c.Temperature,
 		MaxTokens:   c.MaxTokens,
+		Seed:        c.Seed,
 		Messages: []chatMessage{
 			{Role: "user", Content: parts},
 		},

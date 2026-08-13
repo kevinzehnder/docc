@@ -44,3 +44,16 @@ func TestBuildPromptSkipsRunningHeadersFooters(t *testing.T) {
 		t.Error("expected the prompt to instruct skipping running headers/footers and standalone page numbers")
 	}
 }
+
+func TestBuildPromptMarksRandziffernButNotCitations(t *testing.T) {
+	p, err := BuildPrompt("")
+	if err != nil {
+		t.Fatalf("BuildPrompt: %v", err)
+	}
+	if !strings.Contains(p, "[Rz N]") {
+		t.Error("expected the prompt to instruct marking marginal paragraph numbers as [Rz N]")
+	}
+	if !strings.Contains(p, "vgl. Rz. 25") {
+		t.Error("expected the prompt to give an example distinguishing a citation from a paragraph's own leading number")
+	}
+}
