@@ -36,6 +36,7 @@ usage:
   docc check [flags] <file.md>...   validate documents against their schema
   docc build [flags] <file.md>      validate, then render to .docx or .pdf
   docc ingest [flags] <file>...     draft markdown from a PDF or image via a local VLM
+  docc structure [flags] <file.md>  fit an ingested draft's evidence blocks to the schema
   docc init [directory]             create a generic starter project
   docc lsp [flags]                  start a Language Server Protocol server
   docc types [flags]                list known document types
@@ -93,6 +94,8 @@ func run(args []string) int {
 		return cmdBuild(rest)
 	case "ingest":
 		return cmdIngest(rest)
+	case "structure":
+		return cmdStructure(rest)
 	case "init":
 		return cmdInit(rest)
 	case "lsp":
@@ -560,6 +563,90 @@ func cmdIngest(args []string) int {
 		}
 	}
 	return exitCode
+}
+
+// cmdStructure runs the structuring pass over a draft docc ingest already
+// produced: it rewrites the offers of proof it can into `::: beweis` blocks and
+// leaves everything else, including any block it could not convert, alone.
+//
+// It is a separate command rather than a stage of ingest because it works on
+// text. There is no image to encode, so it is cheap to run again after a prompt
+// change without re-converting the PDF, and its result can be checked with
+// docc check and diffed against the previous attempt.
+func cmdStructure(args []string) int {
+	fs := flag.NewFlagSet("structure", flag.ContinueOnError)
+	var (
+		output   = fs.String("output", "", "output path (default: rewrite the input in place)")
+		model    = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
+		endpoint = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
+		jsonOut  = fs.Bool("json", false, "machine-readable output")
+	)
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if fs.NArg() != 1 {
+		fmt.Fprintln(os.Stderr, "usage: docc structure [flags] <file.md>")
+		return 2
+	}
+	input := fs.Arg(0)
+
+	src, err := os.ReadFile(input) //nolint:gosec // the user's own argument
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc structure:", err)
+		return 2
+	}
+
+	cfg, err := resolveIngestConfig(input)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc:", err)
+		return 2
+	}
+	if *model != "" {
+		cfg.Model = *model
+	}
+	if *endpoint != "" {
+		cfg.Endpoint = *endpoint
+	}
+	if cfg.Model == "" {
+		fmt.Fprintln(os.Stderr, "docc structure: no model configured — pass --model or set model in .docc/ingest.yaml")
+		return 2
+	}
+
+	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+
+	client := ingest.NewClient(cfg)
+	if err := client.Ping(ctx, func(msg string) { fmt.Fprintln(os.Stderr, "docc structure:", msg) }); err != nil {
+		fmt.Fprintln(os.Stderr, "docc structure:", err)
+		return 1
+	}
+
+	out, notes, err := ingest.Structure(ctx, client, string(src))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "docc structure: %s: %v\n", input, err)
+		return 1
+	}
+
+	outPath := *output
+	if outPath == "" {
+		outPath = input
+	}
+	if err := os.WriteFile(outPath, []byte(out), 0o644); err != nil { //nolint:gosec // draft output, not a secret
+		fmt.Fprintln(os.Stderr, "docc structure:", err)
+		return 1
+	}
+
+	// A block left as transcribed is not an error — the document still says
+	// what the page said — but it is the thing a reviewer has to look at.
+	for _, n := range notes {
+		fmt.Fprintf(os.Stderr, "%s:%d: %s\n", outPath, n.Line, n.Reason)
+	}
+	if *jsonOut {
+		fmt.Printf("{\"ok\":true,\"output\":%q,\"unconverted\":%d}\n", outPath, len(notes))
+	} else {
+		fmt.Println(outPath)
+	}
+	return 0
 }
 
 // randzifferPolicy decides whether to keep the source document's marginal

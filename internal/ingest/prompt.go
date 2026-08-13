@@ -25,3 +25,21 @@ func BuildPrompt(anchorText string) (string, error) {
 	}
 	return b.String(), nil
 }
+
+//go:embed structure.tmpl
+var structureSource string
+
+var structureTemplate = template.Must(template.New("ingest-structure").Parse(structureSource))
+
+// BuildStructurePrompt renders the prompt for the structuring pass: split one
+// transcribed offer of proof into labelled items. Unlike BuildPrompt this one
+// carries no image — the input is text ingest already produced, which is what
+// makes the pass cheap enough to re-run.
+func BuildStructurePrompt(block string) (string, error) {
+	var b strings.Builder
+	data := struct{ Block string }{Block: strings.TrimSpace(block)}
+	if err := structureTemplate.Execute(&b, data); err != nil {
+		return "", fmt.Errorf("build structure prompt: %w", err)
+	}
+	return b.String(), nil
+}

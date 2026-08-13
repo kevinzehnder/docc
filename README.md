@@ -330,6 +330,46 @@ given at once, each producing its own `.md`. Anything else is rejected before
 a single page is converted — `docc ingest scan.pdf out.md` reads `out.md` as
 a second input, and the destination is `--output`.
 
+### Structuring an ingested draft
+
+`docc structure` is a second pass over a draft ingest already produced. It finds
+the offers of proof — the `BO:` blocks a Swiss brief puts under a paragraph —
+and rewrites them into `::: beweis` fenced divs with the bracketed labels the
+schema requires:
+
+```
+BO: Schreiben der Beklagten an die Klägerin vom 20.09.2015 Beilage 7
+Christian Magnani, Mitglied der Geschäftsleitung Klägerin Parteibefragung
+```
+
+becomes
+
+```markdown
+::: beweis
+
+- [Beilage 7] Schreiben der Beklagten an die Klägerin vom 20.09.2015
+- [Parteibefragung] Christian Magnani, Mitglied der Geschäftsleitung Klägerin
+:::
+```
+
+It is a separate command, not a stage of `ingest`, because it works on text.
+There is no image to encode, so it costs seconds rather than minutes, it can be
+re-run after a prompt change without re-converting the PDF, and its output can be
+diffed against the previous attempt and validated with `docc check`.
+
+Where a block starts is unambiguous; where it ends is not, so a block runs until
+the next numbered paragraph, heading or fence. The model's answer is accepted
+only when every line it returns is a labelled item — a block that comes back in
+any other shape is left exactly as transcribed and reported by line number, since
+a half-converted offer of proof is worth less than the transcription it replaced.
+Running the command twice changes nothing the first run already structured.
+
+```bash
+docc ingest --type legal_reference klageantwort.pdf
+docc structure klageantwort.md
+docc check klageantwort.md
+```
+
 ### Paragraph numbers
 
 A Swiss brief numbers each paragraph in the margin, and how ingest treats those
