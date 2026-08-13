@@ -53,18 +53,43 @@ func progressModeFor(jsonOut bool) progressMode {
 	return progressTTY
 }
 
-func newProgress(w io.Writer, mode progressMode) progress {
+// work names what a run does and what it counts, so that one renderer serves
+// both commands. Ingest converts pages; structure converts offers of proof.
+// Everything else about the two is the same shape: a countable unit, one model
+// call each, and nothing on screen between them.
+type work struct {
+	// verb opens the run: "ingest replik.pdf".
+	verb string
+	// unit is the singular noun counted, for "4 blocks in 12s".
+	unit string
+}
+
+var (
+	ingestWork    = work{verb: "ingest", unit: "page"}
+	structureWork = work{verb: "structure", unit: "block"}
+)
+
+func newProgress(w io.Writer, mode progressMode, wk work) progress {
 	switch mode {
 	case progressTTY:
 		p := newTTYProgress(w, time.Now)
+		p.work = wk
 		p.stop, p.done = make(chan struct{}), make(chan struct{})
 		go p.run()
 		return p
 	case progressPlain:
-		return &plainProgress{w: w}
+		return &plainProgress{w: w, work: wk}
 	default:
 		return offProgress{}
 	}
+}
+
+// count renders "1 page" / "4 blocks" for whichever unit this run counts.
+func (wk work) count(n int) string {
+	if n == 1 {
+		return "1 " + wk.unit
+	}
+	return fmt.Sprintf("%d %ss", n, wk.unit)
 }
 
 // writef writes progress output, dropping any error. A status line that
@@ -84,6 +109,7 @@ func (offProgress) finish(error)       {}
 // returns, nothing that assumes a cursor.
 type plainProgress struct {
 	w         io.Writer
+	work      work
 	total     int
 	completed int
 	start     time.Time
@@ -91,7 +117,7 @@ type plainProgress struct {
 
 func (p *plainProgress) begin(input string) {
 	p.start = time.Now()
-	writef(p.w, "ingest %s\n", input)
+	writef(p.w, "%s %s\n", p.work.verb, input)
 }
 
 func (p *plainProgress) event(ev ingest.Event) {
@@ -109,12 +135,18 @@ func (p *plainProgress) event(ev ingest.Event) {
 		writef(p.w, "  page %d/%d  failed after %s\n", ev.Seq, ev.Total, shortDuration(ev.Elapsed))
 	case ingest.EventWarning:
 		writef(p.w, "  warning: %s\n", ev.Delta)
+	case ingest.EventBlocksFound:
+		writef(p.w, "  %s to structure\n", p.work.count(ev.Total))
+	case ingest.EventBlockDone:
+		p.completed++
+		writef(p.w, "  block %d/%d  %s  %s%s\n",
+			ev.Seq, ev.Total, itemCount(ev.Items), shortDuration(ev.Elapsed), unconvertedSuffix(ev.Items))
 	}
 }
 
 func (p *plainProgress) finish(err error) {
 	if err == nil && p.completed > 0 {
-		writef(p.w, "  %s in %s\n", pageCount(p.completed), shortDuration(time.Since(p.start)))
+		writef(p.w, "  %s in %s\n", p.work.count(p.completed), shortDuration(time.Since(p.start)))
 	}
 }
 
@@ -132,6 +164,7 @@ const (
 	phaseIdle phase = iota
 	phaseRaster
 	phasePage
+	phaseBlock
 )
 
 // ttyProgress redraws one status line in place.
@@ -143,8 +176,9 @@ const (
 // on screen as debris. Terminal width is not detected, because the standard
 // library cannot ask for it and a wrong guess is worse than no guess.
 type ttyProgress struct {
-	w   io.Writer
-	now func() time.Time
+	w    io.Writer
+	now  func() time.Time
+	work work
 
 	// mu guards everything below, and is held across the write in redraw so
 	// that a warning cannot interleave with a status line. event never
@@ -183,7 +217,7 @@ func (p *ttyProgress) begin(input string) {
 	p.st.input = input
 	p.st.runStart = p.now()
 	p.mu.Unlock()
-	writef(p.w, "ingest %s\n", input)
+	writef(p.w, "%s %s\n", p.work.verb, input)
 }
 
 func (p *ttyProgress) event(ev ingest.Event) {
@@ -217,6 +251,14 @@ func (p *ttyProgress) event(ev ingest.Event) {
 		p.st.completedFor += ev.Elapsed
 	case ingest.EventPageFailed:
 		p.st.phase = phaseIdle
+	case ingest.EventBlockStart:
+		p.st.phase = phaseBlock
+		p.st.seq, p.st.total = ev.Seq, ev.Total
+		p.st.pageStart = p.now()
+	case ingest.EventBlockDone:
+		p.st.phase = phaseIdle
+		p.st.completed++
+		p.st.completedFor += ev.Elapsed
 	}
 }
 
@@ -232,7 +274,7 @@ func (p *ttyProgress) finish(err error) {
 	p.mu.Unlock()
 
 	if err == nil && completed > 0 {
-		writef(p.w, "  %s in %s\n", pageCount(completed), shortDuration(since))
+		writef(p.w, "  %s in %s\n", p.work.count(completed), shortDuration(since))
 	}
 }
 
@@ -310,6 +352,15 @@ func (s lineState) render(spinner rune, now time.Time) string {
 			fmt.Fprintf(&b, "   [~%s left]", shortDuration(eta))
 		}
 		return b.String()
+	case phaseBlock:
+		// No token count: this pass asks for a short list and does not stream,
+		// so there is nothing to report between sending and receiving.
+		var b strings.Builder
+		fmt.Fprintf(&b, "  %c block %d/%d  %s", spinner, s.seq, s.total, shortDuration(now.Sub(s.pageStart)))
+		if eta, ok := s.eta(now); ok {
+			fmt.Fprintf(&b, "   [~%s left]", shortDuration(eta))
+		}
+		return b.String()
 	default:
 		return ""
 	}
@@ -362,6 +413,23 @@ func pageCount(n int) string {
 		return "1 page"
 	}
 	return fmt.Sprintf("%d pages", n)
+}
+
+func itemCount(n int) string {
+	if n == 1 {
+		return "1 item"
+	}
+	return fmt.Sprintf("%d items", n)
+}
+
+// unconvertedSuffix marks a block the pass declined to rewrite. It is not an
+// error — the document still says what the page said — but it is the one thing
+// in the run a reviewer has to go and look at.
+func unconvertedSuffix(items int) string {
+	if items == 0 {
+		return "  (left as transcribed)"
+	}
+	return ""
 }
 
 func truncatedSuffix(truncated bool) string {

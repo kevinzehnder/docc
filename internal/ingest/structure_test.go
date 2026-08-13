@@ -151,7 +151,7 @@ func TestStructureRewritesBlocksAndLeavesProseAlone(t *testing.T) {
 		"[Rz 18] Ganz im Gegenteil.",
 	}, "\n")
 
-	got, notes, err := Structure(context.Background(), c, src)
+	got, notes, err := Structure(context.Background(), c, src, StructureOptions{})
 	if err != nil {
 		t.Fatalf("Structure: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestStructureKeepsTheTranscriptionWhenTheAnswerIsUnusable(t *testing.T) {
 	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
 
 	src := "[Rz 1] Text.\n\nBO: Schreiben der Beklagten vom 20.09.2015 Beilage 7\n\n[Rz 2] Weiter."
-	got, notes, err := Structure(context.Background(), c, src)
+	got, notes, err := Structure(context.Background(), c, src, StructureOptions{})
 	if err != nil {
 		t.Fatalf("Structure: %v", err)
 	}
@@ -202,11 +202,11 @@ func TestStructureIsIdempotent(t *testing.T) {
 	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
 
 	src := "[Rz 1] Text.\n\nBO: Mietvertrag vom 03./07.09.2001 Beilage 3\n\n[Rz 2] Weiter."
-	once, _, err := Structure(context.Background(), c, src)
+	once, _, err := Structure(context.Background(), c, src, StructureOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	twice, _, err := Structure(context.Background(), c, once)
+	twice, _, err := Structure(context.Background(), c, once, StructureOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +220,7 @@ func TestStructureLeavesADocumentWithoutEvidenceUntouched(t *testing.T) {
 	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
 
 	src := "[Rz 1] Erste Erwägung.\n\n[Rz 2] Zweite Erwägung.\n"
-	got, notes, err := Structure(context.Background(), c, src)
+	got, notes, err := Structure(context.Background(), c, src, StructureOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestStructureStripsTheLeadLabelBeforeAsking(t *testing.T) {
 
 	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
 	src := "[Rz 1] Text.\n\nBO: Nachtrag Nr. 3 vom 03.11.2016 Beilage 8\n\n[Rz 2] Weiter."
-	if _, _, err := Structure(context.Background(), c, src); err != nil {
+	if _, _, err := Structure(context.Background(), c, src, StructureOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(got, "BO:") {

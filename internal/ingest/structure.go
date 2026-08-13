@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // evidenceLead matches the line that opens an offer of proof. Swiss briefs
@@ -61,6 +62,16 @@ func EvidenceRegions(lines []string) []Region {
 	return out
 }
 
+// StructureOptions configures one Structure run.
+type StructureOptions struct {
+	// Progress, if non-nil, receives one Event per block. It is called
+	// synchronously from the goroutine driving the pass, so it must not block.
+	//
+	// This pass is a handful of model calls with nothing printed between them,
+	// which is indistinguishable from a hung server for as long as it runs.
+	Progress func(Event)
+}
+
 // StructureNote reports one block the pass could not convert. A block is left
 // exactly as it was rather than replaced with something unverified.
 type StructureNote struct {
@@ -78,9 +89,15 @@ type StructureNote struct {
 // answer is accepted only if every line it returns is a labelled item of the
 // shape the schema requires. Where it is not, the block stays as transcribed
 // and the caller is told which one.
-func Structure(ctx context.Context, c *Client, md string) (string, []StructureNote, error) {
+func Structure(ctx context.Context, c *Client, md string, opts StructureOptions) (string, []StructureNote, error) {
+	emit := opts.Progress
+	if emit == nil {
+		emit = func(Event) {}
+	}
+
 	lines := strings.Split(md, "\n")
 	regions := EvidenceRegions(lines)
+	emit(Event{Kind: EventBlocksFound, Total: len(regions)})
 	if len(regions) == 0 {
 		return md, nil, nil
 	}
@@ -90,7 +107,7 @@ func Structure(ctx context.Context, c *Client, md string) (string, []StructureNo
 		notes []StructureNote
 		prev  int
 	)
-	for _, r := range regions {
+	for seq, r := range regions {
 		out = append(out, lines[prev:r.Start]...)
 		prev = r.End
 
@@ -110,10 +127,18 @@ func Structure(ctx context.Context, c *Client, md string) (string, []StructureNo
 		}
 		body[0] = strings.TrimSpace(evidenceLead.ReplaceAllString(body[0], ""))
 		block := strings.TrimSpace(strings.Join(body, "\n"))
-		items, err := structureBlock(ctx, c, block)
+
+		start := time.Now()
+		emit(Event{Kind: EventBlockStart, Seq: seq + 1, Total: len(regions)})
+		items, tokens, err := structureBlock(ctx, c, block)
 		if err != nil {
 			return "", nil, fmt.Errorf("line %d: %w", r.Start+1, err)
 		}
+		emit(Event{
+			Kind: EventBlockDone, Seq: seq + 1, Total: len(regions),
+			Items: len(items), Tokens: tokens, Elapsed: time.Since(start),
+		})
+
 		if len(items) == 0 {
 			notes = append(notes, StructureNote{
 				Line:   r.Start + 1,
@@ -134,14 +159,14 @@ func Structure(ctx context.Context, c *Client, md string) (string, []StructureNo
 // keeps only the lines that came back in the required shape. A partial answer
 // is treated as no answer: half an offer of proof is worse than the
 // transcription, which at least still says what the page said.
-func structureBlock(ctx context.Context, c *Client, block string) ([]string, error) {
+func structureBlock(ctx context.Context, c *Client, block string) ([]string, int, error) {
 	prompt, err := BuildStructurePrompt(block)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	out, err := c.CompletePageStream(ctx, "", prompt, nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	var items []string
@@ -151,9 +176,11 @@ func structureBlock(ctx context.Context, c *Client, block string) ([]string, err
 			continue
 		}
 		if !evidenceItem.MatchString(line) {
-			return nil, nil
+			// The tokens are still reported: the call happened and cost time,
+			// and a run that shows nothing for a rejected block looks stalled.
+			return nil, out.Tokens, nil
 		}
 		items = append(items, line)
 	}
-	return items, nil
+	return items, out.Tokens, nil
 }

@@ -541,7 +541,7 @@ func cmdIngest(args []string) int {
 	for _, input := range files {
 		outPath := ingestOutputPath(input, *output)
 
-		prog := newProgress(os.Stderr, progressModeFor(*jsonOut))
+		prog := newProgress(os.Stderr, progressModeFor(*jsonOut), ingestWork)
 		prog.begin(input)
 		attempted := 0
 		md, done, err := ingest.Convert(ctx, input, cfg, ingest.ConvertOptions{
@@ -634,7 +634,11 @@ func cmdStructure(args []string) int {
 		return 2
 	}
 	if *model != "" {
-		cfg.Model = *model
+		// Naming a model is the caller saying which one answers this pass, so
+		// it settles the protocol too. There is only one this pass can speak:
+		// it sends prose and takes a list back, with no image and no task
+		// name, which is a chat call whatever the project transcribes with.
+		cfg.Model, cfg.Backend = *model, ingest.BackendChat
 	}
 	if *endpoint != "" {
 		cfg.Endpoint = *endpoint
@@ -643,11 +647,14 @@ func cmdStructure(args []string) int {
 		fmt.Fprintln(os.Stderr, "docc structure: no model configured — pass --model or set model in .docc/ingest.yaml")
 		return 2
 	}
-	// This pass sends prose and takes a list back, which is a chat call. A
-	// project whose transcription profile is layout-first would otherwise send
-	// that prompt to a model that answers four fixed task names and nothing
-	// else, and get a plausible-looking non-answer rather than an error — the
-	// same failure profiles exist to make unwriteable for ingest.
+	// A project whose transcription profile is layout-first would otherwise
+	// send this prompt to a model that answers four fixed task names and
+	// nothing else, and get a plausible-looking non-answer rather than an
+	// error — the failure profiles exist to make unwriteable for ingest.
+	//
+	// Nothing here needs a vision model: the input is text ingest already
+	// produced, so any chat model can answer, including one far smaller than
+	// the one that did the transcription.
 	if cfg.Backend == ingest.BackendMinerU {
 		fmt.Fprintf(os.Stderr, "docc structure: the selected profile speaks the %s protocol, whose prompts are four fixed task names;\n"+
 			"  this pass sends prose and needs a chat model — select one with --profile, or name it with --model\n", ingest.BackendMinerU)
@@ -663,7 +670,15 @@ func cmdStructure(args []string) int {
 		return 1
 	}
 
-	out, notes, err := ingest.Structure(ctx, client, string(src))
+	// Every block is a model call, and until now the whole pass printed nothing
+	// between them: a document with nine offers of proof sat silent for a
+	// minute, which looks exactly like a server that has stopped answering.
+	prog := newProgress(os.Stderr, progressModeFor(*jsonOut), structureWork)
+	prog.begin(input)
+	out, notes, err := ingest.Structure(ctx, client, string(src), ingest.StructureOptions{
+		Progress: prog.event,
+	})
+	prog.finish(err)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "docc structure: %s: %v\n", input, err)
 		return 1

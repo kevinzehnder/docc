@@ -26,6 +26,19 @@ const (
 	// EventWarning reports something the user should see but that does not
 	// stop the run, in Delta.
 	EventWarning
+
+	// EventBlocksFound reports how many offers of proof the structuring pass
+	// has to convert, in Total. It fires once, before the first call, because
+	// scanning the draft is instant and the count is what makes every later
+	// event legible: "block 2 of 9" says how much is left, "block 2" does not.
+	EventBlocksFound
+	// EventBlockStart reports that a block's model call is about to begin,
+	// with Seq and Total.
+	EventBlockStart
+	// EventBlockDone reports a converted block: Items, Tokens and Elapsed are
+	// final. Items is zero for a block the pass could not convert, which is
+	// left exactly as transcribed.
+	EventBlockDone
 )
 
 // Event is one progress notification from Convert.
@@ -39,8 +52,12 @@ type Event struct {
 	// DPI is set on EventRasterized.
 	DPI int
 	// Tokens is the running count on EventPageDelta and the final count on
-	// EventPageDone.
+	// EventPageDone and EventBlockDone.
 	Tokens int
+	// Items is how many labelled items a structured block produced, on
+	// EventBlockDone. Zero means the answer failed validation and the block
+	// was left as transcribed.
+	Items int
 	// Delta carries the text just received on EventPageDelta, and the message
 	// on EventWarning. It is informational: a page must not be reassembled
 	// from it.

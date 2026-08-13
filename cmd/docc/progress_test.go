@@ -24,7 +24,9 @@ func (c *fakeClock) advance(d time.Duration) { c.t = c.t.Add(d) }
 func newTestTTY() (*ttyProgress, *fakeClock, *bytes.Buffer) {
 	clock := &fakeClock{t: time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)}
 	var buf bytes.Buffer
-	return newTTYProgress(&buf, clock.now), clock, &buf
+	p := newTTYProgress(&buf, clock.now)
+	p.work = ingestWork
+	return p, clock, &buf
 }
 
 func TestTTYProgressShowsPageRateAndTokens(t *testing.T) {
@@ -138,7 +140,7 @@ func TestTTYProgressPrintsWarningsAboveTheLine(t *testing.T) {
 
 func TestPlainProgressIsOneLinePerPage(t *testing.T) {
 	var buf bytes.Buffer
-	p := &plainProgress{w: &buf}
+	p := &plainProgress{w: &buf, work: ingestWork}
 	p.begin("scan.pdf")
 	p.event(ingest.Event{Kind: ingest.EventRasterized, Total: 2, DPI: 200})
 	p.event(ingest.Event{Kind: ingest.EventPageDelta, Page: 1, Seq: 1, Total: 2, Tokens: 5})
@@ -164,7 +166,7 @@ func TestPlainProgressIsOneLinePerPage(t *testing.T) {
 
 func TestProgressOffWritesNothing(t *testing.T) {
 	var buf bytes.Buffer
-	p := newProgress(&buf, progressOff)
+	p := newProgress(&buf, progressOff, ingestWork)
 	p.begin("scan.pdf")
 	p.event(ingest.Event{Kind: ingest.EventPageDone, Seq: 1, Total: 1, Tokens: 10})
 	p.finish(nil)
@@ -233,7 +235,7 @@ func TestTTYProgressFinishStaysQuietOnError(t *testing.T) {
 // before a page's first token, when no events arrive at all.
 func TestTTYProgressRedrawsWithoutEvents(t *testing.T) {
 	var buf lockedBuffer
-	p := newProgress(&buf, progressTTY)
+	p := newProgress(&buf, progressTTY, ingestWork)
 	p.begin("scan.pdf")
 	p.event(ingest.Event{Kind: ingest.EventPageStart, Page: 1, Seq: 1, Total: 9})
 
@@ -271,7 +273,7 @@ func (b *lockedBuffer) String() string {
 
 func TestPlainProgressFlagsTruncatedPages(t *testing.T) {
 	var buf bytes.Buffer
-	p := &plainProgress{w: &buf}
+	p := &plainProgress{w: &buf, work: ingestWork}
 	p.event(ingest.Event{Kind: ingest.EventPageDone, Seq: 1, Total: 1, Tokens: 4096, Elapsed: time.Minute, Truncated: true})
 	p.event(ingest.Event{Kind: ingest.EventPageFailed, Seq: 1, Total: 1, Elapsed: 3 * time.Second})
 
@@ -281,5 +283,69 @@ func TestPlainProgressFlagsTruncatedPages(t *testing.T) {
 	}
 	if !strings.Contains(got, "failed after 3s") {
 		t.Errorf("a failed page should be reported with its elapsed time: %q", got)
+	}
+}
+
+// The structuring pass is a handful of model calls with nothing between them,
+// which for as long as it runs looks exactly like a server that has stopped
+// answering. One renderer serves both commands; only the verb and the unit
+// differ.
+func TestPlainProgressReportsStructuredBlocks(t *testing.T) {
+	var buf bytes.Buffer
+	p := &plainProgress{w: &buf, work: structureWork}
+
+	p.begin("replik.md")
+	p.event(ingest.Event{Kind: ingest.EventBlocksFound, Total: 2})
+	p.event(ingest.Event{Kind: ingest.EventBlockStart, Seq: 1, Total: 2})
+	p.event(ingest.Event{Kind: ingest.EventBlockDone, Seq: 1, Total: 2, Items: 4, Elapsed: 3 * time.Second})
+	p.event(ingest.Event{Kind: ingest.EventBlockDone, Seq: 2, Total: 2, Items: 1, Elapsed: 2 * time.Second})
+	p.finish(nil)
+
+	for _, want := range []string{
+		"structure replik.md",
+		"2 blocks to structure",
+		"block 1/2  4 items  3s",
+		"block 2/2  1 item  2s",
+		"2 blocks in",
+	} {
+		if !strings.Contains(buf.String(), want) {
+			t.Errorf("missing %q in:\n%s", want, buf.String())
+		}
+	}
+	if strings.Contains(buf.String(), "page") {
+		t.Errorf("structure output counts pages:\n%s", buf.String())
+	}
+}
+
+// A block the pass declined to rewrite is not an error — the document still
+// says what the page said — but it is the one thing in the run a reviewer has
+// to go and look at, so the line says so rather than reporting "0 items".
+func TestPlainProgressMarksAnUnconvertedBlock(t *testing.T) {
+	var buf bytes.Buffer
+	p := &plainProgress{w: &buf, work: structureWork}
+
+	p.event(ingest.Event{Kind: ingest.EventBlockDone, Seq: 1, Total: 1, Items: 0, Elapsed: time.Second})
+	if !strings.Contains(buf.String(), "left as transcribed") {
+		t.Errorf("an unconverted block is not marked:\n%s", buf.String())
+	}
+}
+
+// The status line during a block: no token count, because this pass asks for a
+// short list and does not stream, so there is nothing to report between
+// sending and receiving.
+func TestTTYProgressRendersABlockLine(t *testing.T) {
+	p, clock, buf := newTestTTY()
+	p.work = structureWork
+
+	p.begin("replik.md")
+	p.event(ingest.Event{Kind: ingest.EventBlockStart, Seq: 2, Total: 9})
+	clock.advance(4 * time.Second)
+	p.redraw()
+
+	if !strings.Contains(buf.String(), "block 2/9") {
+		t.Errorf("status line missing the block position:\n%q", buf.String())
+	}
+	if strings.Contains(buf.String(), "tok") {
+		t.Errorf("status line reports tokens for a pass that does not stream:\n%q", buf.String())
 	}
 }
