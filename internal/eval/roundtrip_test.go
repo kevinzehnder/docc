@@ -39,7 +39,12 @@ var (
 	endpoint   = flag.String("endpoint", "", "VLM endpoint (default: from .docc/ingest.yaml)")
 	docFlag    = flag.String("doc", "", "an external PDF to score instead of the round trip; needs a text layer")
 	keepFlag   = flag.Bool("keep", false, "keep the rendered PDF for inspection")
+	updateFlag = flag.Bool("update", false, "rewrite testdata/baseline.txt with this run's scores")
 )
+
+// baselinePath is the committed record of the last scores, which is what makes
+// "did this change help?" a diff rather than a memory.
+const baselinePath = "testdata/baseline.txt"
 
 // TestRoundTrip renders a known document, transcribes it back, and reports how
 // much of it survived — per model, so two can be compared on the same page
@@ -56,6 +61,11 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	pdfPath, values := buildPDF(t, root, srcPath, src)
+
+	// Collected across the subtests below and settled once, at the end: a
+	// baseline written per run would record whichever model finished last.
+	var scored []Entry
+	t.Cleanup(func() { settleBaseline(t, scored) })
 
 	cfg := loadConfig(t)
 	// What the page says: the body, plus the frontmatter the theme renders
@@ -94,13 +104,15 @@ func TestRoundTrip(t *testing.T) {
 							if err != nil {
 								t.Fatalf("convert: %v", err)
 							}
-							report(t, backend+"/"+model, name, Grade(Transcription{
+							score := Grade(Transcription{
 								Markdown:          md,
 								SourceText:        want,
 								SourceRandziffern: make([]int, ExpectedRandziffern(string(src), "BEGRÜNDUNG")),
 								Letterhead:        "Bezirksgericht Baden",
 								SourceHeadings:    CountHeadings(PlainText(string(src))),
-							}), len(pages), time.Since(start))
+							})
+							scored = append(scored, Entry{Model: backend + "/" + model, Mode: name, Score: score})
+							report(t, backend+"/"+model, name, score, len(pages), time.Since(start))
 						})
 					}
 				})
@@ -162,6 +174,59 @@ func TestExternalDocument(t *testing.T) {
 			}), len(pages), time.Since(start))
 		})
 	}
+}
+
+// settleBaseline writes this run's scores, or reports what got worse since the
+// last one.
+//
+// It fails on a regression rather than only logging it, because a score that is
+// merely printed is a score nobody compares: this project once recorded
+// "Randziffern 1 of 4" in every condition for a day, read it as a stable
+// property of the models, and only later found it was a normalizer discarding
+// all four. Under -update it writes instead, which is the same discipline the
+// golden fixtures use — read the diff, then accept it.
+func settleBaseline(t *testing.T, scored []Entry) {
+	t.Helper()
+	if len(scored) == 0 {
+		return // every subtest skipped, or the run died before scoring anything
+	}
+
+	if *updateFlag {
+		if err := os.MkdirAll(filepath.Dir(baselinePath), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(baselinePath, []byte(FormatBaseline(scored)), 0o644); err != nil { //nolint:gosec // a committed fixture, not a secret
+			t.Fatal(err)
+		}
+		t.Logf("wrote %s — read the diff before committing it", baselinePath)
+		return
+	}
+
+	stored, err := os.ReadFile(baselinePath)
+	if os.IsNotExist(err) {
+		t.Logf("no %s yet — run with -update to record this run as the baseline\n%s", baselinePath, FormatBaseline(scored))
+		return
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	was, err := ParseBaseline(string(stored))
+	if err != nil {
+		t.Fatalf("%s: %v", baselinePath, err)
+	}
+
+	regressions := CompareBaseline(was, scored)
+	if len(regressions) == 0 {
+		t.Logf("no regression against %s", baselinePath)
+		return
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%d score(s) worse than %s:\n", len(regressions), baselinePath)
+	for _, r := range regressions {
+		fmt.Fprintf(&b, "  %s\n", r)
+	}
+	b.WriteString("\nIf the change is intended, re-run with -update and commit the diff.")
+	t.Error(b.String())
 }
 
 func report(t *testing.T, model, mode string, s Score, pages int, took time.Duration) {

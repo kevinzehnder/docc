@@ -43,6 +43,11 @@ tasks:
       reports how much survived. The ground truth is exact because the fixture
       is ours.
 
+      Scores are compared against internal/eval/testdata/baseline.txt and the
+      run fails on anything worse, so "did this change help?" is a diff rather
+      than a memory. Read the report, then accept it:
+        task test:eval -- -update
+
       Compare models on the same page:
         task test:eval -- -models olmocr-2-7b,ggml-org/gemma-4-E4B-it-GGUF:Q4_0
 

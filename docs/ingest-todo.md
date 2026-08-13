@@ -16,8 +16,14 @@ What it does not yet have:
   regression and not enough to choose a model — two models scored identically
   on its prose. It needs a second fixture with the things this one lacks: a
   table, a footnote, a page break mid-paragraph.
-- **A stored baseline.** Scores are printed and forgotten. Writing them to a
-  local file would turn "did this prompt change help?" into a diff.
+- ~~**A stored baseline.** Scores are printed and forgotten.~~ **Done.**
+  `internal/eval/testdata/baseline.txt` holds the last scores and the run fails
+  on anything worse; `task test:eval -- -update` accepts a change. Word scores
+  are compared within 0.005, because a different quantization moves the third
+  decimal without anything being wrong, and the counts exactly. Found counts are
+  compared by *distance* from what the document has — thirteen headings on a
+  document with eight is over-marking, and fifteen is worse, which a
+  bigger-is-better comparison would have called an improvement.
 - **Scanned input.** Every fixture it renders is born-digital and clean. Real
   scans are skewed and noisy, and nothing measures that; `-doc` scores an
   external PDF but only structurally when there is no text layer.
