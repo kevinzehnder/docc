@@ -97,7 +97,17 @@ func Structure(ctx context.Context, c *Client, md string) (string, []StructureNo
 		// The lead label ("BO:") names the block, not the evidence, so it is
 		// removed here rather than left for the model to notice — it leaked
 		// into an item's description when it was not.
-		body := append([]string{}, lines[r.Start:r.End]...)
+		// A page marker inside the block is not evidence. An offer of proof
+		// runs on across a page break — a document on one line and two
+		// witnesses on the next page — and leaving the comment in makes the
+		// model answer with a line that is not a labelled item, which fails
+		// validation and throws the whole block away.
+		body := make([]string, 0, r.End-r.Start)
+		for _, line := range lines[r.Start:r.End] {
+			if !IsPageMarker(line) {
+				body = append(body, line)
+			}
+		}
 		body[0] = strings.TrimSpace(evidenceLead.ReplaceAllString(body[0], ""))
 		block := strings.TrimSpace(strings.Join(body, "\n"))
 		items, err := structureBlock(ctx, c, block)

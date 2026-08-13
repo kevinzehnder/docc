@@ -25,6 +25,15 @@ type PageResult struct {
 
 // NewPageResult wraps a backend's elements as one page's result, rendering the
 // markdown the passes that still work on text consume.
+//
+// It stamps the page number onto every element, because this is the last point
+// at which it is known: a backend transcribes one page and has no reason to
+// carry the document's numbering, and Assemble sees the pages already joined.
 func NewPageResult(index int, nodes []Node) PageResult {
-	return PageResult{Index: index, Nodes: nodes, Markdown: Render(nodes)}
+	stamped := make([]Node, len(nodes))
+	for i, n := range nodes {
+		n.Page = index
+		stamped[i] = n
+	}
+	return PageResult{Index: index, Nodes: stamped, Markdown: Render(stamped)}
 }

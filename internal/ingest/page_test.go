@@ -38,3 +38,18 @@ func TestRawNodeRoundTripsUnchanged(t *testing.T) {
 		t.Errorf("Render of a raw page changed it:\n got %q\nwant %q", got, page)
 	}
 }
+
+// The page number is stamped here because this is the last point at which it is
+// known: a backend transcribes one page and has no reason to carry the
+// document's numbering, and Assemble sees the pages already joined.
+func TestNewPageResultStampsThePageOntoEveryNode(t *testing.T) {
+	res := NewPageResult(8, []Node{
+		{Kind: KindHeading, Level: 2, Text: "I. FORMELLES"},
+		{Kind: KindPara, Text: "Die Eingabe erfolgt fristgerecht."},
+	})
+	for i, n := range res.Nodes {
+		if n.Page != 8 {
+			t.Errorf("node %d has Page %d, want 8", i, n.Page)
+		}
+	}
+}

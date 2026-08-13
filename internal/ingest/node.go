@@ -42,12 +42,16 @@ type Node struct {
 	// distinction --strip-randziffern exists to make.
 	SourceNumber *int
 
-	// Box is where on the page this came from, and RawType is the backend's
-	// own label for it ("title", "aside_text", "chart"). Both are carried
-	// rather than consumed: Box is what will let a reviewer be shown the crop
-	// a paragraph was read from, and RawType keeps a backend's finer
-	// vocabulary available to a pass that wants it without forcing that
-	// vocabulary on the passes that do not.
+	// Page is the 1-based document page this came off, and Box is where on it.
+	// RawType is the backend's own label ("title", "aside_text", "chart").
+	//
+	// All three are carried rather than consumed. Page reaches the draft as a
+	// marker comment, so a reviewer reading a forty-page transcription can see
+	// which page a paragraph came off without counting. Box is what will let
+	// that reviewer be shown the crop it was read from. RawType keeps a
+	// backend's finer vocabulary available to a pass that wants it without
+	// forcing it on the passes that do not.
+	Page    int
 	Box     BBox
 	RawType string
 }
