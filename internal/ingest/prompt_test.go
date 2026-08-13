@@ -40,8 +40,13 @@ func TestBuildPromptSkipsRunningHeadersFooters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildPrompt: %v", err)
 	}
-	if !strings.Contains(p, "running footers") || !strings.Contains(p, "page number") {
+	if !strings.Contains(p, "running footer") || !strings.Contains(p, "page number") {
 		t.Error("expected the prompt to instruct skipping running headers/footers and standalone page numbers")
+	}
+	// The exclusion has to be scoped by position, or it swallows the
+	// Randziffer in the left margin, which is also "a number by itself".
+	if !strings.Contains(p, "TOP or BOTTOM EDGE") {
+		t.Error("expected the header/footer rule to be scoped to the page edges")
 	}
 }
 
@@ -50,10 +55,16 @@ func TestBuildPromptMarksRandziffernButNotCitations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildPrompt: %v", err)
 	}
-	if !strings.Contains(p, "[Rz N]") {
-		t.Error("expected the prompt to instruct marking marginal paragraph numbers as [Rz N]")
+	// The prompt asks only for the digits: turning them into [Rz N] is done
+	// in code, because the model marks them only 63-73% of the time while
+	// transcribing them almost always. See rzNormalizer.
+	if !strings.Contains(p, "LEFT MARGIN") || !strings.Contains(p, "Randziffer") {
+		t.Error("expected the prompt to identify a Randziffer by its position in the left margin")
 	}
 	if !strings.Contains(p, "vgl. Rz. 25") {
 		t.Error("expected the prompt to give an example distinguishing a citation from a paragraph's own leading number")
+	}
+	if !strings.Contains(p, "rule 1 wins over rule 2") {
+		t.Error("expected the prompt to resolve the overlap between the margin rule and the page-edge rule explicitly")
 	}
 }

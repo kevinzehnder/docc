@@ -276,3 +276,24 @@ func TestConvertCancelledRunReportsInterrupted(t *testing.T) {
 		t.Errorf("partial document missing the resume hint:\n%s", md)
 	}
 }
+
+// The normalizer has to run inside the pipeline and keep its sequence across
+// pages, or a document's numbering restarts at every page boundary.
+func TestConvertMarksRandziffernAcrossPages(t *testing.T) {
+	requirePDFTools(t)
+	srv := newVLMServer(t,
+		"1 Die vorliegende Eingabe erfolgt innert Frist.",
+		"2 Daran ändert nichts, dass mehrere Streitgegenstände vorliegen.",
+	)
+	pdfPath := writeMultiPagePDF(t, t.TempDir(), 2)
+
+	md, _, err := Convert(context.Background(), pdfPath, srv.config(), ConvertOptions{})
+	if err != nil {
+		t.Fatalf("Convert: %v", err)
+	}
+	for _, want := range []string{"[Rz 1] Die vorliegende", "[Rz 2] Daran ändert"} {
+		if !strings.Contains(md, want) {
+			t.Errorf("assembled document missing %q\n---\n%s", want, md)
+		}
+	}
+}

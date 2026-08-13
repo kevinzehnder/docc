@@ -70,6 +70,9 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 	}
 
 	results := make([]PageResult, 0, len(pages))
+	// One normalizer for the whole document: Randziffern count up across
+	// pages, and the sequence is what tells a paragraph number from a year.
+	var rz rzNormalizer
 
 	// stop hands back whatever was transcribed before failedAt, marked so that
 	// neither a reader nor a later docc run mistakes it for the whole document.
@@ -136,6 +139,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		}
 
 		res := ParsePageResponse(page.Index, out.Content)
+		res.Markdown = rz.Apply(res.Markdown)
 		res.HadAnchor = hadAnchor
 		switch {
 		case out.Truncated:
