@@ -1,0 +1,14 @@
+reference_lost_page.md:16:1: error[REF010]: paragraph numbers jump from 2 to 7, skipping 4
+   | 
+16 | [Rz 7] Die Beklagte gibt die bundesgerichtliche Rechtsprechung unzutreffend wieder.
+   | ^^^^^^ a gap means the transcription lost text — re-convert the missing pages and splice them in
+reference_lost_page.md:18:1: error[REF010]: paragraph number 7 repeats the previous one
+   | 
+18 | [Rz 7] Wiederholte Nummer, weil zwei Absätze zusammengezogen wurden.
+   | ^^^^^^ give each paragraph its own number, as the source document does
+reference_lost_page.md:20:1: error[REF010]: paragraph number 5 goes backwards after 7 on line 18
+   | 
+20 | [Rz 5] Rückwärts, weil die Seiten in falscher Reihenfolge zusammengefügt wurden.
+   | ^^^^^^ restore the source document's order
+
+3 errors, 0 warnings

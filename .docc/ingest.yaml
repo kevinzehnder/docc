@@ -1,5 +1,56 @@
+---
 endpoint: http://localhost:8080/v1/chat/completions
+
+# ── Model selection ──────────────────────────────────────────────────────
+# Swap between these by uncommenting one and commenting the rest. The value
+# must match a section name in models-router.ini — and that section must
+# carry an `mmproj` line, or the model serves text only and every page here
+# fails. All three below have one.
+#
+# On 8 GB the binding constraint is fitting the vision projector on the GPU
+# alongside the weights. A projector left on the CPU costs minutes per page,
+# which dwarfs any quality difference between these three.
+
+# olmOCR-2-7B       — dedicated OCR VLM, best-in-class on olmOCR-bench (82.4)
+#                     4467 MiB + 1295 MiB projector — fits with room to spare
+# model: olmocr-2-7b
+
+# Qwen3.5-9B        — general-purpose VLM, strong OCR (78.1 on olmOCR-bench)
+#                     5427 MiB + 880 MiB projector — fits, but only at 8k
+#                     context and with speculative decoding disabled
 model: unsloth/Qwen3.5-9B-GGUF:Q4_K_M
+
+# Gemma-4-E4B       — smaller (4B), has audio too; the roomiest of the three
+#                     4300 MiB + 534 MiB projector. Weakest at dense OCR.
+# model: ggml-org/gemma-4-E4B-it-GGUF:Q4_0
+
 temperature: 0.1
-dpi: 200
+
+# Measured on Replik.pdf p30 (dense German legal prose), fixed seed, projector
+# on the GPU — so these differences are the image, not sampling noise:
+#
+#   dpi=110  11.0s  |  dpi=150  11.4s  |  dpi=200  12.0s
+#
+# Speed is nearly flat, because with the projector on the GPU the run is
+# dominated by generating ~800 tokens, not by encoding the image. So DPI is
+# not a speed knob at all here — pick it on fidelity.
+#
+# The only textual difference between 150 and 200 was "Steuerklärung" vs
+# "Steuererklärung". The PDF's own text layer reads "Steuerklärung" — the
+# author's typo — so 200 reproduced the source and 150 silently corrected it.
+# For a legal document, faithful beats plausible: a transcription that fixes
+# the source is a transcription you cannot cite. 110 and 150 were identical,
+# which means the two of them share that behaviour.
+#
+# 150 is kept because one page is not enough to choose on, and it stays inside
+# what olmOCR was trained for (it renders to a 1288 px longest edge, ~110 dpi
+# for A4). If silent normalisation shows up again, raise this to 200 — the
+# extra 0.6s per page is nothing next to a wrong quotation.
+dpi: 150
+
 anchor: true
+
+# The router loads the model on demand, inside the first request, and that
+# load is silent time. Generous enough to cover a cold start; the watchdog is
+# still there to catch a server that actually died.
+stall_timeout: 5m

@@ -257,6 +257,7 @@ schema rather than quietly doing nothing.
 | `div_items_match` | items in a fenced div that do not have the required form | `div` — the fence name, `pattern` — a regexp every item must match |
 | `cross_reference` | keys cited in the body but missing from a frontmatter list, and entries listed but never cited | `div`, `pattern` — capture group 1 is the cited key, `list_field` — the frontmatter list, `label` — what one entry is called in messages |
 | `no_empty_sections` | a heading with no content beneath it | — |
+| `randziffer_sequence` | a transcribed document whose paragraph numbers skip, repeat or go backwards | `pattern` — what a marker looks like. Defaults to `[Rz N]` at the start of a paragraph. |
 
 `cross_reference` numbers a list positionally: the Nth entry of `list_field` is
 key N.
