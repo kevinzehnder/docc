@@ -98,7 +98,18 @@ func Grade(t Transcription) Score {
 	s := Score{HasText: strings.TrimSpace(t.SourceText) != ""}
 
 	if s.HasText {
-		s.Precision, s.Recall, s.F1, s.Missing, s.Spurious = compareWords(t.SourceText, t.Markdown)
+		// Both sides go through PlainText, because the comparison is between
+		// what the page says and what the model read off it — and neither
+		// frontmatter nor an HTML comment is on the page.
+		//
+		// Only the source was normalized for a while, so everything Assemble
+		// prepends to a draft was scored as invention: `docc: 1`, and the
+		// banner's "review before treating this as a source document" down to
+		// the digits of its date. The first measured baseline has `08`, `13`
+		// and `before` in its invented-words list for that reason, and the
+		// floor this file attributes to theme boilerplate was partly docc
+		// marking down its own output.
+		s.Precision, s.Recall, s.F1, s.Missing, s.Spurious = compareWords(t.SourceText, PlainText(t.Markdown))
 	}
 
 	found := markedNumbers(t.Markdown)
@@ -317,6 +328,26 @@ func isListItem(line string) bool {
 // is why they are counted separately rather than compared.
 func FlattenValues(v any) string {
 	var b strings.Builder
+	if m, ok := v.(map[string]any); ok {
+		// `docc` and `document_type` select and version the document; no theme
+		// renders them, so demanding a transcription contain them asks the
+		// model to read something that is not on the page.
+		//
+		// This hid behind a second error for a while. Assemble writes both back
+		// into a draft's own frontmatter, so `document_type: legal` in the
+		// output was covering the `legal` this function put in the ground
+		// truth — docc satisfying its own requirement. Normalizing the
+		// transcription exposed it as a dropped word, which is how it was
+		// found.
+		kept := make(map[string]any, len(m))
+		for k, val := range m {
+			if k == "docc" || k == "document_type" {
+				continue
+			}
+			kept[k] = val
+		}
+		v = kept
+	}
 	flatten(&b, v)
 	return b.String()
 }
