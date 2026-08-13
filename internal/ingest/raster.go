@@ -93,7 +93,7 @@ func supportedExtensions() []string {
 // bounded timeout, fixed argv, and verification by output rather than exit
 // code, since a tool that reports success having produced nothing is worse
 // than one that fails loudly.
-func RenderPages(pdfPath, outDir string, opts RasterOptions) ([]Page, error) {
+func RenderPages(ctx context.Context, pdfPath, outDir string, opts RasterOptions) ([]Page, error) {
 	binary, err := findBinary("pdftoppm")
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func RenderPages(pdfPath, outDir string, opts RasterOptions) ([]Page, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	prefix := filepath.Join(outDir, "page")

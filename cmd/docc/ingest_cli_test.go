@@ -5,10 +5,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
+
+	"github.com/kevinzehnder/docc/internal/testpdf"
 )
 
 // fakeVLM serves preflight and streams one short response per page, counting
@@ -33,16 +36,20 @@ func fakeVLM(t *testing.T, calls *atomic.Int64) *httptest.Server {
 	return srv
 }
 
-// fixturePDF copies the package's own test PDF somewhere with no .docc above
-// it, so the run uses flags and defaults rather than the repository's config.
+// fixturePDF builds a PDF in a directory with no .docc above it, so the run
+// uses flags and defaults rather than the repository's own configuration.
+//
+// It is generated rather than read from disk: local documents are not in the
+// repository, and a fixture that is missing on every machine but one turns
+// these tests into a silent skip.
 func fixturePDF(t *testing.T, dir string) string {
 	t.Helper()
-	src, err := os.ReadFile(filepath.Join("..", "..", "assets", "test_document.pdf"))
-	if err != nil {
-		t.Skip("assets/test_document.pdf not available")
+	if _, err := exec.LookPath("pdftoppm"); err != nil {
+		t.Skip("pdftoppm not on PATH")
 	}
+	src := testpdf.Write(t, dir, "Ingest CLI Test")
 	path := filepath.Join(dir, "scan.pdf")
-	if err := os.WriteFile(path, src, 0o644); err != nil {
+	if err := os.Rename(src, path); err != nil {
 		t.Fatal(err)
 	}
 	return path
