@@ -31,3 +31,6 @@ go.work.sum
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# ── docc build output ─────────────────────────────────────────────────────────
+output/
