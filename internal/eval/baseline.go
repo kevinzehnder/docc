@@ -151,6 +151,30 @@ func assign(s *Score, name, value string) error {
 	return err
 }
 
+// MergeBaseline lays a run's scores over a stored baseline, replacing the runs
+// it measured and keeping the ones it did not.
+//
+// Overwriting the file with just this run's rows would be the same mistake
+// ingest makes a point of not making when it resumes: scoring one backend with
+// -backends would silently drop every other row, and the next comparison would
+// report no regression because it would have nothing left to compare against.
+func MergeBaseline(was, now []Entry) []Entry {
+	merged := make(map[string]Entry, len(was)+len(now))
+	for _, e := range was {
+		merged[e.key()] = e
+	}
+	for _, e := range now {
+		merged[e.key()] = e
+	}
+
+	out := make([]Entry, 0, len(merged))
+	for _, e := range merged {
+		out = append(out, e)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].key() < out[j].key() })
+	return out
+}
+
 // rateTolerance is how far a word score may drift before it counts as a
 // regression.
 //

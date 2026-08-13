@@ -154,3 +154,28 @@ func TestParseBaselineRejectsAMalformedLine(t *testing.T) {
 		}
 	}
 }
+
+// A run scoping itself with -backends or -models measured a subset. Writing
+// only what it measured would drop every other row, after which the next
+// comparison reports no regression because it has nothing left to compare
+// against.
+func TestMergeBaselineKeepsRunsThisPassDidNotScore(t *testing.T) {
+	rerun := []Entry{{Model: "mineru/mineru-pro-2605", Mode: "vision-only", Score: Score{Recall: 0.5}}}
+
+	got := MergeBaseline(baselineSample(), rerun)
+	if len(got) != 2 {
+		t.Fatalf("got %d entries, want 2 — the unscored run must survive: %v", len(got), got)
+	}
+	for _, e := range got {
+		switch e.Model {
+		case "mineru/mineru-pro-2605":
+			if e.Score.Recall != 0.5 {
+				t.Errorf("rescored run kept the old score %v", e.Score.Recall)
+			}
+		case "chat/olmocr-2-7b":
+			if e.Score.Recall != 0.982 {
+				t.Errorf("untouched run was overwritten: recall %v", e.Score.Recall)
+			}
+		}
+	}
+}

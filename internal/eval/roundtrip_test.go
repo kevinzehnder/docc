@@ -191,28 +191,34 @@ func settleBaseline(t *testing.T, scored []Entry) {
 		return // every subtest skipped, or the run died before scoring anything
 	}
 
-	if *updateFlag {
-		if err := os.MkdirAll(filepath.Dir(baselinePath), 0o750); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(baselinePath, []byte(FormatBaseline(scored)), 0o644); err != nil { //nolint:gosec // a committed fixture, not a secret
-			t.Fatal(err)
-		}
-		t.Logf("wrote %s — read the diff before committing it", baselinePath)
-		return
-	}
-
 	stored, err := os.ReadFile(baselinePath)
-	if os.IsNotExist(err) {
-		t.Logf("no %s yet — run with -update to record this run as the baseline\n%s", baselinePath, FormatBaseline(scored))
-		return
-	}
-	if err != nil {
+	switch {
+	case os.IsNotExist(err):
+		if !*updateFlag {
+			t.Logf("no %s yet — run with -update to record this run as the baseline\n%s", baselinePath, FormatBaseline(scored))
+			return
+		}
+	case err != nil:
 		t.Fatal(err)
 	}
 	was, err := ParseBaseline(string(stored))
 	if err != nil {
 		t.Fatalf("%s: %v", baselinePath, err)
+	}
+
+	if *updateFlag {
+		// Merged, not replaced: a run scoping itself with -backends or -models
+		// measured a subset, and writing only what it measured would drop every
+		// other row — after which the next comparison reports no regression
+		// because there is nothing left to compare against.
+		if err := os.MkdirAll(filepath.Dir(baselinePath), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(baselinePath, []byte(FormatBaseline(MergeBaseline(was, scored))), 0o644); err != nil { //nolint:gosec // a committed fixture, not a secret
+			t.Fatal(err)
+		}
+		t.Logf("wrote %s — read the diff before committing it", baselinePath)
+		return
 	}
 
 	regressions := CompareBaseline(was, scored)
