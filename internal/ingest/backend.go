@@ -48,9 +48,15 @@ type Backend interface {
 // PageOutput is one page as a backend produced it, before the pipeline's own
 // post-processing.
 type PageOutput struct {
-	// Markdown is the page body. It is not trimmed or normalized — Convert
-	// does that, the same way for every backend.
-	Markdown string
+	// Nodes is the page body as document elements. A backend that knows what
+	// it found returns it broken up; one that returns free-running markdown
+	// returns a single KindRaw node holding the page, which Render prints back
+	// unchanged.
+	//
+	// It replaced a markdown string here, because a string is the form in
+	// which a backend's own knowledge of the page — this region is a heading,
+	// this one is a running header — has already been thrown away.
+	Nodes []Node
 	// Truncated reports that the model was cut off at max_tokens rather than
 	// choosing to stop. A backend making several calls per page sets it if any
 	// one of them was truncated.
@@ -119,5 +125,12 @@ func (b *chatBackend) Page(ctx context.Context, page Page, anchorText string, on
 	if err != nil {
 		return PageOutput{}, err
 	}
-	return PageOutput{Markdown: out.Content, Truncated: out.Truncated, Tokens: out.Tokens}, nil
+	// One node for the page: this protocol's answer is markdown the model laid
+	// out itself, and it crosses the seam whole. See KindRaw.
+	body := strings.TrimSpace(out.Content)
+	var nodes []Node
+	if body != "" {
+		nodes = []Node{{Kind: KindRaw, Text: body}}
+	}
+	return PageOutput{Nodes: nodes, Truncated: out.Truncated, Tokens: out.Tokens}, nil
 }

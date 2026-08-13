@@ -54,24 +54,6 @@ var bareNumber = regexp.MustCompile(`^\d{1,4}$`)
 // 0.085, so the two are separated by roughly a fifteenth of the page.
 const marginGap = 0.02
 
-// AssembleBlocks turns recognized blocks into one page's markdown. It is the
-// mineru backend's half of what Assemble does for a document: this builds a
-// page body, Assemble joins the pages and writes the frontmatter.
-//
-// Three things happen here that the chat backend has to ask a model for, and
-// gets about two thirds of the time: running headers and page numbers are
-// dropped, headings are marked because the layout pass called them headings,
-// and a number alone in the gutter becomes a [Rz N] marker on the paragraph it
-// sits beside. Only the last of those is a guess, and the Randziffer sequence
-// check in rzNormalizer is what catches it when it is wrong.
-//
-// It is now the composition of the two halves it used to conflate: Nodes
-// decides what the page contains, Render decides how that is written down. The
-// passes between them are the point — see Node.
-func AssembleBlocks(blocks []Block) string {
-	return Render(Nodes(blocks))
-}
-
 // positioned pairs a block with its index in the body slice, so that a gutter
 // number found later can be attached to it.
 type positioned struct {

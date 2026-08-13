@@ -49,7 +49,7 @@ func TestAssembleBlocksGolden(t *testing.T) {
 		"```\ngo build ./...\n```\n\n" +
 		"<!-- image on the page here, not transcribed -->"
 
-	if got := AssembleBlocks(goldenBlocks()); got != want {
-		t.Errorf("AssembleBlocks:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	if got := Render(Nodes(goldenBlocks())); got != want {
+		t.Errorf("Render(Nodes(...)):\n--- got ---\n%s\n--- want ---\n%s", got, want)
 	}
 }

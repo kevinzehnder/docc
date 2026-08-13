@@ -145,9 +145,29 @@ func TestMinerUPageRunsBothPasses(t *testing.T) {
 		t.Fatalf("Page: %v", err)
 	}
 
-	want := "## Zu Rz. 80\n\n[Rz 55] Richtig ist, dass ..."
-	if out.Markdown != want {
-		t.Errorf("markdown =\n%q\nwant\n%q", out.Markdown, want)
+	// The backend hands back elements, not markdown: the heading is a heading
+	// because the layout pass classified it, and the marginal number is a value
+	// rather than a prefix the next pass would have to find again.
+	want := []Node{
+		{Kind: KindHeading, Level: 2, Text: "Zu Rz. 80"},
+		{Kind: KindPara, Text: "Richtig ist, dass ...", SourceNumber: intp(55)},
+	}
+	if len(out.Nodes) != len(want) {
+		t.Fatalf("got %d nodes, want %d: %+v", len(out.Nodes), len(want), out.Nodes)
+	}
+	for i, w := range want {
+		got := out.Nodes[i]
+		if got.Kind != w.Kind || got.Level != w.Level || got.Text != w.Text {
+			t.Errorf("node %d = %+v, want kind %v level %d text %q", i, got, w.Kind, w.Level, w.Text)
+		}
+		switch {
+		case w.SourceNumber == nil && got.SourceNumber != nil:
+			t.Errorf("node %d has SourceNumber %d, want none", i, *got.SourceNumber)
+		case w.SourceNumber != nil && got.SourceNumber == nil:
+			t.Errorf("node %d has no SourceNumber, want %d", i, *w.SourceNumber)
+		case w.SourceNumber != nil && *got.SourceNumber != *w.SourceNumber:
+			t.Errorf("node %d SourceNumber = %d, want %d", i, *got.SourceNumber, *w.SourceNumber)
+		}
 	}
 
 	// The header and page number never cost a round trip: they are dropped

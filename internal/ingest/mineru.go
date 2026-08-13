@@ -128,6 +128,9 @@ func (m *minerU) Page(ctx context.Context, page Page, _ string, onDelta func(str
 		out.Truncated = out.Truncated || res.Truncated
 	}
 
-	out.Markdown = AssembleBlocks(blocks)
+	// The layout pass's own classification crosses the seam intact: a heading
+	// stays a heading rather than becoming a "#" the next pass has to find
+	// again, and every block keeps the box it was read from.
+	out.Nodes = Nodes(blocks)
 	return out, nil
 }

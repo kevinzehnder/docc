@@ -170,7 +170,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 			return stop(page.Index, err)
 		}
 
-		res := ParsePageResponse(page.Index, out.Markdown)
+		res := NewPageResult(page.Index, out.Nodes)
 		res.Markdown = outline.Apply(res.Markdown)
 		res.HadAnchor = hadAnchor
 		switch {

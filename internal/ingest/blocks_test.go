@@ -15,12 +15,12 @@ func block(kind string, x0, y0, x1, y1 float64, text string) Block {
 // document. The chat backend asks a model to leave them out and gets it right
 // about two thirds of the time; here it is a type check.
 func TestAssembleBlocksDropsPageFurniture(t *testing.T) {
-	md := AssembleBlocks([]Block{
+	md := Render(Nodes([]Block{
 		block("header", 0.887, 0.027, 0.936, 0.060, "Muster & Partner AG"),
 		block("text", 0.131, 0.193, 0.870, 0.532, "Der Kläger bestreitet."),
 		block("page_number", 0.871, 0.959, 0.895, 0.972, "- 30 -"),
 		block("footer", 0.131, 0.975, 0.870, 0.985, "Replik vom 3. Mai"),
-	})
+	}))
 
 	if !strings.Contains(md, "Der Kläger bestreitet.") {
 		t.Fatalf("body text missing:\n%s", md)
@@ -35,10 +35,10 @@ func TestAssembleBlocksDropsPageFurniture(t *testing.T) {
 // A heading is a heading because the layout pass said so, not because the model
 // felt like typing a "#" on this page and not the next.
 func TestAssembleBlocksMarksHeadings(t *testing.T) {
-	md := AssembleBlocks([]Block{
+	md := Render(Nodes([]Block{
 		block("title", 0.131, 0.175, 0.218, 0.189, "Zu Rz. 80"),
 		block("text", 0.131, 0.193, 0.870, 0.532, "Richtig ist, dass ..."),
-	})
+	}))
 	if !strings.HasPrefix(md, "## Zu Rz. 80\n\n") {
 		t.Fatalf("heading not marked:\n%s", md)
 	}
@@ -47,13 +47,13 @@ func TestAssembleBlocksMarksHeadings(t *testing.T) {
 // A number alone in the gutter is a marginal paragraph number and belongs to
 // the paragraph it sits beside.
 func TestAssembleBlocksMarksGutterNumbers(t *testing.T) {
-	md := AssembleBlocks([]Block{
+	md := Render(Nodes([]Block{
 		block("title", 0.131, 0.175, 0.218, 0.189, "Zu Rz. 80"),
 		block("text", 0.085, 0.193, 0.102, 0.203, "55"),
 		block("text", 0.131, 0.193, 0.870, 0.532, "Richtig ist, dass ..."),
 		block("text", 0.086, 0.744, 0.102, 0.753, "56"),
 		block("text", 0.131, 0.745, 0.870, 0.836, "Die Ausführungen ..."),
-	})
+	}))
 
 	if !strings.Contains(md, "[Rz 55] Richtig ist") {
 		t.Errorf("first Randziffer not attached:\n%s", md)
@@ -72,10 +72,10 @@ func TestAssembleBlocksMarksGutterNumbers(t *testing.T) {
 // A narrow block in the margin that says something other than a number is a
 // marginal note, and throwing it away would lose document text.
 func TestAssembleBlocksKeepsMarginalProse(t *testing.T) {
-	md := AssembleBlocks([]Block{
+	md := Render(Nodes([]Block{
 		block("aside_text", 0.085, 0.193, 0.102, 0.400, "siehe Beilage 4"),
 		block("text", 0.131, 0.193, 0.870, 0.532, "Der Kläger bestreitet."),
-	})
+	}))
 	if !strings.Contains(md, "siehe Beilage 4") {
 		t.Fatalf("marginal note dropped:\n%s", md)
 	}
@@ -85,13 +85,13 @@ func TestAssembleBlocksKeepsMarginalProse(t *testing.T) {
 // transcribes the same lines twice, which turned a Rechtsbegehren with two
 // prayers into four on the round-trip fixture.
 func TestAssembleBlocksSkipsContainerBlocks(t *testing.T) {
-	md := AssembleBlocks([]Block{
+	md := Render(Nodes([]Block{
 		block("list_item", 0.242, 0.594, 0.698, 0.627, "Die Beklagte sei zu verpflichten"),
 		block("list_item", 0.242, 0.631, 0.683, 0.665, "unter Kosten- und Entschädigungsfolgen"),
 		// The container spans both, and holds no text of its own that is not
 		// already in them.
 		block("list", 0.242, 0.594, 0.698, 0.685, "Die Beklagte sei zu verpflichten unter Kosten- und Entschädigungsfolgen"),
-	})
+	}))
 
 	if got := strings.Count(md, "Die Beklagte sei zu verpflichten"); got != 1 {
 		t.Errorf("text appears %d times, want 1:\n%s", got, md)
@@ -102,10 +102,10 @@ func TestAssembleBlocksSkipsContainerBlocks(t *testing.T) {
 }
 
 func TestAssembleBlocksAnnouncesImages(t *testing.T) {
-	md := AssembleBlocks([]Block{
+	md := Render(Nodes([]Block{
 		block("image", 0.131, 0.193, 0.870, 0.532, ""),
 		block("text", 0.131, 0.600, 0.870, 0.700, "Abbildung 1 zeigt ..."),
-	})
+	}))
 	if !strings.Contains(md, "<!-- image on the page here, not transcribed -->") {
 		t.Fatalf("image not announced:\n%s", md)
 	}

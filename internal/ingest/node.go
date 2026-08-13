@@ -69,6 +69,19 @@ const (
 	KindEquation
 	// KindVisual is a picture: announced in the output, never transcribed.
 	KindVisual
+	// KindRaw is markdown that has not been broken into elements, printed
+	// back exactly as it arrived.
+	//
+	// It is how the chat backend's output crosses this seam for now: that
+	// protocol returns a page of free-running markdown, and parsing it into
+	// elements is a change to what the chat path emits, which is a change only
+	// the round trip in internal/eval can sign off on. Until then one node
+	// holds the page, Render gives it back byte for byte, and the passes that
+	// still work on text are none the wiser.
+	//
+	// A pass that needs to see inside a page cannot use this, which is the
+	// point at which the chat backend has to learn to parse.
+	KindRaw
 )
 
 // kinds maps a backend's block type onto a Kind and, for a heading, its depth.
@@ -182,6 +195,8 @@ func renderNode(n Node) string {
 		// Kept as the HTML the model produced. Converting to a pipe table
 		// would lose exactly the merged cells that make a table worth
 		// transcribing carefully.
+		return text
+	case KindRaw:
 		return text
 	default:
 		return text

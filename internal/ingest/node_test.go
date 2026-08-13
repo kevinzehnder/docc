@@ -117,3 +117,6 @@ func TestNodesDropEmptyBlocksWithTheirNumber(t *testing.T) {
 		t.Errorf("number %d slid onto the following paragraph", *nodes[0].SourceNumber)
 	}
 }
+
+// intp is for test tables that need an optional number inline.
+func intp(n int) *int { return &n }
