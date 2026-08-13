@@ -1,0 +1,12 @@
+# docc ingest evaluation baseline — `task test:eval -- -update`
+#
+# Recall is the number to trust: the ground truth is every word the document
+# is known to contain. Precision has a floor below 1 that is not the model's
+# fault — the theme prints boilerplate that is on the page and in no source.
+# Wall time is not recorded; it changes for reasons unrelated to any change
+# under test.
+chat/olmocr-2-7b anchored precision=0.744 recall=0.982 f1=0.847 rz=4/4 breaks=0 headings=8/8 pagenumbers=0 letterheads=1
+chat/olmocr-2-7b vision-only precision=0.634 recall=0.982 f1=0.770 rz=4/4 breaks=0 headings=8/8 pagenumbers=0 letterheads=1
+chat/unsloth/Qwen3.5-9B-GGUF:Q4_K_M anchored precision=0.744 recall=0.982 f1=0.847 rz=4/4 breaks=0 headings=8/8 pagenumbers=0 letterheads=1
+chat/unsloth/Qwen3.5-9B-GGUF:Q4_K_M vision-only precision=0.634 recall=0.982 f1=0.770 rz=4/4 breaks=0 headings=8/8 pagenumbers=0 letterheads=1
+mineru/mineru-pro-2605 vision-only precision=0.755 recall=0.988 f1=0.856 rz=4/4 breaks=0 headings=8/8 pagenumbers=0 letterheads=1

@@ -177,6 +177,42 @@ the quantization nor the model version. Column structure is not recoverable from
 this path today, and the cause is still unknown; that is a smaller and more
 honest claim than the one it replaces.
 
+### What the stored baseline recorded
+
+The first full run of `task test:eval -- -update`, all four profiles, with the
+schema's outline and `--outline-strict`:
+
+| backend / model | mode | P / R | F1 | headings | Rz |
+|---|---|---|---|---|---|
+| mineru / Pro-2605 | — | **0.755 / 0.988** | **0.856** | 8/8 | 4/4 |
+| chat / Qwen3.5-9B | anchored | 0.744 / 0.982 | 0.847 | 8/8 | 4/4 |
+| chat / olmOCR-2-7B | anchored | 0.744 / 0.982 | 0.847 | 8/8 | 4/4 |
+| chat / Qwen3.5-9B | vision-only | 0.634 / 0.982 | 0.770 | 8/8 | 4/4 |
+| chat / olmOCR-2-7B | vision-only | 0.634 / 0.982 | 0.770 | 8/8 | 4/4 |
+
+Three things this says that the earlier tables could not.
+
+- **The typed-Node rewrite moved nothing.** `mineru` reproduces 0.755 / 0.988 /
+  0.856 and 8-of-8 headings exactly, across four commits that replaced the
+  markdown intermediate with document elements. That was asserted by a golden
+  test on synthetic blocks; this is the same claim against a live model.
+- **The outline scheme has erased the difference between the two chat models.**
+  olmOCR and Qwen now agree to three decimals in both modes *and* on headings.
+  This file's argument for counting headings at all was that "without it the two
+  models looked interchangeable" — olmOCR marked none of eight, Qwen fourteen.
+  With the scheme supplying the levels, they are interchangeable, because the
+  thing that separated them is no longer the model's job. **This fixture can no
+  longer choose between chat models**, which sharpens rather than answers the
+  "needs a second document" item above.
+- **Anchoring is worth 0.110 of precision**, on both models, reproducing the
+  0.116 measured before. It remains the whole reason the chat backend is worth
+  keeping.
+
+`letterheads=1` in every row is a false positive, not a leak. The check counts
+every line containing the letterhead string, and `Bezirksgericht Baden` is
+legitimately on page 1 as the addressee. It should only fire on a string
+appearing on more than one page.
+
 ## 2. Ingest still leaks running headers and footers
 
 Measured over eight pages of a scanned brief, in the best prompt condition: two
