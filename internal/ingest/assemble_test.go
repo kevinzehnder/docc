@@ -160,3 +160,28 @@ func TestInspectDraft(t *testing.T) {
 		t.Error("InspectDraft on a missing file: want an error, so a caller cannot read absence as permission")
 	}
 }
+
+// Ingest does not know the schema its draft will be checked against, so the
+// only fields it may write are ones every schema accepts. `title` is defined
+// in the letter schema and not the legal one: emitting it as a placeholder
+// made every legal draft open with a DOC011 warning about ingest's own
+// boilerplate, before the author had touched anything.
+func TestAssembleWritesNoSchemaSpecificPlaceholders(t *testing.T) {
+	got := Assemble([]PageResult{{Index: 1, Markdown: "text"}}, AssembleOptions{
+		SourceFile: "klage.pdf",
+		DocType:    "legal",
+	})
+
+	frontmatter, _, ok := strings.Cut(strings.TrimPrefix(got, "---\n"), "---\n")
+	if !ok {
+		t.Fatalf("no frontmatter block in:\n%s", got)
+	}
+	for _, line := range strings.Split(strings.TrimSpace(frontmatter), "\n") {
+		field, _, _ := strings.Cut(line, ":")
+		switch field {
+		case "docc", "document_type":
+		default:
+			t.Errorf("frontmatter carries %q; only docc and document_type are accepted by every schema", line)
+		}
+	}
+}

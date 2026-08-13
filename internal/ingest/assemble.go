@@ -105,12 +105,18 @@ func InspectDraft(path string) (DraftInfo, error) {
 // Assemble stitches per-page markdown into one document, prefixed with
 // generic frontmatter and a banner marking it as machine-generated.
 //
-// Frontmatter stays generic — a title placeholder and document_type only —
+// Frontmatter stays generic — the docc version and document_type only —
 // rather than schema-aware: filling schema-specific fields (parties, case
 // references, ...) reliably needs schema knowledge this package deliberately
 // does not have. docc check already reports whatever is missing once the
 // author fills the rest in by hand, which is the point: nothing ingest
 // produces is auto-trusted.
+//
+// It writes no placeholder fields, because a schema-agnostic producer cannot
+// know which are legal: `title` exists in the letter schema and not the legal
+// one, so emitting it made every legal draft open with a DOC011 warning about
+// ingest's own boilerplate. DOC004 already names the fields an author has to
+// supply, with better hints than a blank line could carry.
 func Assemble(pages []PageResult, opts AssembleOptions) string {
 	var b strings.Builder
 
@@ -119,7 +125,6 @@ func Assemble(pages []PageResult, opts AssembleOptions) string {
 	if opts.DocType != "" {
 		fmt.Fprintf(&b, "document_type: %s\n", opts.DocType)
 	}
-	b.WriteString("title: \"\"\n")
 	b.WriteString("---\n\n")
 
 	fmt.Fprintf(&b, "<!-- %s from %s on %s — review before treating this as a source document -->\n",
