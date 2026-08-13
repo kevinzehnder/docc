@@ -65,6 +65,7 @@ ingest flags:
   --model <name>       VLM model name (default: from .docc/ingest.yaml)
   --endpoint <url>     VLM chat completions endpoint (default: from .docc/ingest.yaml)
   --output <path>      output path (single input file only; default: input with .md extension)
+  --schema-dir <dir>   schema directory, consulted when --type is given
   --force              overwrite an output file that docc ingest did not write
   --json               machine-readable output
 
@@ -419,15 +420,16 @@ func cmdBuild(args []string) int {
 func cmdIngest(args []string) int {
 	fs := flag.NewFlagSet("ingest", flag.ContinueOnError)
 	var (
-		docType  = fs.String("type", "", "document_type to write into the output frontmatter")
-		jsonOut  = fs.Bool("json", false, "machine-readable output")
-		dpi      = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
-		noAnchor = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
-		model    = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
-		endpoint = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
-		output   = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
-		pages    = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
-		force    = fs.Bool("force", false, "overwrite an output file that docc ingest did not write")
+		docType   = fs.String("type", "", "document_type to write into the output frontmatter")
+		jsonOut   = fs.Bool("json", false, "machine-readable output")
+		dpi       = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
+		noAnchor  = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
+		model     = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
+		endpoint  = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
+		output    = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
+		pages     = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
+		force     = fs.Bool("force", false, "overwrite an output file that docc ingest did not write")
+		schemaDir = fs.String("schema-dir", "", "schema directory (default: nearest .docc/schemas)")
 	)
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -489,6 +491,15 @@ func cmdIngest(args []string) int {
 		return 2
 	}
 
+	// Whether the source document's marginal paragraph numbers are kept
+	// depends on what this draft is going to become, which only the target
+	// schema knows. Without one, ingest is a plain transcription tool and
+	// keeps them.
+	strip, schemaNote := randzifferPolicy(*docType, *schemaDir, files[0])
+	if schemaNote != "" {
+		fmt.Fprintln(os.Stderr, "docc ingest:", schemaNote)
+	}
+
 	// A conversion is minutes of GPU time. Ctrl-C cancels the request in
 	// flight, and the pages already transcribed are still written out below.
 	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -503,6 +514,7 @@ func cmdIngest(args []string) int {
 		attempted := 0
 		md, done, err := ingest.Convert(ctx, input, cfg, ingest.ConvertOptions{
 			First: firstPage, Last: lastPage, DocType: *docType,
+			StripRandziffern: strip,
 			Progress: func(ev ingest.Event) {
 				if ev.Total > 0 {
 					attempted = ev.Total
@@ -548,6 +560,37 @@ func cmdIngest(args []string) int {
 		}
 	}
 	return exitCode
+}
+
+// randzifferPolicy decides whether to keep the source document's marginal
+// paragraph numbers, and explains itself when the answer came from a schema.
+//
+// A schema that generates paragraph numbers at render time must not also
+// receive them as text: the document would print both, and the transcribed one
+// would go stale the first time a section moved. A schema that does not
+// generate them — a transcription of a third party's brief — needs them kept,
+// because there they are the citation key rather than presentation.
+//
+// Working without a schema stays supported, and keeps them. Ingest is a
+// transcription tool first: reproducing what is on the page is the honest
+// default, and deleting a marker afterwards is easier than re-converting a
+// document to recover one.
+func randzifferPolicy(docType, schemaDir, start string) (strip bool, note string) {
+	if docType == "" {
+		return false, ""
+	}
+	set, err := loadSchemas(schemaDir, start)
+	if err != nil {
+		return false, fmt.Sprintf("no schemas found, keeping the source document's paragraph numbers: %v", err)
+	}
+	sc, err := set.Get(docType)
+	if err != nil {
+		return false, fmt.Sprintf("keeping the source document's paragraph numbers: %v", err)
+	}
+	if sc.Render.ParagraphNumbering != nil {
+		return true, fmt.Sprintf("%s numbers its paragraphs at render time — dropping the source document's own numbers", docType)
+	}
+	return false, ""
 }
 
 // ingestOutputPath is where one input's draft goes: the explicit --output, or

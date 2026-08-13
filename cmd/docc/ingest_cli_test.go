@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -152,4 +153,77 @@ func TestIngestRejectsBadInputBeforeCallingTheVLM(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "scan.md")); !os.IsNotExist(err) {
 		t.Error("the valid input was converted anyway; nothing should run when an argument is bad")
 	}
+}
+
+// The same source page must come out differently depending on what the draft is
+// going to become. This is the whole point of the policy: a document whose
+// schema generates paragraph numbers may not also receive them as text.
+func TestIngestRandzifferPolicyEndToEnd(t *testing.T) {
+	schemaDir := filepath.Join("..", "..", "testdata", "schemas")
+
+	for _, tt := range []struct {
+		docType    string
+		wantMarker bool
+	}{
+		{docType: "legal_reference", wantMarker: true},
+		{docType: "legal", wantMarker: false},
+		{docType: "", wantMarker: true}, // no schema consulted: transcribe faithfully
+	} {
+		name := tt.docType
+		if name == "" {
+			name = "no-type"
+		}
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			input := fixturePDF(t, dir)
+			var calls atomic.Int64
+			srv := fakeVLMBody(t, &calls, "1 Die vorliegende Eingabe erfolgt innert Frist.")
+
+			args := ingestArgs(srv.URL, input, "--schema-dir", schemaDir)
+			if tt.docType != "" {
+				args = append([]string{args[0]}, append([]string{"--type", tt.docType}, args[1:]...)...)
+			}
+			if got := run(args); got != 0 {
+				t.Fatalf("run(ingest) = %d, want 0", got)
+			}
+
+			body, err := os.ReadFile(filepath.Join(dir, "scan.md"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := strings.Contains(string(body), "[Rz 1]")
+			if got != tt.wantMarker {
+				t.Errorf("marker present = %v, want %v\n---\n%s", got, tt.wantMarker, body)
+			}
+			if !strings.Contains(string(body), "Die vorliegende Eingabe") {
+				t.Errorf("the prose itself must survive either way:\n%s", body)
+			}
+		})
+	}
+}
+
+// fakeVLMBody is fakeVLM with a caller-chosen transcription.
+func fakeVLMBody(t *testing.T, calls *atomic.Int64, body string) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {})
+	mux.HandleFunc("/v1/models", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[{"id":"test-vlm"}]}`))
+	})
+	mux.HandleFunc("/v1/chat/completions", func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, _ := w.(http.Flusher)
+		frame, _ := json.Marshal(map[string]any{
+			"choices": []any{map[string]any{
+				"delta":         map[string]string{"content": body},
+				"finish_reason": "stop",
+			}},
+		})
+		_, _ = w.Write([]byte("data: " + string(frame) + "\n\ndata: [DONE]\n\n"))
+		flusher.Flush()
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
 }

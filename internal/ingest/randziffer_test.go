@@ -90,3 +90,46 @@ func TestRZNormalizerLeavesADocumentWithoutRandziffernUntouched(t *testing.T) {
 		t.Errorf("a document with no paragraph numbers must come back unchanged:\n%s", got)
 	}
 }
+
+// A draft destined to become one of our own documents must carry no paragraph
+// numbers in source: the schema generates them at render time, so a
+// transcribed one would print twice and go stale the first time a section
+// moved.
+func TestRZNormalizerStripMode(t *testing.T) {
+	r := rzNormalizer{strip: true}
+	got := r.Apply("1 Die vorliegende Eingabe erfolgt innert Frist.\n\n2 Daran ändert nichts.")
+
+	if strings.Contains(got, "[Rz") || strings.Contains(got, "\n2 ") {
+		t.Errorf("strip mode left a paragraph number behind:\n%s", got)
+	}
+	for _, want := range []string{"Die vorliegende Eingabe", "Daran ändert nichts"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("strip mode lost prose %q:\n%s", want, got)
+		}
+	}
+}
+
+// Whichever way the model wrote them, stripping has to remove both forms and
+// keep one sequence — otherwise a marker the model produced survives into a
+// document whose numbers are generated.
+func TestRZNormalizerStripsMarkersTheModelWrote(t *testing.T) {
+	r := rzNormalizer{strip: true}
+	got := r.Apply("[Rz 3] Vom Modell markiert.\n\n4 Von uns zu entfernen.")
+
+	if strings.Contains(got, "[Rz 3]") || strings.Contains(got, "\n4 ") {
+		t.Errorf("strip mode left a number behind:\n%s", got)
+	}
+	if !strings.Contains(got, "Vom Modell markiert.") || !strings.Contains(got, "Von uns zu entfernen.") {
+		t.Errorf("strip mode lost prose:\n%s", got)
+	}
+}
+
+// A year is not a paragraph number in either mode.
+func TestRZNormalizerStripLeavesProseNumbersAlone(t *testing.T) {
+	r := rzNormalizer{strip: true}
+	got := r.Apply("1 Erste Erwägung.\n\n2010 wurde der Vertrag geschlossen.")
+
+	if !strings.Contains(got, "2010 wurde der Vertrag") {
+		t.Errorf("strip mode removed a number that was part of the prose:\n%s", got)
+	}
+}

@@ -33,19 +33,32 @@ var marked = regexp.MustCompile(`^\[Rz (\d{1,4})\]`)
 // That is what keeps "2010 wurde der Vertrag geschlossen" from becoming
 // [Rz 2010], and it is why the normalizer spans pages rather than resetting.
 type rzNormalizer struct {
+	// strip removes the number instead of marking it. A document being
+	// transcribed to become one of our own carries no paragraph numbers in
+	// source: docc generates those at render time and they renumber
+	// themselves, so a transcribed one would print twice and go stale the
+	// first time a section moved.
+	strip bool
+
 	last  int
 	found bool
 }
 
-// Apply rewrites one page's markdown. Paragraphs the model already marked are
-// left alone, but still advance the sequence.
+// Apply rewrites one page's markdown: each paragraph number is either marked
+// as [Rz N] or removed, according to strip. Paragraphs the model already marked
+// advance the sequence either way.
 func (r *rzNormalizer) Apply(md string) string {
 	lines := strings.Split(md, "\n")
 	for i, line := range lines {
 		if m := marked.FindStringSubmatch(line); m != nil {
-			if n, err := strconv.Atoi(m[1]); err == nil && r.accepts(n) {
-				r.last, r.found = n, true
+			n, err := strconv.Atoi(m[1])
+			if err != nil || !r.accepts(n) {
+				continue
 			}
+			if r.strip {
+				lines[i] = strings.TrimSpace(strings.TrimPrefix(line, m[0]))
+			}
+			r.last, r.found = n, true
 			continue
 		}
 		m := randziffer.FindStringSubmatch(line)
@@ -56,7 +69,11 @@ func (r *rzNormalizer) Apply(md string) string {
 		if err != nil || !r.accepts(n) {
 			continue
 		}
-		lines[i] = fmt.Sprintf("[Rz %d] %s", n, m[2])
+		if r.strip {
+			lines[i] = m[2]
+		} else {
+			lines[i] = fmt.Sprintf("[Rz %d] %s", n, m[2])
+		}
 		r.last, r.found = n, true
 	}
 	return strings.Join(lines, "\n")

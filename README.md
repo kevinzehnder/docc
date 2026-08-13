@@ -330,6 +330,30 @@ given at once, each producing its own `.md`. Anything else is rejected before
 a single page is converted — `docc ingest scan.pdf out.md` reads `out.md` as
 a second input, and the destination is `--output`.
 
+### Paragraph numbers
+
+A Swiss brief numbers each paragraph in the margin, and how ingest treats those
+numbers depends on what the draft is going to become — which only the target
+schema knows.
+
+Pass `--type` and ingest consults that schema. A type whose `render:` block
+declares `paragraph_numbering` generates the numbers itself at render time, so
+the source document's own are dropped: a document carrying both would print them
+twice, and the transcribed set would go stale the first time a section moved.
+A type that declares no paragraph numbering — `legal_reference`, a transcription
+of a third party's brief — keeps them, marked `[Rz N]`, because there the number
+is not presentation but the citation key, fixed by whoever filed the document.
+
+Without `--type`, and in a directory with no `.docc` at all, ingest keeps them.
+It is a transcription tool first: reproducing the page is the honest default, and
+deleting a marker afterwards is easier than re-converting a document to recover
+one. An unknown type or an unreadable schema directory is reported and treated
+the same way, never as a fatal error.
+
+`docc check` then verifies the sequence of a reference document with
+`randziffer_sequence`: a gap means the transcription lost text, a repeat means
+two paragraphs were merged, and a step backwards means pages were reordered.
+
 `--pages` (`N` or `N-M`, 1-based, inclusive) limits conversion to a page range
 — worth using on a first run against a long document, since every page is a
 VLM call. It requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH` for PDF

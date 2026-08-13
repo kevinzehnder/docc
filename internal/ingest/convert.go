@@ -17,6 +17,12 @@ type ConvertOptions struct {
 	First, Last int
 	// DocType, if non-empty, is written into the output frontmatter.
 	DocType string
+	// StripRandziffern removes the source document's marginal paragraph
+	// numbers instead of marking them as [Rz N]. Set it when the draft is
+	// destined to become one of our own documents, whose schema generates
+	// those numbers at render time; leave it false to transcribe faithfully,
+	// which is what a reference document and a schema-less run both want.
+	StripRandziffern bool
 	// Progress, if non-nil, receives one Event per pipeline milestone. It is
 	// called synchronously from the goroutine driving the conversion,
 	// including once per streamed chunk, so it must not block: a renderer
@@ -72,7 +78,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 	results := make([]PageResult, 0, len(pages))
 	// One normalizer for the whole document: Randziffern count up across
 	// pages, and the sequence is what tells a paragraph number from a year.
-	var rz rzNormalizer
+	rz := rzNormalizer{strip: opts.StripRandziffern}
 
 	// stop hands back whatever was transcribed before failedAt, marked so that
 	// neither a reader nor a later docc run mistakes it for the whole document.

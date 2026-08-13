@@ -78,3 +78,61 @@ func writeTestFile(t *testing.T, path, content string) {
 		t.Fatal(err)
 	}
 }
+
+// Ingest has to work with no schema at all — it is a transcription tool first.
+// Where a schema does exist, it is the only thing that knows whether the
+// document being produced will generate its own paragraph numbers.
+func TestRandzifferPolicy(t *testing.T) {
+	dir := filepath.Join("..", "..", "testdata", "schemas")
+
+	tests := []struct {
+		name      string
+		docType   string
+		schemaDir string
+		wantStrip bool
+		noteHas   string
+	}{
+		{
+			name: "no type means no schema to consult, so transcribe faithfully",
+		},
+		{
+			name:      "a schema that generates paragraph numbers drops the source's own",
+			docType:   "legal",
+			schemaDir: dir,
+			wantStrip: true,
+			noteHas:   "render time",
+		},
+		{
+			name:      "a reference schema keeps them, because they are the citation key",
+			docType:   "legal_reference",
+			schemaDir: dir,
+		},
+		{
+			name:      "an unknown type is not fatal — it keeps them and says why",
+			docType:   "nonesuch",
+			schemaDir: dir,
+			noteHas:   "keeping",
+		},
+		{
+			name:      "a missing schema directory is not fatal either",
+			docType:   "legal",
+			schemaDir: filepath.Join(t.TempDir(), "absent"),
+			noteHas:   "keeping",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			strip, note := randzifferPolicy(tt.docType, tt.schemaDir, ".")
+			if strip != tt.wantStrip {
+				t.Errorf("strip = %v, want %v (note: %q)", strip, tt.wantStrip, note)
+			}
+			if tt.noteHas != "" && !strings.Contains(note, tt.noteHas) {
+				t.Errorf("note = %q, want it to mention %q", note, tt.noteHas)
+			}
+			if tt.noteHas == "" && note != "" {
+				t.Errorf("unexpected note %q", note)
+			}
+		})
+	}
+}
