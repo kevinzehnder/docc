@@ -11,11 +11,34 @@ import (
 // evidenceLead matches the line that opens an offer of proof. Swiss briefs
 // abbreviate it "BO" (Beweisofferte); transcriptions also produce the spelled
 // out forms, and the model sometimes emboldens the label.
-var evidenceLead = regexp.MustCompile(`^\s*(?:\*\*|__)?\s*(?:BO|Beweis|Beweismittel|Beweisofferte)\s*:?\s*(?:\*\*|__)?\s*:?`)
+// The word boundary is load-bearing: without it "Beweis" matches the opening of
+// "Beweisaussage", and a continuation line naming the means of proof reads as
+// the start of a new offer. That was invisible while a block ran to the next
+// numbered paragraph and the loop skipped past everything inside it; it becomes
+// a wrong answer the moment a lead can also end a block. On the transcribed
+// Replik it put two spurious leads in the list, both of them the bare word
+// "Beweisaussage" on its own line.
+//
+// The alternatives are ordered longest first so the whole word is preferred.
+var evidenceLead = regexp.MustCompile(`^\s*(?:\*\*|__)?\s*(?:Beweisofferte|Beweismittel|Beweis|BO)\b\s*:?\s*(?:\*\*|__)?\s*:?`)
 
 // evidenceEnd matches the first line that cannot belong to an offer of proof:
 // the next numbered paragraph, a heading, or a fence.
 var evidenceEnd = regexp.MustCompile(`^\s*(?:\[Rz \d+\]|#{1,6}\s|:::|>)`)
+
+// evidenceProse matches a line that finishes a sentence, which an offer of
+// proof does not.
+//
+// An offer names things — a document and its date, a person and the means of
+// proof — and the corpus bears that out: "Mietvertrag vom 03./07.09.2001",
+// "Beilage 3", "Christian Magnani, Mitglied der Geschäftsleitung Klägerin".
+// None of them ends in a full stop; every paragraph of the brief around them
+// does. That is the difference, and it needs no threshold on length to state.
+//
+// Terminating a block early is the safe direction to be wrong in. A short
+// block still converts, and the reviewer sees an offer missing its last line;
+// a block that does not terminate swallows the document. See EvidenceRegions.
+var evidenceProse = regexp.MustCompile(`[.!?]["»']?\s*$`)
 
 // evidenceItem is the shape the legal schema requires of an item once the
 // block is structured: a bracketed label, then a description.
@@ -37,6 +60,20 @@ type Region struct {
 //
 // A block already inside a `::: beweis` fence is skipped: structuring is
 // re-runnable, and doing it twice must not nest.
+//
+// Where it ends also has to be bounded, and for a while it was not. A draft
+// whose Randziffern stopped part way through — a page lost at ingest takes the
+// chain with it — has no `[Rz N]` after that point, and if the rest of the
+// document holds no heading or fence either, the scan ran to the end of the
+// file. One 72-line "offer of proof" then went to the model, which correctly
+// refused to turn a page of prose into a list of exhibits, and `i = j - 1`
+// skipped the loop past every remaining block. Eight offers of proof went
+// unconverted and nothing said why: the pass reported one note, for the
+// runaway block, and looked like it had simply stopped.
+//
+// So two more things end a block, both of them things an offer of proof is
+// not. The next offer obviously ends the one before it. And a line that
+// finishes a sentence is prose — see evidenceProse.
 func EvidenceRegions(lines []string) []Region {
 	var out []Region
 	inFence := false
@@ -49,7 +86,7 @@ func EvidenceRegions(lines []string) []Region {
 			continue
 		}
 		j := i + 1
-		for j < len(lines) && !evidenceEnd.MatchString(lines[j]) {
+		for j < len(lines) && !endsEvidence(lines[j]) {
 			j++
 		}
 		// Trailing blank lines belong to the document, not the block.
@@ -60,6 +97,18 @@ func EvidenceRegions(lines []string) []Region {
 		i = j - 1
 	}
 	return out
+}
+
+// endsEvidence reports whether a line cannot belong to the offer of proof
+// being scanned: the document has resumed, another offer has begun, or the
+// line is a sentence.
+func endsEvidence(line string) bool {
+	if strings.TrimSpace(line) == "" {
+		return false // an offer runs on across blank lines
+	}
+	return evidenceEnd.MatchString(line) ||
+		evidenceLead.MatchString(line) ||
+		evidenceProse.MatchString(line)
 }
 
 // StructureOptions configures one Structure run.

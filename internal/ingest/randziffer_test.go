@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -290,5 +291,69 @@ func TestApplyNodesFallsBackForRawPages(t *testing.T) {
 	}
 	if !strings.HasPrefix(got[1][0].Text, "[Rz 56] ") {
 		t.Errorf("raw page 2 not marked: %q", got[1][0].Text)
+	}
+}
+
+// The numbering resumes after a gap, so the chain does too. On the transcribed
+// Replik, 1 to 25 were marked and 31, 32 and 33 — consecutive, ascending,
+// plainly Randziffern — were discarded for being a shorter run. That also took
+// the last `[Rz N]` out of half the document, which EvidenceRegions relied on
+// to know where an offer of proof ends.
+func TestApplyNodesResumesAfterAGap(t *testing.T) {
+	rz := rzNormalizer{}
+	var nodes []Node
+	for _, n := range []int{1, 2, 3, 31, 32, 33} {
+		nodes = append(nodes, para(fmt.Sprintf("%d Ein Absatz.", n), nil))
+	}
+
+	got := rz.ApplyNodes([][]Node{nodes})[0]
+	for i, want := range []int{1, 2, 3, 31, 32, 33} {
+		if got[i].SourceNumber == nil {
+			t.Errorf("paragraph %d (%d) lost its number across the gap", i, want)
+			continue
+		}
+		if *got[i].SourceNumber != want {
+			t.Errorf("paragraph %d numbered %d, want %d", i, *got[i].SourceNumber, want)
+		}
+	}
+}
+
+// A resumed run still has to be corroborated. One number after a gap is a year
+// or a figure until something continues it.
+func TestApplyNodesDoesNotResumeOnASingleNumber(t *testing.T) {
+	rz := rzNormalizer{}
+	got := rz.ApplyNodes([][]Node{{
+		para("1 Erster Absatz.", nil),
+		para("2 Zweiter Absatz.", nil),
+		para("3 Dritter Absatz.", nil),
+		para("2015 wurde der Vertrag geschlossen.", nil),
+	}})[0]
+
+	if got[3].SourceNumber != nil {
+		t.Errorf("a lone %d after the chain was marked", *got[3].SourceNumber)
+	}
+	for i := range 3 {
+		if got[i].SourceNumber == nil {
+			t.Errorf("paragraph %d lost its number", i)
+		}
+	}
+}
+
+// A resumed run must continue upward. Values that repeat ones already taken are
+// a second document's numbering, not this one's resuming.
+func TestApplyNodesDoesNotResumeBelowTheChain(t *testing.T) {
+	rz := rzNormalizer{}
+	got := rz.ApplyNodes([][]Node{{
+		para("10 Zehnter Absatz.", nil),
+		para("11 Elfter Absatz.", nil),
+		para("12 Zwölfter Absatz.", nil),
+		para("1 Erster Absatz eines anderen Dokuments.", nil),
+		para("2 Zweiter Absatz eines anderen Dokuments.", nil),
+	}})[0]
+
+	for _, i := range []int{3, 4} {
+		if got[i].SourceNumber != nil {
+			t.Errorf("paragraph %d was numbered %d, restarting the sequence", i, *got[i].SourceNumber)
+		}
 	}
 }

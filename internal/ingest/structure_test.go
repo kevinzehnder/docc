@@ -267,3 +267,88 @@ func TestStructureStripsTheLeadLabelBeforeAsking(t *testing.T) {
 		t.Errorf("the prompt lost the block's content:\n%s", got)
 	}
 }
+
+// A draft whose Randziffern stop part way through — a page lost at ingest takes
+// the chain with it — has no `[Rz N]` after that point. If the rest of the
+// document holds no heading or fence either, the scan used to run to the end of
+// the file: on a transcribed Replik, nine offers of proof became one 72-line
+// region, the model rightly refused to turn a page of prose into a list of
+// exhibits, and `i = j - 1` skipped the loop past every remaining block.
+func TestEvidenceRegionsCannotSwallowTheDocument(t *testing.T) {
+	src := `
+BO: Mietvertrag vom 03./07.09.2001
+
+Beilage 3
+
+Ein Zustimmungserfordernis gilt unter dem Mietvertrag lediglich für die Übertragung des Mietverhältnisses.
+
+BO: Nachtrag Nr. 4 vom 13.3.2020 Beilage 9
+
+Kündigung vom 24./27.12.2024 Beilage 19
+
+Angesprochen ist hier die Übertragung des Mietverhältnisses im Sinne von Art. 263 OR.
+
+BO: Christian Magnani, Mitglied der Geschäftsleitung Klägerin
+`
+	got := EvidenceRegions(lines(src))
+	if len(got) != 3 {
+		t.Fatalf("got %d regions %v, want 3 — one per offer of proof", len(got), got)
+	}
+	for _, r := range got {
+		if n := r.End - r.Start; n > 4 {
+			t.Errorf("region %+v spans %d lines; an offer of proof is a handful of short lines", r, n)
+		}
+	}
+}
+
+// The next offer of proof ends the one before it.
+func TestEvidenceRegionsEndAtTheNextOffer(t *testing.T) {
+	src := `
+BO: Mietvertrag vom 03./07.09.2001
+
+BO: Nachtrag Nr. 3 vom 03.11.2016
+`
+	got := EvidenceRegions(lines(src))
+	if len(got) != 2 {
+		t.Fatalf("got %d regions %v, want 2", len(got), got)
+	}
+	if got[0].End > got[1].Start {
+		t.Errorf("regions overlap: %+v and %+v", got[0], got[1])
+	}
+}
+
+// An offer names things; a sentence is prose. That is the difference, and it
+// needs no threshold on length.
+func TestEvidenceRegionsEndAtASentence(t *testing.T) {
+	src := `
+BO: Mietvertrag vom 03./07.09.2001
+
+Beilage 3
+
+Damit ist ein Untermietvertrag im Sinne von Art. 262 OR erfasst.
+`
+	got := EvidenceRegions(lines(src))
+	if len(got) != 1 {
+		t.Fatalf("got %d regions %v, want 1", len(got), got)
+	}
+	if got[0].End != 4 {
+		t.Errorf("region %+v runs past the offer into the prose that follows it", got[0])
+	}
+}
+
+// "Beweisaussage" on its own line names the means of proof for the offer above
+// it. Without a word boundary the lead pattern matches its first six letters,
+// and the continuation reads as a new block — which put two spurious leads in
+// the list on the transcribed Replik.
+func TestEvidenceLeadDoesNotMatchInsideALongerWord(t *testing.T) {
+	for _, no := range []string{"Beweisaussage", "Beweiswürdigung", "Beweislast liegt bei der Klägerin"} {
+		if evidenceLead.MatchString(no) {
+			t.Errorf("%q reads as the start of an offer of proof", no)
+		}
+	}
+	for _, yes := range []string{"BO: X", "Beweis: X", "Beweismittel: X", "Beweisofferte: X", "**BO:** X"} {
+		if !evidenceLead.MatchString(yes) {
+			t.Errorf("%q does not read as the start of an offer of proof", yes)
+		}
+	}
+}

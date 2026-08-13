@@ -246,14 +246,49 @@ func longestChain(cands []rzCandidate) []int {
 		return nil
 	}
 
+	// The numbering resumes after a gap, so the chain does too.
+	//
+	// A document loses a few of its numbers where a page went missing at
+	// ingest, or where the layout pass did not read the gutter on one spread.
+	// Taking only the single longest run then discards every number after the
+	// gap: on a transcribed Replik, 1 to 25 were marked and 31, 32 and 33 —
+	// consecutive, ascending, plainly Randziffern — were thrown away for being
+	// a shorter run. That also removed the last `[Rz N]` from half the
+	// document, and EvidenceRegions used those as terminators.
+	//
+	// Each further run has to earn its place the same way the first did, by
+	// being at least minRZRun long, and it has to continue upward: a run whose
+	// values repeat ones already taken is a second document's numbering, not
+	// this one's resuming.
+	var chosen []int
+	from, above := 0, 0
+	for {
+		chain := chainFrom(cands, from, above)
+		if len(chain) == 0 {
+			break
+		}
+		chosen = append(chosen, chain...)
+		last := chain[len(chain)-1]
+		from, above = last+1, cands[last].n
+	}
+	return chosen
+}
+
+// chainFrom returns the longest run of candidates at or after from, whose
+// values exceed above and increase by exactly one. It returns nil for a run
+// shorter than minRZRun.
+func chainFrom(cands []rzCandidate, from, above int) []int {
 	length := make([]int, len(cands))
 	pred := make([]int, len(cands))
 	// endOf maps a value to the candidate index where the best chain ending on
 	// that value stops, so the next link can find its predecessor in one look.
 	endOf := map[int]int{}
 
-	best := 0
+	best := -1
 	for i, c := range cands {
+		if i < from || c.n <= above {
+			continue
+		}
 		length[i], pred[i] = 1, -1
 		if j, ok := endOf[c.n-1]; ok {
 			length[i], pred[i] = length[j]+1, j
@@ -263,11 +298,11 @@ func longestChain(cands []rzCandidate) []int {
 		if j, ok := endOf[c.n]; !ok || length[i] > length[j] {
 			endOf[c.n] = i
 		}
-		if length[i] > length[best] {
+		if best < 0 || length[i] > length[best] {
 			best = i
 		}
 	}
-	if length[best] < minRZRun {
+	if best < 0 || length[best] < minRZRun {
 		return nil
 	}
 
