@@ -101,12 +101,15 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 	// numbered document, which is the difference between a partial draft worth
 	// resuming and one worth discarding.
 	numberPages := func() {
-		bodies := make([]string, len(results))
+		pages := make([][]Node, len(results))
 		for i, res := range results {
-			bodies[i] = res.Markdown
+			pages[i] = res.Nodes
 		}
-		for i, body := range rz.Apply(bodies) {
-			results[i].Markdown = body
+		for i, nodes := range rz.ApplyNodes(pages) {
+			results[i].Nodes = nodes
+			// Re-rendered rather than patched, so the two representations
+			// cannot drift: the markdown is always what these elements say.
+			results[i].Markdown = Render(nodes)
 		}
 	}
 
@@ -170,8 +173,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 			return stop(page.Index, err)
 		}
 
-		res := NewPageResult(page.Index, out.Nodes)
-		res.Markdown = outline.Apply(res.Markdown)
+		res := NewPageResult(page.Index, outline.ApplyNodes(out.Nodes))
 		res.HadAnchor = hadAnchor
 		switch {
 		case out.Truncated:

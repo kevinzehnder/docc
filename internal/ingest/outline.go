@@ -68,6 +68,52 @@ type outlineNormalizer struct {
 	strict bool
 }
 
+// ApplyNodes marks the headings of one page's elements.
+//
+// This is the pass as it wants to be written. A backend that classified the
+// page has already said which elements are headings; the scheme says how deep
+// each one is. Neither question involves a "#", and the string form below only
+// looks for one because markdown used to be the only thing crossing this seam.
+//
+// A KindRaw node is a page of free-running markdown from the chat backend,
+// which has not been broken into elements. There is nothing to consult but the
+// text, so it goes through Apply — the same code, on the only representation
+// that path has. The branch disappears when that backend learns to parse.
+func (o *outlineNormalizer) ApplyNodes(nodes []Node) []Node {
+	if len(o.rules) == 0 {
+		return nodes
+	}
+
+	out := make([]Node, 0, len(nodes))
+	for _, n := range nodes {
+		switch n.Kind {
+		case KindRaw:
+			n.Text = o.Apply(n.Text)
+
+		case KindHeading:
+			if level, ok := o.level(n.Text); ok {
+				n.Level = level
+			} else if o.strict {
+				// The caller has said the scheme is this document's, so a
+				// heading it does not recognize is one the model invented.
+				// The text is kept either way — see the type comment.
+				n.Kind, n.Level = KindPara, 0
+			}
+
+		case KindPara:
+			// A title the backend read as body text. The string form promoted
+			// these too, by matching a line whether or not it carried a
+			// marker, and dropping that would lose every heading the layout
+			// pass typed `text`.
+			if level, ok := o.level(n.Text); ok {
+				n.Kind, n.Level = KindHeading, level
+			}
+		}
+		out = append(out, n)
+	}
+	return out
+}
+
 // Apply rewrites one page's markdown. With no rules it returns the input
 // unchanged, which is what a document type that has not declared an outline —
 // and every run without --type — gets.

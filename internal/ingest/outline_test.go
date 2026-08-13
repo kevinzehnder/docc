@@ -164,3 +164,65 @@ func TestCompileOutlineRejectsABadPattern(t *testing.T) {
 		t.Fatal("CompileOutline accepted an invalid regexp")
 	}
 }
+
+// The scheme decides depth; the backend decided what is a heading. Neither
+// question involves a "#", which is the point of doing this on elements.
+func TestOutlineApplyNodesLevelsAClassifiedHeading(t *testing.T) {
+	o := outlineNormalizer{rules: legalOutline(t)}
+
+	// The legal_reference scheme puts a shouting title at level 1, roman
+	// numerals at 2 and letters at 3 — the inversion schema.Outline exists for.
+	got := o.ApplyNodes([]Node{
+		{Kind: KindHeading, Level: 2, Text: "BEGRÜNDUNG:"},
+		{Kind: KindHeading, Level: 2, Text: "I. FORMELLES"},
+		{Kind: KindHeading, Level: 2, Text: "A. FRIST"},
+	})
+	for i, want := range []int{1, 2, 3} {
+		if got[i].Level != want {
+			t.Errorf("%q is level %d, want %d", got[i].Text, got[i].Level, want)
+		}
+	}
+}
+
+// A title the layout pass typed `text`. Dropping this would lose every heading
+// the backend failed to classify, which is most of them on a scanned brief.
+func TestOutlineApplyNodesPromotesAParagraph(t *testing.T) {
+	o := outlineNormalizer{rules: legalOutline(t)}
+
+	got := o.ApplyNodes([]Node{{Kind: KindPara, Text: "II. MATERIELLES"}})
+	if got[0].Kind != KindHeading || got[0].Level != 2 {
+		t.Errorf("got kind %v level %d, want a level 2 heading", got[0].Kind, got[0].Level)
+	}
+}
+
+// Only under --outline-strict, and the text survives either way: a transcription
+// is of somebody else's brief, and a scheme nobody confirmed is a guess.
+func TestOutlineApplyNodesDemotesOnlyWhenStrict(t *testing.T) {
+	rules := legalOutline(t)
+	invented := Node{Kind: KindHeading, Level: 2, Text: "Muster & Partner AG"}
+
+	lenient := (&outlineNormalizer{rules: rules}).ApplyNodes([]Node{invented})
+	if lenient[0].Kind != KindHeading {
+		t.Error("an unrecognized heading was demoted without --outline-strict")
+	}
+
+	strict := (&outlineNormalizer{rules: rules, strict: true}).ApplyNodes([]Node{invented})
+	if strict[0].Kind != KindPara {
+		t.Error("--outline-strict did not demote a heading matching no rule")
+	}
+	if strict[0].Text != invented.Text {
+		t.Errorf("text changed to %q; it is kept either way", strict[0].Text)
+	}
+}
+
+// The chat backend's page has no elements to consult, so it goes through the
+// string form — the same code, on the only representation that path has.
+func TestOutlineApplyNodesFallsBackForARawPage(t *testing.T) {
+	o := outlineNormalizer{rules: legalOutline(t)}
+
+	// Marked at the wrong depth by the model, and re-levelled to the scheme's.
+	got := o.ApplyNodes([]Node{{Kind: KindRaw, Text: "# I. FORMELLES\n\nDie Eingabe erfolgt fristgerecht."}})
+	if !strings.HasPrefix(got[0].Text, "## I. FORMELLES") {
+		t.Errorf("raw page not re-levelled:\n%s", got[0].Text)
+	}
+}

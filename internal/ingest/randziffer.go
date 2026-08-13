@@ -75,6 +75,97 @@ type rzCandidate struct {
 	marked bool
 }
 
+// ApplyNodes marks or strips the paragraph numbers of a document's elements.
+//
+// The chain is still what decides, and for the same reason — a lone number is
+// indistinguishable from a postal code — but the candidates are better. A
+// backend that found a number in the gutter has already put it on the element
+// it belongs to, so that half needs no guessing at all: the pass reads
+// SourceNumber instead of re-parsing a marker it wrote itself a moment ago.
+// What is left to guess is a number the backend merged into the body text,
+// which is the same regular expression as before, now applied to a paragraph
+// rather than to a line that might be anything.
+//
+// A page of KindRaw is the chat backend's, and has no elements to consult. Its
+// text goes through Apply. A document is one backend's throughout, so the two
+// paths do not interleave — there is one sequence either way.
+func (r *rzNormalizer) ApplyNodes(pages [][]Node) [][]Node {
+	// Where a candidate lives, so the decision can be written back to it. Kept
+	// alongside rather than derived: the raw bodies are not one per page in
+	// general, and indexing the result of Apply by page number would misalign
+	// the moment a page had none.
+	type ref struct{ page, node int }
+
+	var (
+		rawPages []string
+		rawRefs  []ref
+	)
+	for p, nodes := range pages {
+		for i, n := range nodes {
+			if n.Kind == KindRaw {
+				rawRefs = append(rawRefs, ref{p, i})
+				rawPages = append(rawPages, n.Text)
+			}
+		}
+	}
+	if len(rawPages) > 0 {
+		for k, text := range r.Apply(rawPages) {
+			at := rawRefs[k]
+			pages[at.page][at.node].Text = text
+		}
+		return pages
+	}
+
+	var (
+		cands []rzCandidate
+		refs  []ref
+	)
+	for p, nodes := range pages {
+		for i, n := range nodes {
+			switch {
+			case n.SourceNumber != nil:
+				// Already located by the backend, and already separated from
+				// the text. It joins the chain as a link that needs no proof.
+				cands = append(cands, rzCandidate{n: *n.SourceNumber, marked: true, rest: n.Text})
+				refs = append(refs, ref{p, i})
+			case n.Kind == KindPara:
+				if m := randziffer.FindStringSubmatch(n.Text); m != nil {
+					v, err := strconv.Atoi(m[1])
+					if err != nil || v <= 0 {
+						continue
+					}
+					cands = append(cands, rzCandidate{n: v, rest: m[2]})
+					refs = append(refs, ref{p, i})
+				}
+			}
+		}
+	}
+
+	// Everything not in the chain loses the number it was carrying: a block the
+	// backend read as a gutter number, that no sequence corroborates, is a
+	// figure in the margin rather than a paragraph number.
+	chosen := map[int]bool{}
+	for _, i := range longestChain(cands) {
+		chosen[i] = true
+	}
+	for i, c := range cands {
+		at := &pages[refs[i].page][refs[i].node]
+		switch {
+		case !chosen[i]:
+			at.SourceNumber = nil
+		case r.strip:
+			// A document destined to become one of our own carries no
+			// paragraph numbers in source: docc generates those at render
+			// time, and a transcribed one would print twice.
+			at.SourceNumber, at.Text = nil, c.rest
+		default:
+			v := c.n
+			at.SourceNumber, at.Text = &v, c.rest
+		}
+	}
+	return pages
+}
+
 // Apply rewrites the pages of one document in place, marking or stripping the
 // paragraph numbers of the longest chain of consecutive values it can find.
 //

@@ -190,3 +190,105 @@ func TestRZNormalizerStripLeavesProseNumbersAlone(t *testing.T) {
 		t.Errorf("strip mode removed a number that was part of the prose:\n%s", got)
 	}
 }
+
+// para is a numbered body element as a backend hands it over: the gutter number
+// already located and separated from the text.
+func para(text string, rz *int) Node {
+	return Node{Kind: KindPara, Text: text, SourceNumber: rz}
+}
+
+// A number the backend found in the gutter needs no guessing — it joins the
+// chain as a link that is already proved. This is the half that used to be a
+// regular expression re-reading a marker the assembler had just written.
+func TestApplyNodesKeepsACorroboratedGutterNumber(t *testing.T) {
+	rz := rzNormalizer{}
+	n1, n2 := 55, 56
+	got := rz.ApplyNodes([][]Node{
+		{para("Richtig ist, dass ...", &n1)},
+		{para("Die Ausführungen ...", &n2)},
+	})
+
+	for p, want := range []int{55, 56} {
+		if got[p][0].SourceNumber == nil {
+			t.Fatalf("page %d lost its number", p+1)
+		}
+		if *got[p][0].SourceNumber != want {
+			t.Errorf("page %d numbered %d, want %d", p+1, *got[p][0].SourceNumber, want)
+		}
+	}
+}
+
+// The postal code. A single number nothing corroborates loses its marker, and
+// the chain is what decides — the lesson this file was written around.
+func TestApplyNodesDropsAnUncorroboratedNumber(t *testing.T) {
+	rz := rzNormalizer{}
+	postcode, one, two := 5400, 1, 2
+	got := rz.ApplyNodes([][]Node{{
+		para("Baden", &postcode),
+		para("Die vorliegende Eingabe ...", &one),
+		para("Daran ändert nichts ...", &two),
+	}})
+
+	if got[0][0].SourceNumber != nil {
+		t.Errorf("5400 Baden was numbered %d — no chain corroborates it", *got[0][0].SourceNumber)
+	}
+	for i, want := range map[int]int{1: 1, 2: 2} {
+		if got[0][i].SourceNumber == nil || *got[0][i].SourceNumber != want {
+			t.Errorf("element %d should carry %d", i, want)
+		}
+	}
+}
+
+// A number the backend merged into the body text, rather than reading as its
+// own block in the gutter.
+func TestApplyNodesLiftsANumberOutOfTheText(t *testing.T) {
+	rz := rzNormalizer{}
+	got := rz.ApplyNodes([][]Node{{
+		para("55 Richtig ist, dass ...", nil),
+		para("56 Die Ausführungen ...", nil),
+	}})
+
+	if got[0][0].SourceNumber == nil || *got[0][0].SourceNumber != 55 {
+		t.Fatalf("number not lifted out of the text: %+v", got[0][0])
+	}
+	if got[0][0].Text != "Richtig ist, dass ..." {
+		t.Errorf("text is %q, want the number removed", got[0][0].Text)
+	}
+}
+
+// A draft destined to become one of our own carries no paragraph numbers in
+// source: docc generates those at render time, and a transcribed one would
+// print twice and go stale the first time a section moved.
+func TestApplyNodesStripsForOurOwnDocuments(t *testing.T) {
+	rz := rzNormalizer{strip: true}
+	n1, n2 := 55, 56
+	got := rz.ApplyNodes([][]Node{{
+		para("Richtig ist, dass ...", &n1),
+		para("Die Ausführungen ...", &n2),
+	}})
+
+	for i, n := range got[0] {
+		if n.SourceNumber != nil {
+			t.Errorf("element %d kept the number %d under strip", i, *n.SourceNumber)
+		}
+	}
+	if got[0][0].Text != "Richtig ist, dass ..." {
+		t.Errorf("text is %q", got[0][0].Text)
+	}
+}
+
+// The chat backend's page has no elements, so it goes through the string form.
+func TestApplyNodesFallsBackForRawPages(t *testing.T) {
+	rz := rzNormalizer{}
+	got := rz.ApplyNodes([][]Node{
+		{{Kind: KindRaw, Text: "55 Richtig ist, dass ..."}},
+		{{Kind: KindRaw, Text: "56 Die Ausführungen ..."}},
+	})
+
+	if !strings.HasPrefix(got[0][0].Text, "[Rz 55] ") {
+		t.Errorf("raw page 1 not marked: %q", got[0][0].Text)
+	}
+	if !strings.HasPrefix(got[1][0].Text, "[Rz 56] ") {
+		t.Errorf("raw page 2 not marked: %q", got[1][0].Text)
+	}
+}
