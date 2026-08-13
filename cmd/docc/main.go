@@ -545,7 +545,7 @@ func cmdExplain(args []string) int {
 // explanations backs `docc explain`. Codes the schema author defines for named
 // rules are documented in the schema, not here.
 var explanations = map[string]string{
-	"DOC001": "the file has no YAML frontmatter. Every document starts with a `---` delimited block declaring at least `document_type`.",
+	"DOC001": "the file has no YAML frontmatter. Every document starts with a `---` delimited block declaring `docc: 1` and `document_type`.",
 	"DOC002": "the frontmatter block was opened with `---` but never closed.",
 	"DOC003": "the frontmatter is not valid YAML.",
 	"DOC004": "a field the schema marks required is missing or empty.",
@@ -562,6 +562,8 @@ var explanations = map[string]string{
 	"DOC021": "a conventional but optional section is missing.",
 	"DOC022": "a section appears out of the order the schema declares.",
 	"DOC023": "a fenced div was opened but not closed. Put the closing `:::` on a line of its own.",
+	"DOC024": "the frontmatter does not declare the `docc` marker. A file only becomes a docc document by writing `docc: 1` in its frontmatter; unrelated YAML frontmatter (Hugo, Obsidian, …) is ignored.",
+	"DOC025": "the frontmatter declares a docc format version this compiler does not support. Use the version listed in the diagnostic's hint.",
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest

@@ -7,6 +7,19 @@ it, checks it against a schema, and reports errors with source positions and
 actionable hints. The intended backend emits Word `.docx` from a Word-authored
 template.
 
+A file becomes a docc document by declaring the marker in its frontmatter:
+
+```yaml
+---
+docc: 1          # the docc format version — this is what makes it a docc file
+document_type: legal
+---
+```
+
+Files without the `docc` marker — READMEs, notes, Hugo or Obsidian posts with
+their own frontmatter — are not docc documents. `docc check` reports `DOC024`
+for them, and the language server stays silent.
+
 The point is not the file format. The point is that a prose style guide is a
 contract nothing enforces, while a schema is a contract that fails loudly at a
 specific line and column.
@@ -71,6 +84,10 @@ ranges, including in documents containing non-ASCII text. It currently
 provides diagnostics only; completion and code actions remain editor features
 for a future release.
 
+Only files whose frontmatter declares the `docc` marker are checked. Plain
+markdown and files with unrelated YAML frontmatter get no diagnostics, so
+editing regular `.md` files next to docc documents is quiet.
+
 ## Projects
 
 `docc` is the engine. The schemas, Word templates and house style belong to the
@@ -126,6 +143,10 @@ and one engine serves projects whose document conventions have nothing in common
 
 A schema declares frontmatter fields and their types, the body structure, the
 markdown-to-Word-style mapping, and which named rules to run.
+
+The `docc` marker is declared in the base schema (`_base.yaml`) but validated by
+the compiler before any schema field is checked, so it never appears as an
+unknown-field warning even in projects whose schemas do not extend the base.
 
 ```yaml
 type: legal

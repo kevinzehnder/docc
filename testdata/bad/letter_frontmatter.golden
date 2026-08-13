@@ -1,34 +1,34 @@
-letter_frontmatter.md:4:1: error[DOC007]: field `sent` is not a valid date: "05.08.2026"
+letter_frontmatter.md:5:1: error[DOC007]: field `sent` is not a valid date: "05.08.2026"
   | 
-4 | sent: 05.08.2026
+5 | sent: 05.08.2026
   | ^^^^^^^^^^^^^^^^ ISO format, e.g. 2026-08-04; the date the letter left the office
-letter_frontmatter.md:6:1: error[DOC006]: field `registered` must be a boolean, got string
+letter_frontmatter.md:7:1: error[DOC006]: field `registered` must be a boolean, got string
   | 
-6 | registered: "ja"
+7 | registered: "ja"
   | ^^^^^^^^^^^^^^^^ true when the letter goes out as registered mail
-letter_frontmatter.md:9:3: error[DOC010]: field `sender.uid` has malformed value "CHE123456789"
-  | 
-9 |   uid: CHE123456789
-  |   ^^^^^^^^^^^^^^ Swiss UID format CHE-123.456.789
-letter_frontmatter.md:11:3: error[DOC006]: field `sender.postal_code` must be a string, got number
+letter_frontmatter.md:10:3: error[DOC010]: field `sender.uid` has malformed value "CHE123456789"
    | 
-11 |   postal_code: 5000
+10 |   uid: CHE123456789
+   |   ^^^^^^^^^^^^^^ Swiss UID format CHE-123.456.789
+letter_frontmatter.md:12:3: error[DOC006]: field `sender.postal_code` must be a string, got number
+   | 
+12 |   postal_code: 5000
    |   ^^^^^^^^^^^^^^^^^ four digits, quoted: "5000"
-letter_frontmatter.md:13:1: error[DOC004]: missing required field `signee.name`
+letter_frontmatter.md:14:1: error[DOC004]: missing required field `signee.name`
    | 
-13 | signee:
+14 | signee:
    | ^^^^^^^ add this field
-letter_frontmatter.md:15:1: error[DOC004]: missing required field `recipient.street`
+letter_frontmatter.md:16:1: error[DOC004]: missing required field `recipient.street`
    | 
-15 | recipient:
+16 | recipient:
    | ^^^^^^^^^^ add this field
-letter_frontmatter.md:18:3: warning[DOC011]: unknown field `recipient.strasse`
+letter_frontmatter.md:19:3: warning[DOC011]: unknown field `recipient.strasse`
    | 
-18 |   strasse: Industrieweg 5
+19 |   strasse: Industrieweg 5
    |   ^^^^^^^^^^^^^^^^^^^^^^^ remove it, or add it to the schema
-letter_frontmatter.md:27:1: error[LTR031]: unfilled template placeholder
+letter_frontmatter.md:28:1: error[LTR031]: unfilled template placeholder
    | 
-27 | [Hier den Sachverhalt einfügen]
+28 | [Hier den Sachverhalt einfügen]
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ replace this with the actual content
 letter_frontmatter.md: error[DOC004]: missing required field `subject`
   = the subject line shown above the salutation

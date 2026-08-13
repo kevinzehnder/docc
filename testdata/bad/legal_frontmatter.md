@@ -1,4 +1,5 @@
 ---
+docc: 1
 document_type: legal
 legal_doc_type: Klage
 case_ref: "ZG2026000"

@@ -26,6 +26,10 @@ types:
     city: { type: string, required: true }
 
 frontmatter:
+  docc:
+    type: int
+    required: true
+    hint: format version this document targets; currently 1
   document_type:
     type: string
     required: true

@@ -7,6 +7,8 @@
 package sema
 
 import (
+	"fmt"
+	"math"
 	"sort"
 	"strings"
 
@@ -27,6 +29,10 @@ type Result struct {
 	Diagnostics diag.List
 }
 
+// doccFormatVersion is the frontmatter marker version recognised by this
+// compiler. Every document declares `docc: <version>` to opt in to checking.
+const doccFormatVersion = 1
+
 // Check validates a parsed file. docTypeOverride, when non-empty, replaces the
 // `document_type` declared in the frontmatter.
 func Check(f *parse.File, set *schema.Set, parseDiags diag.List, docTypeOverride string) *Result {
@@ -35,6 +41,29 @@ func Check(f *parse.File, set *schema.Set, parseDiags diag.List, docTypeOverride
 
 	m := decodeMeta(f, &ds)
 	res.Meta = m
+
+	// Without a frontmatter block the file is not a docc document at all.
+	// The parser already reports DOC001; don't add more noise.
+	if !f.HasFrontmatter {
+		res.Diagnostics = ds
+		return res
+	}
+
+	// The docc frontmatter marker is the opt-in signifier. A document without
+	// it has unrelated YAML frontmatter (Hugo, Obsidian, …) — not a docc file.
+	if v, ok := m.Lookup("docc"); !ok {
+		ds.Errorf(f.Path, diag.Position{}, "DOC024",
+			fmt.Sprintf("add `docc: %d` to the frontmatter to mark this as a docc document", doccFormatVersion),
+			"missing docc marker")
+		res.Diagnostics = ds
+		return res
+	} else if version, valid := doccVersion(v); !valid || version != doccFormatVersion {
+		ds.Errorf(f.Path, m.Pos("docc"), "DOC025",
+			fmt.Sprintf("use `docc: %d` — the only format version this compiler supports", doccFormatVersion),
+			"unsupported docc format version: %v", v)
+		res.Diagnostics = ds
+		return res
+	}
 
 	docType := docTypeOverride
 	if docType == "" {
@@ -69,6 +98,30 @@ func Check(f *parse.File, set *schema.Set, parseDiags diag.List, docTypeOverride
 
 	res.Diagnostics = ds
 	return res
+}
+
+// doccVersion decodes the docc frontmatter marker. goccy/go-yaml decodes
+// bare `1` as uint64; accept the numeric types that appear in practice.
+func doccVersion(v any) (int, bool) {
+	switch n := v.(type) {
+	case int:
+		return n, n >= 0
+	case int64:
+		if n < 0 || n > math.MaxInt {
+			return 0, false
+		}
+		return int(n), true
+	case uint64:
+		if n > math.MaxInt64 {
+			return 0, false
+		}
+		return int(n), true
+	case float64:
+		if n == math.Trunc(n) && n >= 0 && n <= math.MaxInt {
+			return int(n), true
+		}
+	}
+	return 0, false
 }
 
 func sortedFieldNames(f schema.Fields) []string {

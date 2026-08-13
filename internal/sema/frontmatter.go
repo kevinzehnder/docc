@@ -284,6 +284,12 @@ func warnUnknown(f *parse.File, fields schema.Fields, m *Meta, values map[string
 		if _, declared := fields[name]; declared {
 			continue
 		}
+		// The docc marker is part of the format, not of any schema: a project
+		// whose schemas do not extend the base schema must not be warned about
+		// the key that makes its files docc documents.
+		if name == "docc" {
+			continue
+		}
 		path := name
 		if prefix != "" {
 			path = prefix + "." + name

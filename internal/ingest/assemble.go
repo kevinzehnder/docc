@@ -28,6 +28,7 @@ func Assemble(pages []PageResult, opts AssembleOptions) string {
 	var b strings.Builder
 
 	b.WriteString("---\n")
+	b.WriteString("docc: 1\n")
 	if opts.DocType != "" {
 		fmt.Fprintf(&b, "document_type: %s\n", opts.DocType)
 	}

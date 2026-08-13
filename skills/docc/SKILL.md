@@ -71,6 +71,9 @@ failure, and `2` is a usage/configuration error.
 
 ## Frontmatter and diagnostics
 
+- Every document starts with `docc: 1` in the frontmatter — the marker that
+  makes it a docc document. Files without it (plain markdown, unrelated YAML
+  frontmatter) are not checked.
 - `document_type` selects the schema unless `--type` overrides it.
 - Quote values whose leading zeros matter, especially postal codes:
   `postal_code: "3000"`.

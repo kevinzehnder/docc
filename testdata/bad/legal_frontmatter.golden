@@ -1,34 +1,34 @@
-legal_frontmatter.md:3:1: error[DOC008]: field `legal_doc_type` has invalid value "Klage"
+legal_frontmatter.md:4:1: error[DOC008]: field `legal_doc_type` has invalid value "Klage"
   | 
-3 | legal_doc_type: Klage
+4 | legal_doc_type: Klage
   | ^^^^^^^^^^^^^^^^^^^^^ pick the procedural document type
-legal_frontmatter.md:4:1: error[DOC010]: field `case_ref` has malformed value "ZG2026000"
+legal_frontmatter.md:5:1: error[DOC010]: field `case_ref` has malformed value "ZG2026000"
   | 
-4 | case_ref: "ZG2026000"
+5 | case_ref: "ZG2026000"
   | ^^^^^^^^^^^ court reference in the form AA.YYYY.NNN, e.g. "ZG.2026.000"
-legal_frontmatter.md:5:1: error[DOC007]: field `date` is not a valid date: "01.01.2026"
+legal_frontmatter.md:6:1: error[DOC007]: field `date` is not a valid date: "01.01.2026"
   | 
-5 | date: 01.01.2026
+6 | date: 01.01.2026
   | ^^^^^^^^^^^^^^^^ ISO format, e.g. 2026-08-04
-legal_frontmatter.md:10:3: error[DOC006]: field `gericht.postal_code` must be a string, got number
+legal_frontmatter.md:11:3: error[DOC006]: field `gericht.postal_code` must be a string, got number
    | 
-10 |   postal_code: 5400
+11 |   postal_code: 5400
    |   ^^^^^^^^^^^^^^^^^ four digits, quoted: "5400"
-legal_frontmatter.md:18:1: error[DOC004]: missing required field `beklagter.street`
+legal_frontmatter.md:19:1: error[DOC004]: missing required field `beklagter.street`
    | 
-18 | beklagter:
+19 | beklagter:
    | ^^^^^^^^^^ add this field
-legal_frontmatter.md:21:3: warning[DOC011]: unknown field `beklagter.strasse`
+legal_frontmatter.md:22:3: warning[DOC011]: unknown field `beklagter.strasse`
    | 
-21 |   strasse: "Industrieweg 5"
+22 |   strasse: "Industrieweg 5"
    |   ^^^^^^^^^^^^^^^^^^^^^^^^^ remove it, or add it to the schema
-legal_frontmatter.md:34:3: warning[LEG040]: section "BEGRÜNDUNG" has no content
+legal_frontmatter.md:35:3: warning[LEG040]: section "BEGRÜNDUNG" has no content
    | 
-34 | # BEGRÜNDUNG
+35 | # BEGRÜNDUNG
    |   ^^^^^^^^^^ write the section, or remove the heading
-legal_frontmatter.md:44:3: error[LEG012]: Beweismittel without a bracketed label
+legal_frontmatter.md:45:3: error[LEG012]: Beweismittel without a bracketed label
    | 
-44 | - Korrespondenz der Parteien
+45 | - Korrespondenz der Parteien
    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^ prefix it with a label, e.g. "[Beilage 3]"
 legal_frontmatter.md: error[DOC004]: missing required field `beklagter_vertreter`
   = set to ~ when the opposing party has no legal representative

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -161,7 +162,8 @@ func (s *Server) handle(msg request) (bool, error) {
 		}
 		delete(s.docs, params.TextDocument.URI)
 		return false, s.notify("textDocument/publishDiagnostics", publishDiagnosticsParams{
-			URI: params.TextDocument.URI,
+			URI:         params.TextDocument.URI,
+			Diagnostics: []lspDiagnostic{},
 		})
 	default:
 		if len(msg.ID) != 0 {
@@ -220,7 +222,7 @@ func (s *Server) publish(uri string) error {
 	doc := s.docs[uri]
 	diagnostics, err := check(doc.path, []byte(doc.text), s.options)
 	if err != nil {
-		if clearErr := s.notify("textDocument/publishDiagnostics", publishDiagnosticsParams{URI: uri}); clearErr != nil {
+		if clearErr := s.notify("textDocument/publishDiagnostics", publishDiagnosticsParams{URI: uri, Diagnostics: []lspDiagnostic{}}); clearErr != nil {
 			return clearErr
 		}
 		return s.showError(err)
@@ -233,24 +235,41 @@ func (s *Server) publish(uri string) error {
 
 // check keeps the LSP adapter independent of command-line flag parsing while
 // sharing the compiler's parser, schema loader, and semantic passes.
+//
+// A document that is not actually a docc document — no .docc project, no
+// schemas directory yet, or no `docc: <version>` marker in frontmatter — is
+// silently ignored. The LSP must stay quiet beside regular markdown files;
+// the checker only speaks when a file opts in via the docc marker.
 func check(path string, source []byte, options Options) (diag.List, error) {
 	schemaDir := options.SchemaDir
 	if schemaDir == "" {
 		proj, err := project.Resolve(path)
 		if err != nil {
 			if errors.Is(err, project.ErrNotFound) {
-				return nil, fmt.Errorf("find %s for %s: %w", project.DirName, path, err)
+				return nil, nil // outside any .docc project: not a docc file
 			}
 			return nil, err
 		}
 		schemaDir = proj.SchemaDir()
+	}
+	// A .docc directory without a schemas/ subdirectory is a valid state: the
+	// project simply has no document types yet. Stay quiet instead of erroring.
+	if _, err := os.Stat(schemaDir); err != nil {
+		return nil, nil
 	}
 	set, err := schema.Load(schemaDir)
 	if err != nil {
 		return nil, err
 	}
 	file, parseDiagnostics := parse.Parse(path, source)
-	return sema.Check(file, set, parseDiagnostics, options.DocType).Diagnostics, nil
+	res := sema.Check(file, set, parseDiagnostics, options.DocType)
+	// No `docc: <version>` marker in frontmatter: this is a regular markdown
+	// file or a file with unrelated YAML frontmatter (Hugo, Obsidian, …).
+	// The LSP stays quiet unless a file opts in.
+	if _, ok := res.Meta.Lookup("docc"); !ok {
+		return nil, nil
+	}
+	return res.Diagnostics, nil
 }
 
 type position struct {

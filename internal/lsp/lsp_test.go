@@ -19,7 +19,7 @@ func TestServePublishesDiagnostics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := "---\ndocument_type: letter\ndate: 2026-08-04\n---\n"
+	source := "---\ndocc: 1\ndocument_type: letter\ndate: 2026-08-04\n---\n"
 	uri := (&url.URL{Scheme: "file", Path: filepath.Join(t.TempDir(), "letter.md")}).String()
 
 	var in bytes.Buffer
@@ -97,7 +97,7 @@ func TestServeRechecksFullDocumentChanges(t *testing.T) {
 	})
 	writeFrame(t, &in, map[string]any{
 		"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{
-			"textDocument": map[string]any{"uri": uri, "text": "---\ndocument_type: letter\n---\n"},
+			"textDocument": map[string]any{"uri": uri, "text": "---\ndocc: 1\ndocument_type: letter\n---\n"},
 		},
 	})
 	writeFrame(t, &in, map[string]any{
@@ -120,12 +120,93 @@ func TestServeRechecksFullDocumentChanges(t *testing.T) {
 	if err := json.Unmarshal(messages[2]["params"], &published); err != nil {
 		t.Fatal(err)
 	}
-	for _, d := range published.Diagnostics {
-		if d.Code == "DOC001" {
-			return
-		}
+	if len(published.Diagnostics) != 0 {
+		t.Fatalf("changed document diagnostics = %+v, want an empty clearing set", published.Diagnostics)
 	}
-	t.Fatalf("changed document diagnostics = %+v, want DOC001", published.Diagnostics)
+	if raw := string(messages[2]["params"]); strings.Contains(raw, `"diagnostics":null`) {
+		t.Errorf("publish payload contains null diagnostics, want empty array: %s", raw)
+	}
+}
+
+func TestServePublishesEmptyForNonDoccMarkdown(t *testing.T) {
+	schemaDir, err := filepath.Abs(filepath.Join("..", "..", "testdata", "schemas"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Plain markdown, even inside a docc project directory, must not produce
+	// DOC001 — it is not a docc document.
+	uri := (&url.URL{Scheme: "file", Path: filepath.Join(t.TempDir(), "notes.md")}).String()
+
+	var in bytes.Buffer
+	writeFrame(t, &in, map[string]any{
+		"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{},
+	})
+	writeFrame(t, &in, map[string]any{
+		"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{
+			"textDocument": map[string]any{"uri": uri, "text": "just a plain markdown file\nno frontmatter here\n"},
+		},
+	})
+	writeFrame(t, &in, map[string]any{"jsonrpc": "2.0", "method": "exit"})
+
+	var out bytes.Buffer
+	if err := Serve(&in, &out, Options{SchemaDir: schemaDir}); err != nil {
+		t.Fatalf("Serve() error: %v", err)
+	}
+	messages := readFrames(t, out.Bytes())
+	if len(messages) != 2 {
+		t.Fatalf("got %d server messages, want 2 (initialize result + publish), got %d", len(messages), len(messages))
+	}
+	var published publishDiagnosticsParams
+	if err := json.Unmarshal(messages[1]["params"], &published); err != nil {
+		t.Fatal(err)
+	}
+	if published.URI != uri {
+		t.Errorf("published URI = %q, want %q", published.URI, uri)
+	}
+	if len(published.Diagnostics) != 0 {
+		t.Errorf("plain markdown diagnostics = %+v, want none (it is not a docc document)", published.Diagnostics)
+	}
+	if raw := string(messages[1]["params"]); strings.Contains(raw, `"diagnostics":null`) {
+		t.Errorf("publish payload contains null diagnostics, want empty array: %s", raw)
+	}
+}
+
+func TestServeIgnoresUnrelatedFrontmatter(t *testing.T) {
+	schemaDir, err := filepath.Abs(filepath.Join("..", "..", "testdata", "schemas"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Hugo-style YAML frontmatter declares no docc marker: the LSP must not
+	// report DOC024 — the file is simply not a docc document.
+	uri := (&url.URL{Scheme: "file", Path: filepath.Join(t.TempDir(), "post.md")}).String()
+	text := "---\ntitle: My Post\ndate: 2026-08-04\ntags: [a, b]\n---\n\nContent.\n"
+
+	var in bytes.Buffer
+	writeFrame(t, &in, map[string]any{
+		"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{},
+	})
+	writeFrame(t, &in, map[string]any{
+		"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{
+			"textDocument": map[string]any{"uri": uri, "text": text},
+		},
+	})
+	writeFrame(t, &in, map[string]any{"jsonrpc": "2.0", "method": "exit"})
+
+	var out bytes.Buffer
+	if err := Serve(&in, &out, Options{SchemaDir: schemaDir}); err != nil {
+		t.Fatalf("Serve() error: %v", err)
+	}
+	messages := readFrames(t, out.Bytes())
+	if len(messages) != 2 {
+		t.Fatalf("got %d server messages, want 2 (initialize result + publish)", len(messages))
+	}
+	var published publishDiagnosticsParams
+	if err := json.Unmarshal(messages[1]["params"], &published); err != nil {
+		t.Fatal(err)
+	}
+	if len(published.Diagnostics) != 0 {
+		t.Errorf("unrelated frontmatter diagnostics = %+v, want none (no docc marker)", published.Diagnostics)
+	}
 }
 
 func TestDiagnosticRangeUsesUTF16(t *testing.T) {

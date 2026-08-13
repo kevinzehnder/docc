@@ -1,4 +1,5 @@
 ---
+docc: 1
 document_type: legal
 legal_doc_type: Klageschrift
 case_ref: "EX.2026.001"
