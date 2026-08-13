@@ -1,0 +1,35 @@
+type: notarial-contract
+extends: base
+description: Notarial contract or deed whose parties, certification, registration text and signatures remain in the source body.
+theme: notarial-contract
+
+frontmatter:
+  title:
+    type: string
+    required: true
+    hint: deed title shown above the body
+  place:
+    type: string
+    required: true
+    hint: place of execution
+
+styles:
+  h1: Ueberschrift1
+  h2: Ueberschrift2
+  h3: Ueberschrift3
+  paragraph: Standard
+  quote: Zitat
+  code: Code
+  ordered_list: Nummerierung
+  bullet_list: Aufzaehlung
+
+render:
+  heading_numbering:
+    definition: ContractHeadingNumbering
+  paragraph_numbering:
+    definition: Randziffer
+
+rules:
+  - id: NTR040
+    check: no_empty_sections
+    severity: warning

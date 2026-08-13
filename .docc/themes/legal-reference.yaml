@@ -1,0 +1,76 @@
+name: legal-reference
+description: Neutral layout for a source-faithful legal document excerpt.
+
+page:
+  size: A4
+  margins: { top: 25mm, bottom: 25mm, left: 32mm, right: 32mm }
+
+defaults:
+  font: FreeSans
+  size: 11pt
+  lang: de-CH
+
+styles:
+  Standard:
+    name: Standard
+    default: true
+    align: justify
+    spacing: { before: 3.5mm, after: 3.5mm, line: 1.5 }
+  Ueberschrift1:
+    name: heading 1
+    based_on: Standard
+    size: 12pt
+    bold: true
+    caps: true
+    keep_next: true
+    spacing: { before: 8mm, after: 3mm }
+  Ueberschrift2:
+    name: heading 2
+    based_on: Standard
+    bold: true
+    keep_next: true
+    spacing: { before: 5mm, after: 2mm }
+  Ueberschrift3:
+    name: heading 3
+    based_on: Standard
+    bold: true
+    italic: true
+    keep_next: true
+    spacing: { before: 4mm, after: 1.5mm }
+  Zitat:
+    name: Quote
+    based_on: Standard
+    italic: true
+    indent: { left: 10mm, right: 10mm }
+  Code:
+    name: Code
+    based_on: Standard
+    font: Courier New
+    size: 9pt
+  Rechtsbegehrensliste:
+    name: List Paragraph
+    based_on: Standard
+  Aufzaehlung:
+    name: Bullet List
+    based_on: Standard
+  Beweismittel:
+    name: Evidence
+    based_on: Standard
+    size: 9pt
+    italic: true
+    indent: { left: 10mm, hanging: 5mm }
+    spacing: { before: 1mm, after: 1mm, line: 1.0 }
+
+numbering:
+  Rechtsbegehrensliste:
+    format: decimal
+    text: "%1."
+    indent: 10mm
+    hanging: 10mm
+    style: Rechtsbegehrensliste
+  Aufzaehlung:
+    format: bullet
+    text: "–"
+    indent: 7mm
+    hanging: 7mm
+    style: Aufzaehlung

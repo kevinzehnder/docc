@@ -1,0 +1,82 @@
+type: letter
+extends: base
+description: Business or legal correspondence on letterhead.
+theme: jlmy-letter
+
+frontmatter:
+  title:
+    type: string
+    required: true
+  subject:
+    type: string
+    required: true
+    hint: the Betreff line shown above the salutation
+  sent:
+    type: date
+    required: false
+  right_window:
+    type: bool
+    default: false
+    hint: 'false for the canonical C5 left-window layout; a right-window layout requires a separately measured theme'
+  closing:
+    type: string
+    default: Freundliche Grüsse
+  beilagen:
+    type: list<string>
+    default: []
+  sender:
+    type: sender
+    required: true
+  signee:
+    type: signee
+    required: true
+  recipient:
+    type: recipient
+    required: true
+
+types:
+  sender:
+    name: { type: string, required: true }
+    uid:
+      type: string
+      required: false
+      pattern: '^CHE-\d{3}\.\d{3}\.\d{3}$'
+      hint: 'Swiss UID format CHE-123.456.789'
+    street: { type: string, required: true }
+    postal_code:
+      type: string
+      required: true
+      pattern: '^\d{4}$'
+      hint: 'four digits, quoted: "5432"'
+    city: { type: string, required: true }
+
+  signee:
+    name: { type: string, required: true }
+    title: { type: string, required: false }
+
+  recipient:
+    salutation: { type: string, required: false }
+    name: { type: string, required: true }
+    organization: { type: string, required: false }
+    street: { type: string, required: true }
+    postal_code:
+      type: string
+      required: true
+      pattern: '^\d{4}$'
+      hint: 'four digits, quoted: "3000"'
+    city: { type: string, required: true }
+
+styles:
+  h1: Ueberschrift1
+  h2: Ueberschrift2
+  h3: Ueberschrift3
+  paragraph: Standard
+  quote: Zitat
+  code: Code
+  ordered_list: Nummerierung
+  bullet_list: Aufzaehlung
+
+rules:
+  - id: LTR031
+    check: no_placeholder_text
+    severity: error
