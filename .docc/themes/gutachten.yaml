@@ -1,0 +1,217 @@
+# Neutral legal-opinion layout.
+#
+# The title page is furniture; the Markdown source begins with the executive
+# summary and never repeats client, reference, date, or signature details.
+name: gutachten
+description: Structured legal opinion with Roman outline numbering and Randziffern.
+
+page:
+  size: A4
+  margins:
+    top: 25mm
+    bottom: 22mm
+    left: 28mm
+    right: 28mm
+    header: 12mm
+    footer: 12mm
+
+defaults:
+  font: FreeSans
+  size: 11pt
+  lang: de-CH
+
+formats:
+  date: "2. January 2006"
+  bool: ["ja", "nein"]
+  list_separator: ", "
+  months: [Januar, Februar, März, April, Mai, Juni,
+           Juli, August, September, Oktober, November, Dezember]
+  weekdays: [Sonntag, Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag]
+
+styles:
+  Standard:
+    name: Standard
+    default: true
+    align: justify
+    spacing: { after: 3.5mm, line: 1.2 }
+
+  GutachtenTitel:
+    name: Opinion title
+    based_on: Standard
+    align: center
+    size: 16pt
+    bold: true
+    caps: true
+    keep_next: true
+    spacing: { before: 45mm, after: 8mm }
+
+  GutachtenBetreff:
+    name: Opinion subject
+    based_on: Standard
+    align: center
+    size: 12pt
+    bold: true
+    keep_next: true
+    spacing: { after: 20mm }
+
+  # No based_on: Standard: these cover lines remain left aligned even if a
+  # value later contains a manual line break.
+  GutachtenMeta:
+    name: Opinion metadata
+    spacing: { after: 2mm, line: 1.15 }
+
+  GutachtenMetaEnde:
+    name: End of opinion metadata
+    spacing: { after: 0mm, line: 1.15 }
+
+  GutachtenBodyStart:
+    name: Opinion body start
+    spacing: { before: 0mm, after: 0mm }
+
+  Ueberschrift1:
+    name: heading 1
+    based_on: Standard
+    next: Standard
+    align: left
+    outline_level: 1
+    size: 12pt
+    bold: true
+    caps: true
+    keep_next: true
+    spacing: { before: 8mm, after: 3mm }
+
+  Ueberschrift2:
+    name: heading 2
+    based_on: Standard
+    next: Standard
+    align: left
+    outline_level: 2
+    size: 11pt
+    bold: true
+    keep_next: true
+    spacing: { before: 5mm, after: 2mm }
+
+  Ueberschrift3:
+    name: heading 3
+    based_on: Standard
+    next: Standard
+    align: left
+    outline_level: 3
+    bold: true
+    italic: true
+    keep_next: true
+    spacing: { before: 4mm, after: 1.5mm }
+
+  Nummerierung:
+    name: Numbered list
+    based_on: Standard
+    indent: { left: 10mm, hanging: 10mm }
+    spacing: { after: 2mm }
+
+  Listenabsatz:
+    name: List paragraph
+    based_on: Standard
+    contextual_spacing: true
+    spacing: { after: 1.5mm }
+
+  Aufzaehlung:
+    name: Bullet list
+    based_on: Listenabsatz
+
+  Zitat:
+    name: Quote
+    based_on: Standard
+    italic: true
+    indent: { left: 10mm, right: 10mm }
+
+  Code:
+    name: Code
+    based_on: Standard
+    font: Courier New
+    size: 9pt
+    spacing: { before: 0mm, after: 0mm }
+
+  Unterschriftsort:
+    name: Signature place and date
+    based_on: Standard
+    align: left
+    spacing: { before: 12mm, after: 9mm }
+
+  Unterschrift:
+    name: Opinion author
+    based_on: Standard
+    align: left
+    spacing: { after: 0mm }
+
+numbering:
+  GutachtenHeadingNumbering:
+    format: upperRoman
+    text: "%1."
+    indent: 0mm
+    hanging: 12mm
+    style: Ueberschrift1
+    levels:
+      - format: upperLetter
+        text: "%2."
+        indent: 0mm
+        hanging: 12mm
+        style: Ueberschrift2
+      - format: decimal
+        text: "%3."
+        indent: 0mm
+        hanging: 12mm
+        style: Ueberschrift3
+
+  Randziffer:
+    format: decimal
+    text: "%1"
+    size: 8pt
+    align: left
+    suffix: tab
+    indent: 0mm
+    hanging: 12mm
+    style: Standard
+
+  Nummerierung:
+    format: decimal
+    text: "%1."
+    indent: 10mm
+    hanging: 10mm
+    style: Nummerierung
+    levels:
+      - format: decimal
+        text: "%1.%2."
+        indent: 20mm
+        hanging: 10mm
+        style: Nummerierung
+      - format: decimal
+        text: "%1.%2.%3."
+        indent: 30mm
+        hanging: 10mm
+        style: Nummerierung
+
+  Aufzaehlung:
+    format: bullet
+    text: "–"
+    indent: 7mm
+    hanging: 7mm
+    style: Aufzaehlung
+    levels:
+      - format: bullet
+        text: "–"
+        indent: 14mm
+        hanging: 7mm
+        style: Aufzaehlung
+
+prologue:
+  - { style: GutachtenTitel, text: "{{ title }}" }
+  - { style: GutachtenBetreff, text: "{{ subject }}" }
+  - { style: GutachtenMeta, text: "Auftraggeber: {{ client }}" }
+  - { style: GutachtenMeta, text: "Referenz: {{ reference }}" }
+  - { style: GutachtenMeta, text: "Datum: {{ date }}" }
+  - { style: GutachtenMetaEnde, text: "Version: {{ version }}" }
+  - { style: GutachtenBodyStart, text: "", omit_if_empty: false, page_break: true }
+
+epilogue:
+  - { style: Unterschriftsort, text: "{{ place }}, {{ date }}" }
+  - { style: Unterschrift, text: "{{ author }}" }

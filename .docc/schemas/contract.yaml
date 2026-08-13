@@ -1,0 +1,107 @@
+type: contract
+extends: base
+description: Bilateral agreement with automatically numbered clauses and marginal paragraph references.
+theme: contract
+
+frontmatter:
+  title:
+    type: string
+    required: true
+    hint: the agreement title shown above the parties
+  place:
+    type: string
+    required: true
+    hint: place of execution
+  party1:
+    type: party
+    required: true
+  party2:
+    type: party
+    required: true
+
+# These headings form a useful default for bilateral service and commercial
+# agreements. A contract may begin directly with a preamble or with its subject;
+# specific agreement types may omit or add the conventional sections below.
+body:
+  - heading: Präambel
+    level: 1
+    required: false
+    ordered: true
+
+  - heading: Vertragsgegenstand
+    level: 1
+    required: false
+    ordered: true
+    children:
+      - heading: Leistungen
+        level: 2
+        required: false
+      - heading: Mitwirkungspflichten
+        level: 2
+        required: false
+
+  - heading: Vergütung
+    level: 1
+    required: false
+    ordered: true
+    children:
+      - heading: Honorar
+        level: 2
+        required: false
+      - heading: Zahlungsmodalitäten
+        level: 2
+        required: false
+        children:
+          - heading: Fälligkeit
+            level: 3
+            required: false
+          - heading: Verzug
+            level: 3
+            required: false
+
+  - heading: Laufzeit und Beendigung
+    level: 1
+    required: false
+    ordered: true
+
+  - heading: Vertraulichkeit
+    level: 1
+    required: false
+    ordered: true
+
+  - heading: Schlussbestimmungen
+    level: 1
+    required: true
+    ordered: true
+    children:
+      - heading: Anwendbares Recht und Gerichtsstand
+        level: 2
+        required: false
+
+styles:
+  h1: Ueberschrift1
+  h2: Ueberschrift2
+  h3: Ueberschrift3
+  paragraph: Standard
+  quote: Zitat
+  code: Code
+  ordered_list: Nummerierung
+  bullet_list: Aufzaehlung
+
+# Markdown headings deliberately carry no typed numbers. docc numbers the
+# outline from the first heading and assigns continuous Randziffern to the body,
+# so inserting or moving a clause cannot leave references stale.
+render:
+  heading_numbering:
+    definition: ContractHeadingNumbering
+  paragraph_numbering:
+    definition: Randziffer
+
+rules:
+  - id: CTR031
+    check: no_placeholder_text
+    severity: error
+
+  - id: CTR040
+    check: no_empty_sections
+    severity: warning
