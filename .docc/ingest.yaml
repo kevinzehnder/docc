@@ -5,7 +5,7 @@ endpoint: http://localhost:8080/v1/chat/completions
 # Swap between these by uncommenting one and commenting the rest. The value
 # must match a section name in models-router.ini — and that section must
 # carry an `mmproj` line, or the model serves text only and every page here
-# fails. All three below have one.
+# fails. All four below have one.
 #
 # On 8 GB the binding constraint is fitting the vision projector on the GPU
 # alongside the weights. A projector left on the CPU costs minutes per page,
@@ -18,11 +18,32 @@ endpoint: http://localhost:8080/v1/chat/completions
 # Qwen3.5-9B        — general-purpose VLM, strong OCR (78.1 on olmOCR-bench)
 #                     5427 MiB + 880 MiB projector — fits, but only at 8k
 #                     context and with speculative decoding disabled
-model: unsloth/Qwen3.5-9B-GGUF:Q4_K_M
+# model: unsloth/Qwen3.5-9B-GGUF:Q4_K_M
 
 # Gemma-4-E4B       — smaller (4B), has audio too; the roomiest of the three
 #                     4300 MiB + 534 MiB projector. Weakest at dense OCR.
 # model: ggml-org/gemma-4-E4B-it-GGUF:Q4_0
+
+# MinerU2.5-Pro-2605 — layout-first, and the one this project runs. Not a
+#                     general-purpose VLM: it answers four task names and
+#                     nothing else, and the layout pass only fires on a square
+#                     1036x1036 image, which docc builds for it.
+#                     380 MiB + 1264 MiB projector — roomiest profile by far.
+model: mineru-pro-2605
+
+# The layout-first protocol: one call locates and types every block on the
+# page, then each block is read from a crop at full resolution. Chosen on the
+# round trip in docs/ingest-todo.md — recall 0.988 against 0.982 for anchored
+# olmOCR and Qwen, in half the wall time, from a 1.2B model.
+#
+# Two things it is worse at, both open:
+#   - precision 0.703 against 0.758, so it invents more than anchored chat
+#   - it marks thirteen headings on a page that has eight, identically on both
+#     MinerU checkpoints, so a newer model will not fix it
+#
+# Switch back with `--backend chat --model unsloth/Qwen3.5-9B-GGUF:Q4_K_M`
+# when a document needs precision more than it needs structure.
+backend: mineru
 
 temperature: 0.1
 
@@ -48,6 +69,11 @@ temperature: 0.1
 # extra 0.6s per page is nothing next to a wrong quotation.
 dpi: 150
 
+# Kept on although the mineru backend cannot use it — its prompt is the task
+# name and nothing else, so there is nowhere to put a text layer, and it says
+# so once at preflight. The setting is here for the chat fallback above, where
+# anchoring is worth 0.116 of precision and is the whole reason that fallback
+# is worth having.
 anchor: true
 
 # The router loads the model on demand, inside the first request, and that

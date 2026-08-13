@@ -73,6 +73,64 @@ Four findings:
 A caveat on the fixture: on prose alone it cannot separate olmOCR from Qwen,
 which is what a second, harder document is for.
 
+### What the layout-first backend changed
+
+`--backend mineru` runs MinerU2.5's two-pass protocol instead of one call per
+page. Scored against the same fixture as the table above, and the chat rows
+reproduce it exactly, which is the evidence that these numbers are comparable:
+
+| backend | model | mode | words P / R | F1 | headings | Randziffern | leaked | 4 pages |
+|---|---|---|---|---|---|---|---|---|
+| mineru | MinerU2.5-**Pro**-2605 | — | 0.703 / **0.988** | 0.821 | **13 of 8** | 1 of 4 | 0 pn, 1 lh | **14s** |
+| mineru | MinerU2.5-2509 | — | 0.667 / 0.946 | 0.782 | **13 of 8** | 1 of 4 | 0 pn, 1 lh | **12s** |
+| chat | olmOCR-2-7B | vision-only | 0.642 / 0.982 | 0.777 | 0 of 8 | 1 of 4 | 0 pn, 1 lh | 35s |
+| chat | olmOCR-2-7B | anchored | 0.758 / 0.982 | **0.855** | 0 of 8 | 1 of 4 | 0 pn, 1 lh | 30s |
+| chat | Qwen3.5-9B | vision-only | 0.642 / 0.982 | 0.777 | 4 of 8 | 1 of 4 | 0 pn, 1 lh | 35s |
+| chat | Qwen3.5-9B | anchored | 0.758 / 0.982 | **0.855** | 4 of 8 | 1 of 4 | 0 pn, 1 lh | 30s |
+
+Four findings, and one claim withdrawn.
+
+- **The checkpoint decided the fidelity question, not the protocol.** 2509
+  dropped eight ordinary body words against the chat backends' two, and that
+  read as a flaw in assembling independently-recognized blocks. Pro-2605, same
+  code and same protocol, drops one — `klageschrift`, which every model in this
+  table drops — and takes recall to 0.988, the highest score here. So the
+  block-join loss was mostly the older checkpoint being worse at reading its
+  crops, and the two MinerU rows are the evidence: nothing between them changed
+  but the weights.
+- **Better layout data did not fix the heading over-marking.** Thirteen against
+  an expected eight, identical on both checkpoints, even though the 2605
+  release notes specifically claim cleaned-up layout training data to reduce
+  category errors. It types docc's own numbered section headings *and* several
+  short lines beside them as `title`, and it does so consistently. Over-marking
+  is the better failure — a draft with too many `##` is fixed by deleting them,
+  a draft with none has to be re-read against the source — but this will not
+  come out in the wash with a newer model, and needs code or a prompt.
+- **Precision is now the only metric where chat is clearly ahead**: 0.703
+  against 0.758 anchored, and it is not the boilerplate floor doing it — the
+  invented-word lists are near-identical across all six rows. F1 still favours
+  anchored chat, 0.855 to 0.821.
+- **Randziffern did not improve, and the reason is geometric.** On a scanned
+  third-party brief the layout pass separates the gutter cleanly — body at
+  x=0.131, margin numbers at x=0.085 — and `[Rz 55]`, `[Rz 56]` come out
+  correct. On our own render it emits no gutter block at all: every block on
+  the page starts at x=0.067 or x=0.113, because the theme sets the Randziffer
+  close enough to the body that the model reads them as one region. So the win
+  is real on the documents ingest exists for and invisible on the fixture that
+  measures it. A second fixture with a wider gutter would show it; changing the
+  theme to suit the scorer would not.
+- **It is twice as fast despite costing more calls** — 14s against 30-35s for
+  four pages, and it is a 1.2B model against a 7B and a 9B. The layout pass
+  sees a thumbnail and each crop is small, so the pixels per page are well
+  under one whole-page image.
+
+**Withdrawn: "dropping page furniture in code fixes the leak."** It does drop
+`header` and `page_number` blocks mechanically, and that is still the right
+mechanism — but this fixture cannot show it. Every row above leaks zero page
+numbers and exactly one letterhead, chat backends included. The five-and-seven
+leak in §2 was measured on a scanned brief, not here, so the claim has to be
+re-measured there before it can be made. Nothing in this table supports it.
+
 ## 2. Ingest still leaks running headers and footers
 
 Measured over eight pages of a scanned brief, in the best prompt condition: two

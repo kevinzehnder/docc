@@ -330,6 +330,50 @@ given at once, each producing its own `.md`. Anything else is rejected before
 a single page is converted — `docc ingest scan.pdf out.md` reads `out.md` as
 a second input, and the destination is `--output`.
 
+### Backends
+
+`--backend` selects how a page becomes text. Both talk to the same
+OpenAI-compatible endpoint; they differ in how many calls a page costs and in
+where the document's structure comes from.
+
+| backend | calls per page | structure from |
+| --- | --- | --- |
+| `chat` (default) | 1 | the model's own choice of markdown |
+| `mineru` | 1 + one per block | a layout pass that types every region |
+
+`chat` sends the whole page image with a prompt describing the document's
+conventions, and takes markdown back. It is what a general-purpose VLM does
+well, and it is the default because it is what every model here has been
+scored against.
+
+`mineru` speaks [MinerU2.5](https://github.com/opendatalab/MinerU)'s two-pass
+protocol: one call locates and classifies every block on the page, then each
+block is read from a crop at the page's own resolution. That buys three things
+a prompt only asks for. A heading is marked because the layout pass called it a
+heading. The running header and the page number are dropped because they came
+back typed `header` and `page_number`. And a number alone in the gutter becomes
+a `[Rz N]` marker because it arrived as its own block with its own coordinates.
+
+It needs a MinerU2.5 checkpoint — 1.2B, so the weights and the projector
+together are smaller than a 7B model's weights alone:
+
+```bash
+llama-server -hf mradermacher/MinerU2.5-Pro-2605-1.2B-GGUF:Q4_K_M
+docc ingest --backend mineru scan.pdf
+```
+
+Prefer a Pro build. The older `MinerU2.5-2509` reads its crops measurably
+worse — eight dropped words against one on the same fixture — and its
+projector has to be passed with `--mmproj` by hand, because the file in that
+repo is named `.mmproj` rather than the `mmproj-*.gguf` llama.cpp looks for.
+
+Two limits worth knowing before choosing it. `anchor` does nothing here — the
+protocol's prompt is the task name and nothing else, so there is nowhere to put
+a text layer, and the run says so at preflight. And every heading comes out at
+one level: the layout pass reports *that* a block is a heading, not how deep,
+and inferring depth from the box would guess wrong on the first document that
+sets a heading in a larger font for emphasis.
+
 ### Structuring an ingested draft
 
 `docc structure` is a second pass over a draft ingest already produced. It finds
@@ -456,6 +500,7 @@ Configure the endpoint, model and precision knobs in `.docc/ingest.yaml`,
 overridable per run with flags:
 
 ```yaml
+backend: chat      # chat, or mineru for the layout-first protocol
 endpoint: http://localhost:8080/v1/chat/completions
 model: qwen3-vl
 temperature: 0.1   # low by default — determinism over range, for a small corpus

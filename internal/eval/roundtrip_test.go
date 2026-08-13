@@ -34,6 +34,7 @@ import (
 
 var (
 	modelsFlag = flag.String("models", "", "comma-separated models to compare (default: the configured one)")
+	backends   = flag.String("backends", "", "comma-separated backends to compare: chat, mineru (default: the configured one)")
 	dpiFlag    = flag.Int("dpi", 0, "rasterization DPI (default: from .docc/ingest.yaml)")
 	endpoint   = flag.String("endpoint", "", "VLM endpoint (default: from .docc/ingest.yaml)")
 	docFlag    = flag.String("doc", "", "an external PDF to score instead of the round trip; needs a text layer")
@@ -63,37 +64,64 @@ func TestRoundTrip(t *testing.T) {
 	// scored separately.
 	want := PlainText(string(src)) + "\n" + FlattenValues(values)
 
-	for _, model := range models(cfg) {
-		t.Run(model, func(t *testing.T) {
-			for _, anchor := range []bool{false, true} {
-				name := "vision-only"
-				if anchor {
-					// The text layer is fed into the prompt, so this score is
-					// not independent evidence of transcription quality — it
-					// measures what anchoring adds on top of it.
-					name = "anchored"
-				}
-				t.Run(name, func(t *testing.T) {
-					runCfg := cfg
-					runCfg.Model = model
-					runCfg.Anchor = anchor
+	for _, backend := range backendList(cfg) {
+		t.Run(backend, func(t *testing.T) {
+			for _, model := range models(cfg) {
+				t.Run(model, func(t *testing.T) {
+					for _, anchor := range anchorModes(backend) {
+						name := "vision-only"
+						if anchor {
+							// The text layer is fed into the prompt, so this score is
+							// not independent evidence of transcription quality — it
+							// measures what anchoring adds on top of it.
+							name = "anchored"
+						}
+						t.Run(name, func(t *testing.T) {
+							runCfg := cfg
+							runCfg.Backend = backend
+							runCfg.Model = model
+							runCfg.Anchor = anchor
 
-					start := time.Now()
-					md, pages, err := ingest.Convert(context.Background(), pdfPath, runCfg, ingest.ConvertOptions{})
-					if err != nil {
-						t.Fatalf("convert: %v", err)
+							start := time.Now()
+							md, pages, err := ingest.Convert(context.Background(), pdfPath, runCfg, ingest.ConvertOptions{})
+							if err != nil {
+								t.Fatalf("convert: %v", err)
+							}
+							report(t, backend+"/"+model, name, Grade(Transcription{
+								Markdown:          md,
+								SourceText:        want,
+								SourceRandziffern: make([]int, ExpectedRandziffern(string(src), "BEGRÜNDUNG")),
+								Letterhead:        "Bezirksgericht Baden",
+								SourceHeadings:    CountHeadings(PlainText(string(src))),
+							}), len(pages), time.Since(start))
+						})
 					}
-					report(t, model, name, Grade(Transcription{
-						Markdown:          md,
-						SourceText:        want,
-						SourceRandziffern: make([]int, ExpectedRandziffern(string(src), "BEGRÜNDUNG")),
-						Letterhead:        "Bezirksgericht Baden",
-						SourceHeadings:    CountHeadings(PlainText(string(src))),
-					}), len(pages), time.Since(start))
 				})
 			}
 		})
 	}
+}
+
+// backendList is the set of backends to score, from -backends or the project
+// configuration.
+func backendList(cfg ingest.Config) []string {
+	if *backends != "" {
+		return strings.Split(*backends, ",")
+	}
+	if cfg.Backend != "" {
+		return []string{cfg.Backend}
+	}
+	return []string{ingest.BackendChat}
+}
+
+// anchorModes is the anchoring axis for a backend. The mineru protocol has
+// nowhere to put a text layer — its prompt is the task name — so running it
+// twice would report the same score under two labels and double the time.
+func anchorModes(backend string) []bool {
+	if backend == ingest.BackendMinerU {
+		return []bool{false}
+	}
+	return []bool{false, true}
 }
 
 // TestExternalDocument scores a PDF that is not ours against its own text
