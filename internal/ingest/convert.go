@@ -23,6 +23,12 @@ type ConvertOptions struct {
 	// those numbers at render time; leave it false to transcribe faithfully,
 	// which is what a reference document and a schema-less run both want.
 	StripRandziffern bool
+	// Outline, when non-empty, is the document type's declared section-title
+	// scheme. Headings matching it are marked at their level and headings
+	// matching nothing are unmarked, so that structure comes from what the
+	// type says its titles look like rather than from what the model felt
+	// like marking on this page.
+	Outline []OutlineRule
 	// Progress, if non-nil, receives one Event per pipeline milestone. It is
 	// called synchronously from the goroutine driving the conversion,
 	// including once per streamed chunk, so it must not block: a renderer
@@ -82,6 +88,9 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 	// One normalizer for the whole document: Randziffern count up across
 	// pages, and the sequence is what tells a paragraph number from a year.
 	rz := rzNormalizer{strip: opts.StripRandziffern}
+	// Headings are settled before Randziffern are read, so that a heading the
+	// outline demotes to prose is offered to rz as prose.
+	outline := outlineNormalizer{rules: opts.Outline}
 
 	// stop hands back whatever was transcribed before failedAt, marked so that
 	// neither a reader nor a later docc run mistakes it for the whole document.
@@ -143,7 +152,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		}
 
 		res := ParsePageResponse(page.Index, out.Markdown)
-		res.Markdown = rz.Apply(res.Markdown)
+		res.Markdown = rz.Apply(outline.Apply(res.Markdown))
 		res.HadAnchor = hadAnchor
 		switch {
 		case out.Truncated:

@@ -33,6 +33,32 @@ type Schema struct {
 	Rules []Rule `yaml:"rules"`
 	// Render configures numbering applied to the body at render time.
 	Render Render `yaml:"render"`
+	// Outline declares how this document type writes its section titles, for
+	// docc ingest to recognize them by.
+	Outline []OutlineRule `yaml:"outline"`
+}
+
+// OutlineRule matches one level of a document type's section titles.
+//
+// It exists because a transcribing model decides heading markup by eye and
+// decides it differently on every page: measured over one four-page brief, the
+// chat backend marked four of eight headings and the layout-first backend
+// marked thirteen. A Swiss brief's outline is not a matter of taste — it is
+// `BEGRÜNDUNG:`, then `I.`, then `A.` — so it is something to state once and
+// apply, in the same spirit as rzNormalizer rewriting marginal numbers rather
+// than asking for them.
+//
+// Declaring `outline:` makes it authoritative for the type: a line that matches
+// is promoted to its level, and a heading the model invented that matches
+// nothing is demoted back to prose. Its text is kept either way, so a title
+// the patterns do not cover loses its `#` and stays readable, which is a
+// visible, recoverable mistake rather than a silent one.
+type OutlineRule struct {
+	// Pattern is a Go regular expression matched against a whole line, with
+	// any existing heading marker already stripped.
+	Pattern string `yaml:"pattern"`
+	// Level is the markdown heading level the match becomes, 1 to 6.
+	Level int `yaml:"level"`
 }
 
 // Render is the document type's opt-in to numbering that the source markdown

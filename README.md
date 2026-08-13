@@ -434,6 +434,39 @@ deleting a marker afterwards is easier than re-converting a document to recover
 one. An unknown type or an unreadable schema directory is reported and treated
 the same way, never as a fatal error.
 
+### Marking headings by the document type's outline
+
+A transcribing model decides heading markup by eye and decides it differently on
+every page. Measured on two pages of one brief, the chat backend marked four of
+seven section titles and put a fifth at the wrong depth; the layout-first backend
+marked thirteen on a document with eight.
+
+A Swiss brief's outline is not a matter of taste, so a schema can state it:
+
+```yaml
+outline:
+  - pattern: '^[A-ZÄÖÜ][A-ZÄÖÜ\s]+:$'                             # BEGRÜNDUNG:
+    level: 1
+  - pattern: '^(?:X{1,3}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)\.\s+\S'  # I. FORMELLES
+    level: 2
+  - pattern: '^[A-ZÄÖÜ]\.\s+\S'                                    # A. FRIST
+    level: 3
+```
+
+With `--type`, ingest applies it after transcription: a line matching a pattern
+becomes a heading at that level, and a heading matching nothing is returned to
+prose. Both directions are needed — promoting alone leaves the layout backend's
+invented headings, demoting alone leaves the chat backend's missed ones. With it
+declared, the two backends produce the same outline from the same pages.
+
+First match wins, so order matters, and so does the shape of the Roman pattern:
+`[IVXLCDM]+` is the obvious spelling and it is wrong, because C and D are 100 and
+500, which silently puts `C. STREITWERT` a level too shallow.
+
+A title no pattern covers keeps its text and loses its marker, which a reviewer
+can see and fix. A type that declares no `outline:` is left exactly as the model
+wrote it.
+
 `docc check` then verifies the sequence of a reference document with
 `randziffer_sequence`: a gap means the transcription lost text, a repeat means
 two paragraphs were merged, and a step backwards means pages were reordered.

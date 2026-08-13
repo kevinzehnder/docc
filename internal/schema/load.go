@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -60,7 +61,28 @@ func loadFile(path string) (*Schema, error) {
 	if err := yaml.UnmarshalWithOptions(b, &sc, yaml.Strict()); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
+	if err := checkOutline(sc.Outline); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
 	return &sc, nil
+}
+
+// checkOutline rejects an unusable outline at load, where the schema file can
+// be named, rather than at the ingest that would have used it — by which point
+// the pages have been rasterized and the model has been paid for.
+func checkOutline(rules []OutlineRule) error {
+	for i, r := range rules {
+		if r.Pattern == "" {
+			return fmt.Errorf("outline rule %d is missing `pattern`", i+1)
+		}
+		if r.Level < 1 || r.Level > 6 {
+			return fmt.Errorf("outline rule %d has level %d — markdown headings run from 1 to 6", i+1, r.Level)
+		}
+		if _, err := regexp.Compile(r.Pattern); err != nil {
+			return fmt.Errorf("outline rule %d has an invalid pattern %q: %w", i+1, r.Pattern, err)
+		}
+	}
+	return nil
 }
 
 // resolve merges a schema with its ancestor chain. seen guards against cycles.
@@ -119,6 +141,12 @@ func merge(parent, child *Schema) *Schema {
 	}
 	if len(child.Rules) == 0 {
 		out.Rules = parent.Rules
+	}
+	// Inherited whole, not merged: an outline is an ordered set of levels, and
+	// splicing a child's two patterns into a parent's three produces a document
+	// structure neither file describes.
+	if len(child.Outline) == 0 {
+		out.Outline = parent.Outline
 	}
 	if child.Theme == "" {
 		out.Theme = parent.Theme

@@ -511,9 +511,17 @@ func cmdIngest(args []string) int {
 	// depends on what this draft is going to become, which only the target
 	// schema knows. Without one, ingest is a plain transcription tool and
 	// keeps them.
-	strip, schemaNote := randzifferPolicy(*docType, *schemaDir, files[0])
+	strip, outlinePatterns, schemaNote := ingestPolicy(*docType, *schemaDir, files[0])
 	if schemaNote != "" {
 		fmt.Fprintln(os.Stderr, "docc ingest:", schemaNote)
+	}
+	outline, err := ingest.CompileOutline(outlinePatterns)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc ingest:", err)
+		return 2
+	}
+	if len(outline) > 0 {
+		fmt.Fprintf(os.Stderr, "docc ingest: marking headings by %s's declared outline (%d levels)\n", *docType, len(outline))
 	}
 
 	// A conversion is minutes of GPU time. Ctrl-C cancels the request in
@@ -531,6 +539,7 @@ func cmdIngest(args []string) int {
 		md, done, err := ingest.Convert(ctx, input, cfg, ingest.ConvertOptions{
 			First: firstPage, Last: lastPage, DocType: *docType,
 			StripRandziffern: strip,
+			Outline:          outline,
 			Progress: func(ev ingest.Event) {
 				if ev.Total > 0 {
 					attempted = ev.Total
@@ -676,21 +685,34 @@ func cmdStructure(args []string) int {
 // default, and deleting a marker afterwards is easier than re-converting a
 // document to recover one.
 func randzifferPolicy(docType, schemaDir, start string) (strip bool, note string) {
+	strip, _, note = ingestPolicy(docType, schemaDir, start)
+	return strip, note
+}
+
+// ingestPolicy reads the two things a target schema tells a transcription: what
+// to do with the source's marginal numbers, and what its section titles look
+// like. One lookup, because both come from the same file and a second one could
+// disagree with the first.
+func ingestPolicy(docType, schemaDir, start string) (strip bool, outline []ingest.OutlinePattern, note string) {
 	if docType == "" {
-		return false, ""
+		return false, nil, ""
 	}
 	set, err := loadSchemas(schemaDir, start)
 	if err != nil {
-		return false, fmt.Sprintf("no schemas found, keeping the source document's paragraph numbers: %v", err)
+		return false, nil, fmt.Sprintf("no schemas found, keeping the source document's paragraph numbers: %v", err)
 	}
 	sc, err := set.Get(docType)
 	if err != nil {
-		return false, fmt.Sprintf("keeping the source document's paragraph numbers: %v", err)
+		return false, nil, fmt.Sprintf("keeping the source document's paragraph numbers: %v", err)
+	}
+
+	for _, r := range sc.Outline {
+		outline = append(outline, ingest.OutlinePattern{Pattern: r.Pattern, Level: r.Level})
 	}
 	if sc.Render.ParagraphNumbering != nil {
-		return true, fmt.Sprintf("%s numbers its paragraphs at render time — dropping the source document's own numbers", docType)
+		return true, outline, fmt.Sprintf("%s numbers its paragraphs at render time — dropping the source document's own numbers", docType)
 	}
-	return false, ""
+	return false, outline, ""
 }
 
 // ingestOutputPath is where one input's draft goes: the explicit --output, or

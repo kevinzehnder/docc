@@ -54,6 +54,37 @@ frontmatter:
 # No `sections:` block. The body follows the source document's own structure,
 # which we do not get to dictate.
 
+# What we do get to say is what that structure *looks like*, which is not the
+# same thing. A Swiss brief's outline is a convention, not the author's taste:
+# an all-caps part title, Roman numerals under it, capital letters under those.
+# Stating it here is what lets `docc ingest` mark the headings instead of
+# leaving it to whichever model transcribed the page — measured on one brief,
+# the chat backend marked four of eight and the layout-first backend thirteen.
+#
+# First match wins, so order is load-bearing here, and so is the shape of the
+# Roman pattern. The obvious `[IVXLCDM]+` is wrong: C and D are Roman numerals,
+# so `C. STREITWERT` and `D. KOSTEN` would come out a level too shallow, which
+# is the kind of mistake that reads fine and renumbers a document silently.
+# Spelling out the numerals for 1-39 instead means a standalone C, D, L or M
+# falls through to the letter rule, where it belongs.
+#
+# Anything matching none of these is not a heading in this document type and is
+# left as prose.
+outline:
+  # BEGRÜNDUNG:  ANTRÄGE:  SACHVERHALT:
+  - pattern: '^[A-ZÄÖÜ][A-ZÄÖÜ\s]+:$'
+    level: 1
+  # I. FORMELLES   II. MATERIELLES   IV. KOSTEN
+  - pattern: '^(?:X{1,3}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)\.\s+\S'
+    level: 2
+  # A. FRIST   B. KLAGEHÄUFUNG   C. STREITWERT
+  #
+  # A single `I.` is claimed by the rule above, deliberately: a brief reaches
+  # Roman I on every one of its parts and letter I only in a section with nine
+  # subsections.
+  - pattern: '^[A-ZÄÖÜ]\.\s+\S'
+    level: 3
+
 styles:
   h1: Ueberschrift1
   h2: Ueberschrift2
