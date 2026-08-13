@@ -439,6 +439,19 @@ func cmdIngest(args []string) int {
 		fmt.Fprintln(os.Stderr, "docc ingest: --output requires exactly one input file")
 		return 2
 	}
+	// Every input is checked before any of them is converted: a run that
+	// transcribes the first file and only then discovers the second is a typo
+	// has spent minutes of VLM time to report a usage error.
+	badInput := false
+	for _, input := range files {
+		if err := ingest.CheckInput(input); err != nil {
+			fmt.Fprintln(os.Stderr, "docc ingest:", err)
+			badInput = true
+		}
+	}
+	if badInput {
+		return 2
+	}
 	firstPage, lastPage, err := parsePageRange(*pages)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "docc ingest:", err)

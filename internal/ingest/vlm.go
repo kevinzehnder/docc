@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -284,5 +285,12 @@ func encodeImage(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read page image: %w", err)
 	}
-	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(b), nil
+	// Rasterized pages are always PNG; a direct image input is whatever the
+	// user handed us, and CheckInput has already restricted that to a type
+	// named here.
+	mime, ok := imageMIME[strings.ToLower(filepath.Ext(path))]
+	if !ok {
+		mime = "image/png"
+	}
+	return "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(b), nil
 }

@@ -39,6 +39,9 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 	if emit == nil {
 		emit = func(Event) {}
 	}
+	if err := CheckInput(inputPath); err != nil {
+		return "", nil, err
+	}
 
 	client := NewClient(cfg)
 	if err := client.Ping(ctx, func(msg string) { emit(Event{Kind: EventWarning, Delta: msg}) }); err != nil {

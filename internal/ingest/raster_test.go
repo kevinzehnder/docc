@@ -1,7 +1,10 @@
 package ingest
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -52,5 +55,41 @@ func TestRenderPagesMissingFile(t *testing.T) {
 	_, err := RenderPages("/nonexistent/file.pdf", t.TempDir(), RasterOptions{})
 	if err == nil {
 		t.Fatal("expected an error rendering a nonexistent PDF")
+	}
+}
+
+func TestCheckInput(t *testing.T) {
+	dir := t.TempDir()
+	pdf := filepath.Join(dir, "doc.pdf")
+	png := filepath.Join(dir, "scan.PNG")
+	md := filepath.Join(dir, "notes.md")
+	for _, p := range []string{pdf, png, md} {
+		if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for _, ok := range []string{pdf, png} {
+		if err := CheckInput(ok); err != nil {
+			t.Errorf("CheckInput(%q) = %v, want nil", filepath.Base(ok), err)
+		}
+	}
+
+	// The exact shape of `docc ingest scan.pdf out.md`: the second argument is
+	// read as another input, so the message has to point at --output.
+	err := CheckInput(md)
+	if err == nil {
+		t.Fatal("CheckInput on a markdown file: want an error")
+	}
+	if !strings.Contains(err.Error(), "--output") {
+		t.Errorf("error = %v, want it to name the flag that writes the output file", err)
+	}
+
+	if err := CheckInput(filepath.Join(dir, "gone.pdf")); err == nil ||
+		!strings.Contains(err.Error(), "no such file") {
+		t.Errorf("CheckInput on a missing file = %v, want a plain no-such-file error", err)
+	}
+	if err := CheckInput(dir); err == nil || !strings.Contains(err.Error(), "is a directory") {
+		t.Errorf("CheckInput on a directory = %v, want it to say so", err)
 	}
 }

@@ -324,6 +324,11 @@ editing pass (by a person, or an agent), not ingest's job. Once that pass is
 done, `docc check klage_mueller.md` validates the result the same way it
 would for anything hand-authored.
 
+Inputs are `.pdf`, `.png`, `.jpg`, `.jpeg`, `.webp` or `.gif`; several may be
+given at once, each producing its own `.md`. Anything else is rejected before
+a single page is converted — `docc ingest scan.pdf out.md` reads `out.md` as
+a second input, and the destination is `--output`.
+
 `--pages` (`N` or `N-M`, 1-based, inclusive) limits conversion to a page range
 — worth using on a first run against a long document, since every page is a
 VLM call. It requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH` for PDF
