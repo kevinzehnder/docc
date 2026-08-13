@@ -10,7 +10,7 @@ import (
 // outlineFor loads a real schema from testdata and compiles its declared
 // outline, so that these assertions are about the shipped YAML rather than a
 // copy of it that can drift.
-func outlineFor(t *testing.T, docType string) *outlineNormalizer {
+func outlineFor(t *testing.T, docType, scheme string) *outlineNormalizer {
 	t.Helper()
 	set, err := schema.Load(filepath.Join("..", "..", "testdata", "schemas"))
 	if err != nil {
@@ -20,8 +20,15 @@ func outlineFor(t *testing.T, docType string) *outlineNormalizer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	patterns := make([]OutlinePattern, 0, len(sc.Outline))
-	for _, r := range sc.Outline {
+	if scheme == "" {
+		scheme = sc.Outline.Default
+	}
+	rulesIn, ok := sc.Outline.Schemes[scheme]
+	if !ok {
+		t.Fatalf("%s declares no outline scheme %q", docType, scheme)
+	}
+	patterns := make([]OutlinePattern, 0, len(rulesIn))
+	for _, r := range rulesIn {
 		patterns = append(patterns, OutlinePattern{Pattern: r.Pattern, Level: r.Level})
 	}
 	rules, err := CompileOutline(patterns)
@@ -29,7 +36,7 @@ func outlineFor(t *testing.T, docType string) *outlineNormalizer {
 		t.Fatal(err)
 	}
 	if len(rules) == 0 {
-		t.Fatalf("%s declares no outline", docType)
+		t.Fatalf("%s scheme %s compiled to nothing", docType, scheme)
 	}
 	return &outlineNormalizer{rules: rules}
 }
@@ -46,7 +53,7 @@ func assertLevels(t *testing.T, o *outlineNormalizer, cases map[string]string) {
 // The filing order: a part title, then Roman, then letters. Matches
 // assets/example_replik.pdf and the UZH Merkblatt's I./A./1./a) example.
 func TestLegalReferenceOutlineIsRomanOverLetters(t *testing.T) {
-	assertLevels(t, outlineFor(t, "legal_reference"), map[string]string{
+	assertLevels(t, outlineFor(t, "legal_reference", ""), map[string]string{
 		"BEGRÜNDUNG:":       "# BEGRÜNDUNG:",
 		"I. FORMELLES":      "## I. FORMELLES",
 		"II. MATERIELLES":   "## II. MATERIELLES",
@@ -61,7 +68,7 @@ func TestLegalReferenceOutlineIsRomanOverLetters(t *testing.T) {
 // I. is the ninth section here and the first part in the type above, which is
 // exactly why these cannot be one declaration.
 func TestKlassischOutlineInvertsTheTopTwoLevels(t *testing.T) {
-	assertLevels(t, outlineFor(t, "legal_reference_klassisch"), map[string]string{
+	assertLevels(t, outlineFor(t, "legal_reference", "letter-first"), map[string]string{
 		"A. FORMELLES":      "# A. FORMELLES",
 		"B. MATERIELLES":    "# B. MATERIELLES",
 		"I. Frist":          "## I. Frist",
@@ -75,8 +82,8 @@ func TestKlassischOutlineInvertsTheTopTwoLevels(t *testing.T) {
 // The same line, levelled differently by the two types — the one assertion that
 // proves the choice belongs to the document type.
 func TestTheSameHeadingLevelsDifferentlyPerType(t *testing.T) {
-	kley := outlineFor(t, "legal_reference")
-	klassisch := outlineFor(t, "legal_reference_klassisch")
+	kley := outlineFor(t, "legal_reference", "")
+	klassisch := outlineFor(t, "legal_reference", "letter-first")
 
 	if got := kley.Apply("A. FRIST"); got != "### A. FRIST" {
 		t.Errorf("legal_reference: got %q, want level 3", got)
@@ -87,7 +94,7 @@ func TestTheSameHeadingLevelsDifferentlyPerType(t *testing.T) {
 }
 
 func TestDezimalOutlineLevelsByDepth(t *testing.T) {
-	assertLevels(t, outlineFor(t, "legal_reference_dezimal"), map[string]string{
+	assertLevels(t, outlineFor(t, "legal_reference", "decimal"), map[string]string{
 		"1 Formelles":          "# 1 Formelles",
 		"1. Formelles":         "# 1. Formelles",
 		"1.1 Frist":            "## 1.1 Frist",
@@ -96,27 +103,42 @@ func TestDezimalOutlineLevelsByDepth(t *testing.T) {
 	})
 }
 
-// The variants inherit everything but the outline: same required frontmatter,
-// same randziffer_sequence rule, and above all no render.paragraph_numbering,
-// which is what keeps a reference document's numbers as citation keys.
-func TestOutlineVariantsInheritTheRestOfTheType(t *testing.T) {
+// One type carries all three, and names a default, so that a run without
+// --outline still gets the common case rather than nothing.
+func TestLegalReferenceCarriesEveryScheme(t *testing.T) {
 	set, err := schema.Load(filepath.Join("..", "..", "testdata", "schemas"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"legal_reference_klassisch", "legal_reference_dezimal"} {
-		sc, err := set.Get(name)
-		if err != nil {
-			t.Fatal(err)
+	sc, err := set.Get("legal_reference")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"roman-first", "letter-first", "decimal"} {
+		if _, ok := sc.Outline.Schemes[want]; !ok {
+			t.Errorf("no outline scheme %q", want)
 		}
-		if sc.Render.ParagraphNumbering != nil {
-			t.Errorf("%s generates paragraph numbers — a reference document must keep the source's", name)
-		}
-		if _, ok := sc.Frontmatter["cite_as"]; !ok {
-			t.Errorf("%s did not inherit cite_as", name)
-		}
-		if len(sc.Rules) == 0 {
-			t.Errorf("%s did not inherit randziffer_sequence", name)
+	}
+	if sc.Outline.Default != "roman-first" {
+		t.Errorf("default scheme is %q, want roman-first", sc.Outline.Default)
+	}
+}
+
+// The document belongs to somebody else. A brief outlined some way no scheme
+// anticipates is unusual, not wrong, and its headings have to survive: the
+// documents whose structure cannot be predicted are exactly the ones that would
+// lose it if a scheme were treated as a contract.
+func TestOutlineLeavesAnUnrecognizedSchemeIntact(t *testing.T) {
+	o := outlineFor(t, "legal_reference", "")
+
+	// A firm numbering its sections §1 / §1.1 matches nothing declared.
+	for _, line := range []string{
+		"## § 1 Formelles",
+		"### § 1.1 Frist",
+		"# Teil Eins — Zur Sache",
+	} {
+		if got := o.Apply(line); got != line {
+			t.Errorf("Apply(%q) = %q, want it untouched", line, got)
 		}
 	}
 }

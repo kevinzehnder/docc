@@ -467,123 +467,36 @@ A title no pattern covers keeps its text and loses its marker, which a reviewer
 can see and fix. A type that declares no `outline:` is left exactly as the model
 wrote it.
 
-Three schemes are in `testdata/schemas/`, following the UZH guidance for legal
-writing. They differ only in `outline:` — the two variants `extends:` the first
-and inherit its frontmatter, rules, styles and theme:
+One `legal_reference` type carries three schemes, following the UZH guidance for
+legal writing. Pick one with `--outline`; without it, the type's `default` is
+used:
 
-| type | L1 | L2 | L3 | L4 | L5 |
+| scheme | L1 | L2 | L3 | L4 | L5 |
 | --- | --- | --- | --- | --- | --- |
-| `legal_reference` | `BEGRÜNDUNG:` | `I.` | `A.` | `1.` | `a)` |
-| `legal_reference_klassisch` | `A.` | `I.` | `1.` | `a)` | `aa)` |
-| `legal_reference_dezimal` | `1` | `1.1` | `1.1.1` | `1.1.1.1` | |
+| `roman-first` (default) | `BEGRÜNDUNG:` | `I.` | `A.` | `1.` | `a)` |
+| `letter-first` | `A.` | `I.` | `1.` | `a)` | `aa)` |
+| `decimal` | `1` | `1.1` | `1.1.1` | `1.1.1.1` | |
 
-They exist as separate types rather than one bigger declaration because the top
-two levels are *inverted* between the first two — `I.` is level 2 in one and
-level 1 in the other — and no ordering of patterns can serve both. The guidance
-is explicit that a document uses one scheme throughout and not `Mischformen`, so
-the choice belongs to the document type, made once when the transcription
-starts.
+They are alternatives rather than one longer declaration because the top two
+levels are *inverted* between the first two — `I.` is level 2 in one and level 1
+in the other — and no ordering of patterns serves both. The guidance is explicit
+that a document uses one scheme throughout and not `Mischformen`, so the choice
+is made once, when the transcription starts.
 
-Where the schemes overlap, the more frequent reading wins and the schema says
-so: in `legal_reference_klassisch` a bare `I.` is read as the Roman numeral
-opening a section, not as the ninth top-level letter.
+Where schemes overlap, the more frequent reading wins and the schema says so: in
+`letter-first` a bare `I.` is read as the Roman numeral opening a section, not as
+the ninth top-level letter.
 
-`docc check` then verifies the sequence of a reference document with
-`randziffer_sequence`: a gap means the transcription lost text, a repeat means
-two paragraphs were merged, and a step backwards means pages were reordered.
+**A scheme is a baseline, not a contract.** The document being transcribed
+belongs to somebody else, written to their conventions, and a firm that outlines
+its filings some way nobody anticipated is unusual rather than wrong. So ingest
+only ever *promotes*: a line matching a rule becomes a heading at that level, and
+a line matching nothing is left exactly as the model produced it — marked or not.
 
-`--pages` (`N` or `N-M`, 1-based, inclusive) limits **PDF** conversion to a
-page range — worth using on a first run against a long document, since every
-page is a VLM call. It is rejected for image input, which is always one page.
-PDF input requires `pdftoppm` and `pdftotext` (poppler-utils) on `PATH`, the
-same way `docc build --to pdf` requires LibreOffice; a plain image skips
-rasterization entirely.
-
-The output is a `.md` file with a banner comment marking it machine-generated
-and low-confidence pages called out by number — pages with no text layer to
-cross-check against, worth a closer read before trusting them.
-
-### While it runs
-
-Every page is a VLM call, so a long document is minutes of work. Ingest
-streams the model's response rather than waiting for it whole, and reports
-what the server is actually doing on stderr — stdout stays the machine
-channel, carrying only the output path:
-
-```
-ingest klage_mueller.pdf
-  rasterized 17 pages @200dpi
-  ⠹ page 4/17  1.2k tok  38 tok/s  12s   [~3m40s left]
-```
-
-The line is redrawn in place on a terminal. Piped or redirected, the same
-information arrives as one line per finished page; under `--json` nothing is
-written to stderr at all. There is no flag for this — `2>/dev/null` silences
-it.
-
-Before rasterizing anything, ingest checks that the server is up and its model
-loaded, so a `llama-server` that was never started fails in three seconds
-instead of after a minute of `pdftoppm`. A configured `model` the server does
-not list is a warning, not an error: a router in front of several models may
-resolve names it does not advertise.
-
-An interrupted run keeps its work. Ctrl-C, or a page that fails outright,
-still writes the pages transcribed so far, marked, with the command that
-converts the rest:
-
-```
-<!-- INCOMPLETE — docc ingest stopped after 3 of 17 pages: interrupted -->
-<!-- convert the rest with: docc ingest --pages 4-17 --output klage_mueller.pages-4-17.md klage_mueller.pdf -->
-```
-
-The page that failed is not included even if it was half transcribed — a
-transcription cut off mid-sentence and merged in silently is the failure the
-low-confidence markers exist to prevent. The exit status is 1 and, in text
-mode, the path of a partial draft is reported on stderr rather than stdout, so
-a script reading stdout never receives half a document.
-
-Resuming writes a **separate** file, which you append; nothing merges the two
-automatically. That is also why ingest refuses to overwrite two kinds of
-existing output: a file whose generated-by banner is gone, because a person
-has edited it, and a partial draft, because the pages it holds came from a run
-that stopped and a resume converts a different range. Re-running a conversion
-over its own finished output is the ordinary iteration loop and stays silent.
-`--force` overrides both.
-
-Configure the endpoint, model and precision knobs in `.docc/ingest.yaml`,
-overridable per run with flags:
-
-```yaml
-backend: chat      # chat, or mineru for the layout-first protocol
-endpoint: http://localhost:8080/v1/chat/completions
-model: qwen3-vl
-temperature: 0.1   # low by default — determinism over range, for a small corpus
-dpi: 200
-anchor: true       # inject the PDF's own text layer into the prompt as ground truth
-max_tokens: 4096   # caps each page's response; a dense page needs more than a chat reply
-seed: 0            # fixes the sampler, so the same page transcribes the same way twice
-stall_timeout: 3m  # give up when the server sends nothing at all for this long
-```
-
-`seed` exists because everything else docc emits is reproducible, and a
-transcription that differs between two identical runs cannot be diffed to see
-what a prompt change actually did. It is sent on every request, including the
-default 0 — omitting the field is what makes a server pick a random one.
-
-`stall_timeout` bounds silence, not the request: a page that legitimately
-takes six minutes is fine, a server that dies mid-generation is not, and a
-whole-request deadline cannot tell those apart. Raise it on hardware where the
-first token of a page takes minutes to appear.
-
-`anchor` implements what OCR research calls "document-anchoring": for a
-born-digital PDF (not a scan), the page's own extracted text is given to the
-model alongside the page image, which measurably reduces hallucination
-versus prompting from the image alone. It has no effect on plain image input
-or a scanned page with no text layer — those pages are marked low-confidence
-in the output instead, along with any page whose response was cut off at
-`max_tokens` — a dense page (a long list, a big table) can need more than
-the default allows, and a silently truncated page is worse than a flagged
-one.
+The tempting other half, unmarking a heading that matches no rule, would also
+clear up the layout backend's over-marking. It is not done, because it would
+silently strip the real structure out of precisely the documents whose structure
+could not be predicted. Over-marking is left for a reviewer to delete.
 
 ## Themes
 

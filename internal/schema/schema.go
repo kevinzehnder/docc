@@ -33,26 +33,41 @@ type Schema struct {
 	Rules []Rule `yaml:"rules"`
 	// Render configures numbering applied to the body at render time.
 	Render Render `yaml:"render"`
-	// Outline declares how this document type writes its section titles, for
-	// docc ingest to recognize them by.
-	Outline []OutlineRule `yaml:"outline"`
+	// Outline describes the section-title schemes this document type is
+	// usually written in, for docc ingest to recognize headings by.
+	Outline Outline `yaml:"outline"`
 }
 
-// OutlineRule matches one level of a document type's section titles.
+// Outline is a document type's expectation about how its section titles are
+// written — a baseline, not a contract.
 //
 // It exists because a transcribing model decides heading markup by eye and
-// decides it differently on every page: measured over one four-page brief, the
-// chat backend marked four of eight headings and the layout-first backend
-// marked thirteen. A Swiss brief's outline is not a matter of taste — it is
-// `BEGRÜNDUNG:`, then `I.`, then `A.` — so it is something to state once and
-// apply, in the same spirit as rzNormalizer rewriting marginal numbers rather
-// than asking for them.
+// decides it differently on every page: measured over one brief, the chat
+// backend marked four of seven titles and put a fifth at the wrong depth, and
+// the layout-first backend marked thirteen on a document with eight. A Swiss
+// brief's outline is conventional enough to state, and stating it turns that
+// guesswork into a lookup.
 //
-// Declaring `outline:` makes it authoritative for the type: a line that matches
-// is promoted to its level, and a heading the model invented that matches
-// nothing is demoted back to prose. Its text is kept either way, so a title
-// the patterns do not cover loses its `#` and stays readable, which is a
-// visible, recoverable mistake rather than a silent one.
+// It holds several schemes because the conventions disagree with each other.
+// The University of Zurich's own guidance sanctions I./A./1./a), A./I./1./a)/aa)
+// and the decimal system, and its two sheets invert the top two levels between
+// them, so `I.` is level 1 in one document and level 2 in the next. Which one a
+// given document uses is a fact about that document, chosen when the
+// transcription starts.
+//
+// The document being transcribed belongs to somebody else. A brief that ignores
+// all of these is unusual, not invalid, and nothing here may punish it: a
+// heading that matches no scheme keeps the level the model gave it.
+type Outline struct {
+	// Default names the scheme to assume when the caller does not choose one.
+	// Empty means no scheme is applied unless one is named.
+	Default string `yaml:"default"`
+	// Schemes maps a name to the ordered rules that recognize its levels.
+	// Order within a scheme matters: the first rule that matches a line wins.
+	Schemes map[string][]OutlineRule `yaml:"schemes"`
+}
+
+// OutlineRule matches one level of one section-title scheme.
 type OutlineRule struct {
 	// Pattern is a Go regular expression matched against a whole line, with
 	// any existing heading marker already stripped.

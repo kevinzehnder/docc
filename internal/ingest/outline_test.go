@@ -49,27 +49,22 @@ func TestOutlinePromotesHeadingsTheModelMissed(t *testing.T) {
 	}
 }
 
-// The layout backend's failure: thirteen headings on a document with eight,
-// because the layout pass types short lines at the left margin as `title`.
-// A heading matching no declared pattern is not one this type has.
-func TestOutlineDemotesHeadingsTheModelInvented(t *testing.T) {
+// The layout backend marks thirteen headings on a document with eight, and this
+// deliberately does not fix that. Unmarking whatever matches no rule would, and
+// would also strip the real structure out of any brief written to a convention
+// nobody anticipated — which is the case a transcription of somebody else's
+// document has to survive. A scheme is a baseline, not a contract.
+func TestOutlineLeavesUnrecognizedHeadingsAlone(t *testing.T) {
 	o := outlineNormalizer{rules: legalOutline(t)}
-	got := o.Apply(strings.Join([]string{
+	in := strings.Join([]string{
 		"## I. FORMELLES",
 		"",
 		"## Die vorliegende Eingabe erfolgt innert Frist.",
-	}, "\n"))
+	}, "\n")
 
-	if !strings.Contains(got, "## I. FORMELLES") {
-		t.Errorf("real heading lost:\n%s", got)
-	}
-	if strings.Contains(got, "## Die vorliegende") {
-		t.Errorf("invented heading kept:\n%s", got)
-	}
-	// Demoted, not deleted — losing a marker is recoverable, losing the
-	// sentence is not.
-	if !strings.Contains(got, "Die vorliegende Eingabe erfolgt innert Frist.") {
-		t.Errorf("demoted text was dropped:\n%s", got)
+	got := o.Apply(in)
+	if got != in {
+		t.Errorf("Apply changed a page it recognized only part of:\ngot:\n%s\nwant:\n%s", got, in)
 	}
 }
 

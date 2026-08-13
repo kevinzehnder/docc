@@ -39,20 +39,23 @@ func CompileOutline(in []OutlinePattern) ([]OutlineRule, error) {
 	return rules, nil
 }
 
-// outlineNormalizer rewrites a page's headings to the outline its document type
-// declares.
+// outlineNormalizer marks the headings a document type's usual section-title
+// scheme recognizes.
 //
 // It exists for the same reason rzNormalizer does. A transcribing model decides
 // heading markup by eye, and decides it differently on each page: over one
-// four-page brief the chat backend marked four of eight headings and the
-// layout-first backend marked thirteen. Neither is a judgement call — a Swiss
-// brief's outline is BEGRÜNDUNG:, then I., then A., and a document type that
-// can say so should not have to ask.
+// brief the chat backend marked four of seven titles and put a fifth at the
+// wrong depth, while the layout-first backend marked thirteen on a document
+// with eight. A scheme the document type can name turns that into a lookup.
 //
-// Both directions matter, which is why this is not simply a promoter. Promoting
-// alone leaves the layout backend's invented headings in place; demoting alone
-// leaves the chat backend's missed ones as prose. Together they turn 4 of 8 and
-// 13 of 8 into the same 8.
+// It only ever promotes. The tempting other half — unmarking a heading that
+// matches no rule, which would also clear up the layout backend's invented ones
+// — is wrong here, and the reason is whose document this is. A transcription is
+// of somebody else's brief, written to their conventions, and a firm that
+// outlines its filings some way nobody anticipated is unusual rather than
+// mistaken. Demoting on that basis would silently strip the real structure out
+// of exactly the documents whose structure we could not predict. A scheme is a
+// baseline for the common case, not a contract the source is held to.
 type outlineNormalizer struct {
 	rules []OutlineRule
 }
@@ -71,25 +74,24 @@ func (o *outlineNormalizer) Apply(md string) string {
 		// a heading inside a fence is not a heading. Blocks arrive from the
 		// backends one per element, so a "# " inside one is rare enough that
 		// getting it wrong costs a marker, not text.
-		text, marked := line, false
+		// Any marker the model already wrote is stripped before matching, so
+		// that a title it marked at the wrong depth is re-levelled rather than
+		// missed.
+		text := line
 		if m := headingLine.FindStringSubmatch(line); m != nil {
-			text, marked = m[2], true
+			text = m[2]
 		}
 		trimmed := strings.TrimSpace(text)
 		if trimmed == "" {
 			continue
 		}
 
+		// A line matching nothing is left exactly as it arrived — marked or
+		// not. That is the deviating third-party document coming through
+		// unharmed, and it is the whole difference between a baseline and a
+		// contract.
 		if level, ok := o.level(trimmed); ok {
 			lines[i] = strings.Repeat("#", level) + " " + trimmed
-			continue
-		}
-		if marked {
-			// A heading matching no declared pattern is not one this document
-			// type has. The text survives as prose — a title the outline does
-			// not cover loses its marker and stays readable, which is a
-			// mistake a reviewer can see and fix.
-			lines[i] = trimmed
 		}
 	}
 	return strings.Join(lines, "\n")

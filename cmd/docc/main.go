@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -68,6 +69,7 @@ ingest flags:
   --endpoint <url>     VLM chat completions endpoint (default: from .docc/ingest.yaml)
   --output <path>      output path (single input file only; default: input with .md extension)
   --schema-dir <dir>   schema directory, consulted when --type is given
+  --outline <name>     section-title scheme to mark headings by (default: the --type's own)
   --force              overwrite an output file that docc ingest did not write
   --json               machine-readable output
 
@@ -424,17 +426,18 @@ func cmdBuild(args []string) int {
 func cmdIngest(args []string) int {
 	fs := flag.NewFlagSet("ingest", flag.ContinueOnError)
 	var (
-		docType   = fs.String("type", "", "document_type to write into the output frontmatter")
-		jsonOut   = fs.Bool("json", false, "machine-readable output")
-		dpi       = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
-		noAnchor  = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
-		model     = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
-		backend   = fs.String("backend", "", "transcription backend: chat or mineru (default: from .docc/ingest.yaml, or chat)")
-		endpoint  = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
-		output    = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
-		pages     = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
-		force     = fs.Bool("force", false, "overwrite an output file that docc ingest did not write")
-		schemaDir = fs.String("schema-dir", "", "schema directory (default: nearest .docc/schemas)")
+		docType     = fs.String("type", "", "document_type to write into the output frontmatter")
+		jsonOut     = fs.Bool("json", false, "machine-readable output")
+		dpi         = fs.Int("dpi", 0, "page rasterization DPI (default: from .docc/ingest.yaml, or 200)")
+		noAnchor    = fs.Bool("no-anchor", false, "disable born-digital text-layer anchoring")
+		model       = fs.String("model", "", "VLM model name (default: from .docc/ingest.yaml)")
+		backend     = fs.String("backend", "", "transcription backend: chat or mineru (default: from .docc/ingest.yaml, or chat)")
+		endpoint    = fs.String("endpoint", "", "VLM chat completions endpoint (default: from .docc/ingest.yaml)")
+		output      = fs.String("output", "", "output path (single input file only; default: input with .md extension)")
+		pages       = fs.String("pages", "", "page range to convert, e.g. 3 or 3-5 (default: the whole document)")
+		force       = fs.Bool("force", false, "overwrite an output file that docc ingest did not write")
+		schemaDir   = fs.String("schema-dir", "", "schema directory (default: nearest .docc/schemas)")
+		outlineName = fs.String("outline", "", "section-title scheme to recognize headings by (default: the --type's own)")
 	)
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -511,7 +514,11 @@ func cmdIngest(args []string) int {
 	// depends on what this draft is going to become, which only the target
 	// schema knows. Without one, ingest is a plain transcription tool and
 	// keeps them.
-	strip, outlinePatterns, schemaNote := ingestPolicy(*docType, *schemaDir, files[0])
+	strip, outlinePatterns, schemaNote, err := ingestPolicy(*docType, *schemaDir, files[0], *outlineName)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "docc ingest:", err)
+		return 2
+	}
 	if schemaNote != "" {
 		fmt.Fprintln(os.Stderr, "docc ingest:", schemaNote)
 	}
@@ -519,9 +526,6 @@ func cmdIngest(args []string) int {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "docc ingest:", err)
 		return 2
-	}
-	if len(outline) > 0 {
-		fmt.Fprintf(os.Stderr, "docc ingest: marking headings by %s's declared outline (%d levels)\n", *docType, len(outline))
 	}
 
 	// A conversion is minutes of GPU time. Ctrl-C cancels the request in
@@ -685,7 +689,7 @@ func cmdStructure(args []string) int {
 // default, and deleting a marker afterwards is easier than re-converting a
 // document to recover one.
 func randzifferPolicy(docType, schemaDir, start string) (strip bool, note string) {
-	strip, _, note = ingestPolicy(docType, schemaDir, start)
+	strip, _, note, _ = ingestPolicy(docType, schemaDir, start, "")
 	return strip, note
 }
 
@@ -693,26 +697,62 @@ func randzifferPolicy(docType, schemaDir, start string) (strip bool, note string
 // to do with the source's marginal numbers, and what its section titles look
 // like. One lookup, because both come from the same file and a second one could
 // disagree with the first.
-func ingestPolicy(docType, schemaDir, start string) (strip bool, outline []ingest.OutlinePattern, note string) {
+func ingestPolicy(docType, schemaDir, start, scheme string) (strip bool, outline []ingest.OutlinePattern, note string, err error) {
 	if docType == "" {
-		return false, nil, ""
+		if scheme != "" {
+			return false, nil, "", fmt.Errorf("--outline %s needs --type: the section-title schemes belong to a document type", scheme)
+		}
+		return false, nil, "", nil
 	}
-	set, err := loadSchemas(schemaDir, start)
-	if err != nil {
-		return false, nil, fmt.Sprintf("no schemas found, keeping the source document's paragraph numbers: %v", err)
+	set, loadErr := loadSchemas(schemaDir, start)
+	if loadErr != nil {
+		return false, nil, fmt.Sprintf("no schemas found, keeping the source document's paragraph numbers: %v", loadErr), nil
 	}
-	sc, err := set.Get(docType)
-	if err != nil {
-		return false, nil, fmt.Sprintf("keeping the source document's paragraph numbers: %v", err)
+	sc, getErr := set.Get(docType)
+	if getErr != nil {
+		return false, nil, fmt.Sprintf("keeping the source document's paragraph numbers: %v", getErr), nil
 	}
 
-	for _, r := range sc.Outline {
-		outline = append(outline, ingest.OutlinePattern{Pattern: r.Pattern, Level: r.Level})
+	outline, err = outlineScheme(sc.Outline, docType, scheme)
+	if err != nil {
+		return false, nil, "", err
 	}
 	if sc.Render.ParagraphNumbering != nil {
-		return true, outline, fmt.Sprintf("%s numbers its paragraphs at render time — dropping the source document's own numbers", docType)
+		return true, outline, fmt.Sprintf("%s numbers its paragraphs at render time — dropping the source document's own numbers", docType), nil
 	}
-	return false, outline, ""
+	return false, outline, "", nil
+}
+
+// outlineScheme picks the section-title scheme to apply: the one named, or the
+// type's default. An unknown name is a usage error listing what there is,
+// because the alternative is a run that silently marks nothing and looks like
+// the model failing to find headings.
+func outlineScheme(o schema.Outline, docType, want string) ([]ingest.OutlinePattern, error) {
+	if len(o.Schemes) == 0 {
+		if want != "" {
+			return nil, fmt.Errorf("%s declares no outline schemes, so --outline %s has nothing to select", docType, want)
+		}
+		return nil, nil
+	}
+	if want == "" {
+		if want = o.Default; want == "" {
+			return nil, nil
+		}
+	}
+	rules, ok := o.Schemes[want]
+	if !ok {
+		names := make([]string, 0, len(o.Schemes))
+		for name := range o.Schemes {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		return nil, fmt.Errorf("%s declares no outline scheme %q — it has %s", docType, want, strings.Join(names, ", "))
+	}
+	out := make([]ingest.OutlinePattern, 0, len(rules))
+	for _, r := range rules {
+		out = append(out, ingest.OutlinePattern{Pattern: r.Pattern, Level: r.Level})
+	}
+	return out, nil
 }
 
 // ingestOutputPath is where one input's draft goes: the explicit --output, or
