@@ -48,6 +48,14 @@ type Score struct {
 	// PageNumbers and Letterheads count running furniture that leaked into the
 	// body. Both should be zero.
 	PageNumbers, Letterheads int
+
+	// HeadingsFound and HeadingsExpected count markdown headings. The word
+	// scores cannot see these: the comparison splits on non-letters, so a "#"
+	// is discarded and a model that renders every heading as plain text scores
+	// exactly as well as one that marks them up. For a compiler whose next
+	// stage validates document structure, that is the wrong thing to be blind
+	// to — a draft with no headings fails every section check downstream.
+	HeadingsFound, HeadingsExpected int
 }
 
 var (
@@ -56,6 +64,9 @@ var (
 	pageNumberLine = regexp.MustCompile(`^\s*-?\s*(?:Seite\s+)?\d{1,3}\s*-?\s*$`)
 	// rzMarker matches ingest's own paragraph-number marker.
 	rzMarker = regexp.MustCompile(`^\s*\[Rz (\d+)\]`)
+	// headingLine matches an ATX heading, which is the only heading syntax
+	// docc's own documents use.
+	headingLine = regexp.MustCompile(`^\s{0,3}#{1,6}\s+\S`)
 	// wordSplit keeps letters and digits together and drops everything else,
 	// so punctuation the model normalises differently is not counted as an
 	// OCR error. Umlauts and ß are letters and survive.
@@ -78,6 +89,8 @@ type Transcription struct {
 	// Letterhead is a string that repeats on every page of this document — a
 	// firm name — or empty to skip that check.
 	Letterhead string
+	// SourceHeadings is how many headings the source document has.
+	SourceHeadings int
 }
 
 // Grade scores one transcription.
@@ -93,7 +106,11 @@ func Grade(t Transcription) Score {
 	s.RandzifferExpected = len(t.SourceRandziffern)
 	s.SequenceBreaks = sequenceBreaks(found)
 
+	s.HeadingsExpected = t.SourceHeadings
 	for _, line := range strings.Split(t.Markdown, "\n") {
+		if headingLine.MatchString(line) {
+			s.HeadingsFound++
+		}
 		if pageNumberLine.MatchString(line) {
 			s.PageNumbers++
 		}
@@ -324,4 +341,15 @@ func flatten(b *strings.Builder, v any) {
 	default:
 		fmt.Fprintf(b, "%v ", t)
 	}
+}
+
+// CountHeadings returns how many ATX headings a document has.
+func CountHeadings(md string) int {
+	n := 0
+	for _, line := range strings.Split(md, "\n") {
+		if headingLine.MatchString(line) {
+			n++
+		}
+	}
+	return n
 }

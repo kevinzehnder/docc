@@ -225,3 +225,34 @@ func TestFlattenValues(t *testing.T) {
 		t.Errorf("a nullable field rendered as a literal nil:\n%s", got)
 	}
 }
+
+// The word scores discard "#" along with every other non-letter, so a model
+// that writes headings as plain text scores exactly as well as one that marks
+// them up. Downstream that is the difference between a draft docc can check and
+// one that fails every section rule, so it is counted separately.
+func TestGradeCountsHeadings(t *testing.T) {
+	md := strings.Join([]string{
+		"# RECHTSBEGEHREN",
+		"",
+		"Es sei festzustellen.",
+		"",
+		"## Zuständigkeit",
+		"",
+		"Das Gericht ist zuständig.",
+	}, "\n")
+
+	s := Grade(Transcription{Markdown: md, SourceHeadings: 3})
+	if s.HeadingsFound != 2 {
+		t.Errorf("HeadingsFound = %d, want 2", s.HeadingsFound)
+	}
+	if s.HeadingsExpected != 3 {
+		t.Errorf("HeadingsExpected = %d, want 3", s.HeadingsExpected)
+	}
+
+	// The same text with the markup dropped scores the same on words and must
+	// not score the same here.
+	flat := Grade(Transcription{Markdown: strings.ReplaceAll(md, "#", ""), SourceHeadings: 3})
+	if flat.HeadingsFound != 0 {
+		t.Errorf("HeadingsFound = %d for a transcription with no markup, want 0", flat.HeadingsFound)
+	}
+}

@@ -13,8 +13,9 @@ document, the fixture is committed, and no client file is involved.
 What it does not yet have:
 
 - **More than one document.** One four-page brief is enough to catch a
-  regression and not enough to choose a model. It needs a second fixture with
-  the things this one lacks: a table, a footnote, a page break mid-paragraph.
+  regression and not enough to choose a model — two models scored identically
+  on its prose. It needs a second fixture with the things this one lacks: a
+  table, a footnote, a page break mid-paragraph.
 - **A stored baseline.** Scores are printed and forgotten. Writing them to a
   local file would turn "did this prompt change help?" into a diff.
 - **Scanned input.** Every fixture it renders is born-digital and clean. Real
@@ -32,28 +33,45 @@ Two traps already learned, kept here because they cost time once:
   silently corrected it. The corrected version reads better and is wrong: a
   transcription that fixes its source cannot be cited.
 
-### What the first run found
+### What the first runs found
 
-Against `unsloth/Qwen3.5-9B-GGUF:Q4_K_M`, four pages, DPI 150:
+Round trip, four pages, DPI 150, fixed seed:
 
-| | precision | recall | Randziffern | leaked |
+| model | mode | words P / R | headings | Randziffern |
 |---|---|---|---|---|
-| vision-only | 0.642 | 0.982 | 1 of 4 | 1 letterhead |
-| anchored | 0.758 | 0.982 | 1 of 4 | 1 letterhead |
+| olmOCR-2-7B | vision-only | 0.642 / 0.982 | **0 of 8** | 1 of 4 |
+| olmOCR-2-7B | anchored | 0.758 / 0.982 | **0 of 8** | 1 of 4 |
+| Qwen3.5-9B | vision-only | 0.642 / 0.982 | **4 of 8** | 1 of 4 |
+| Qwen3.5-9B | anchored | 0.758 / 0.982 | **4 of 8** | 1 of 4 |
+| gemma-4-E4B | vision-only | 0.580 / 0.771 | — | 1 of 4 |
+| gemma-4-E4B | anchored | crashed the server | | |
 
 Recall is the number to trust — the ground truth is every word the document is
 known to contain. Precision has a floor well below 1 that is not the model's
-fault: a theme prints boilerplate of its own, which is on the page, correctly
-transcribed, and in no source to compare against.
+fault: a theme prints boilerplate that is on the page, correctly transcribed,
+and in no source to compare against.
 
-Two findings worth acting on:
+Four findings:
 
-- **Anchoring measurably helps** — precision 0.642 to 0.758 on the same pages.
-  It had never been measured, only assumed.
-- **Randziffern are being missed on our own documents.** docc rendered four
-  margin numbers and the transcription recovered one. This is the same detection
-  problem the prompt rewrite improved on a scanned brief, still unsolved on a
-  clean render, and now visible on every run.
+- **olmOCR emits no headings at all.** Its word scores are identical to
+  Qwen's — the two disagree on almost nothing in the prose — but it writes
+  every heading as plain text. For a compiler whose next stage validates
+  section structure, that draft fails every section rule, and the word scores
+  cannot see it. This is why the heading count exists: without it the two
+  models looked interchangeable.
+- **Anchoring measurably helps** — precision 0.642 to 0.758 on the same pages,
+  for both models. Previously assumed, never measured.
+- **gemma-4 is worse on words and unstable.** Recall 0.771 against 0.982, it
+  dropped real content, and the anchored run took the server down with
+  `proxy error: Could not establish connection` — consistent with the
+  oversized `ctx-size` in its router profile (see below), still unconfirmed.
+- **Randziffern are missed on our own documents.** docc rendered four margin
+  numbers; every model recovered one. The same detection problem the prompt
+  rewrite improved on a scanned brief, unsolved on a clean render, and now
+  visible on every run.
+
+A caveat on the fixture: on prose alone it cannot separate olmOCR from Qwen,
+which is what a second, harder document is for.
 
 ## 2. Ingest still leaks running headers and footers
 

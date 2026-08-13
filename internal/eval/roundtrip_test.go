@@ -88,6 +88,7 @@ func TestRoundTrip(t *testing.T) {
 						SourceText:        want,
 						SourceRandziffern: make([]int, ExpectedRandziffern(string(src), "BEGRÜNDUNG")),
 						Letterhead:        "Bezirksgericht Baden",
+						SourceHeadings:    CountHeadings(PlainText(string(src))),
 					}), len(pages), time.Since(start))
 				})
 			}
@@ -151,6 +152,7 @@ func report(t *testing.T, model, mode string, s Score, pages int, took time.Dura
 	}
 	fmt.Fprintf(&b, "  Randziffern %d found / %d expected, %d sequence break(s)\n",
 		s.RandzifferFound, s.RandzifferExpected, s.SequenceBreaks)
+	fmt.Fprintf(&b, "  headings  %d found / %d expected\n", s.HeadingsFound, s.HeadingsExpected)
 	fmt.Fprintf(&b, "  leaked    %d page number(s), %d letterhead(s)\n", s.PageNumbers, s.Letterheads)
 	t.Log(b.String())
 }
