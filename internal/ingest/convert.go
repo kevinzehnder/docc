@@ -113,7 +113,7 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 
 		var anchorText string
 		hadAnchor := false
-		if cfg.Anchor && isPDF {
+		if cfg.Anchor && isPDF && backend.UsesAnchors() {
 			anchors, err := ExtractAnchors(ctx, inputPath, page.Index, 0)
 			if err != nil {
 				return stop(page.Index, fmt.Errorf("page %d: %w", page.Index, err))
@@ -149,7 +149,11 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		case out.Truncated:
 			res.LowConfidence = true
 			res.Note = "response was cut off at max_tokens — page is likely incomplete"
-		case isPDF && !hadAnchor:
+		case isPDF && backend.UsesAnchors() && !hadAnchor:
+			// Only for a backend that reads a text layer at all. One that
+			// never does has not lost a cross-check by not having it, and
+			// saying so on every page tells a reviewer to re-read pages that
+			// are no less trustworthy than the rest of the document.
 			res.LowConfidence = true
 			res.Note = "no text layer found on this page — verify carefully"
 		}

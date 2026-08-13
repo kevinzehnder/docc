@@ -51,6 +51,10 @@ func newMinerU(cfg Config) Backend {
 	return &minerU{client: NewClient(cfg), anchor: cfg.Anchor}
 }
 
+// UsesAnchors is false: the protocol's prompt is the task name, and there is
+// nowhere in it to put a text layer.
+func (m *minerU) UsesAnchors() bool { return false }
+
 func (m *minerU) Ping(ctx context.Context, warn func(string)) error {
 	if err := m.client.Ping(ctx, warn); err != nil {
 		return err

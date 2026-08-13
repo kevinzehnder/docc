@@ -246,6 +246,31 @@ func TestNewBackendDefaultsToChat(t *testing.T) {
 	}
 }
 
+// The "no text layer found" note tells a reviewer that a page lost a
+// cross-check it normally gets. Under a backend that never reads a text layer
+// it is false, and it was printed on every page of every mineru run until the
+// backend was asked whether it uses one.
+func TestMinerUPagesAreNotMarkedForAMissingTextLayer(t *testing.T) {
+	requirePDFTools(t)
+	srv := newMinerUServer(t, "131 175 870 400text", "Der Kläger bestreitet.")
+	cfg := srv.config()
+	cfg.Anchor = true
+	cfg.DPI = 72
+
+	md, pages, err := Convert(context.Background(), writeMinimalPDF(t, t.TempDir(), "Anchor Test"), cfg, ConvertOptions{})
+	if err != nil {
+		t.Fatalf("Convert: %v", err)
+	}
+	for _, p := range pages {
+		if p.LowConfidence {
+			t.Errorf("page %d marked low confidence: %s", p.Index, p.Note)
+		}
+	}
+	if strings.Contains(md, "no text layer found") {
+		t.Errorf("draft carries a text-layer warning:\n%s", md)
+	}
+}
+
 func slicesContainsSubstring(haystack []string, needle string) bool {
 	for _, s := range haystack {
 		if strings.Contains(s, needle) {

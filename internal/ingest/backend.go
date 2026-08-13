@@ -26,11 +26,23 @@ type Backend interface {
 	Ping(ctx context.Context, warn func(string)) error
 
 	// Page transcribes one page. anchorText is the page's born-digital text
-	// layer, empty when there is none or when the caller disabled anchoring;
-	// a backend whose protocol has nowhere to put it may ignore it, having
-	// said so from Ping. onDelta, if non-nil, is called with each chunk of
-	// text as it arrives, on this goroutine.
+	// layer, empty when there is none or when the caller disabled anchoring.
+	// onDelta, if non-nil, is called with each chunk of text as it arrives,
+	// on this goroutine.
 	Page(ctx context.Context, page Page, anchorText string, onDelta func(string)) (PageOutput, error)
+
+	// UsesAnchors reports whether this backend's protocol can take the page's
+	// text layer at all.
+	//
+	// It decides two things, and the second is why it is on the interface
+	// rather than inferred from Config. A backend that does not use anchors
+	// must not have pdftotext run for it, once per page, for nothing. And it
+	// must not have its pages marked "no text layer found — verify carefully":
+	// that note tells a reviewer the transcription had no cross-check it
+	// normally has, which is a statement about a signal this backend never
+	// reads. Printed anyway it is worse than noise, because it invites a
+	// careful re-read of pages that are no less trustworthy than the rest.
+	UsesAnchors() bool
 }
 
 // PageOutput is one page as a backend produced it, before the pipeline's own
@@ -95,6 +107,8 @@ type chatBackend struct {
 func (b *chatBackend) Ping(ctx context.Context, warn func(string)) error {
 	return b.client.Ping(ctx, warn)
 }
+
+func (b *chatBackend) UsesAnchors() bool { return true }
 
 func (b *chatBackend) Page(ctx context.Context, page Page, anchorText string, onDelta func(string)) (PageOutput, error) {
 	prompt, err := BuildPrompt(anchorText)
