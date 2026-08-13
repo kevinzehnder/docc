@@ -54,6 +54,44 @@ func TestAssembleNoLowConfidenceBanner(t *testing.T) {
 	}
 }
 
+func TestAssembleMarksIncompleteRun(t *testing.T) {
+	pages := []PageResult{
+		{Index: 1, Markdown: "first"},
+		{Index: 2, Markdown: "second", LowConfidence: true, Note: "no text layer found on this page — verify carefully"},
+	}
+	got := Assemble(pages, AssembleOptions{
+		SourceFile: "klage.pdf",
+		Incomplete: &Incomplete{Completed: 2, Total: 17, NextPage: 3, LastPage: 17, Reason: "interrupted"},
+	})
+
+	want := []string{
+		"<!-- INCOMPLETE — docc ingest stopped after 2 of 17 pages: interrupted -->",
+		"<!-- convert the rest with: docc ingest --pages 3-17 klage.pdf -->",
+		"<!-- transcription stops here — pages 3-17 were not converted -->",
+		// The existing per-page notes are orthogonal and must survive.
+		"page 2: low confidence",
+	}
+	for _, w := range want {
+		if !strings.Contains(got, w) {
+			t.Errorf("incomplete document missing %q\n---\n%s", w, got)
+		}
+	}
+	if !strings.HasSuffix(strings.TrimSpace(got), "were not converted -->") {
+		t.Errorf("expected the closing marker at the end of the document, got:\n%s", got)
+	}
+}
+
+func TestAssembleIncompleteSinglePageResumeRange(t *testing.T) {
+	got := Assemble([]PageResult{{Index: 1, Markdown: "first"}}, AssembleOptions{
+		SourceFile: "two.pdf",
+		Incomplete: &Incomplete{Completed: 1, Total: 2, NextPage: 2, LastPage: 2, Reason: "interrupted"},
+	})
+
+	if !strings.Contains(got, "--pages 2 two.pdf") {
+		t.Errorf("a one-page remainder should read as --pages 2, not 2-2, got:\n%s", got)
+	}
+}
+
 func TestAssembleOmitsDocTypeWhenEmpty(t *testing.T) {
 	pages := []PageResult{{Index: 1, Markdown: "text"}}
 	got := Assemble(pages, AssembleOptions{SourceFile: "x.pdf"})

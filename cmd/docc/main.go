@@ -8,9 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/kevinzehnder/docc/internal/diag"
 	"github.com/kevinzehnder/docc/internal/emit"
@@ -465,6 +467,11 @@ func cmdIngest(args []string) int {
 		return 2
 	}
 
+	// A conversion is minutes of GPU time. Ctrl-C cancels the request in
+	// flight, and the pages already transcribed are still written out below.
+	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+
 	exitCode := 0
 	for _, input := range files {
 		outPath := *output
@@ -472,21 +479,53 @@ func cmdIngest(args []string) int {
 			outPath = strings.TrimSuffix(input, filepath.Ext(input)) + ".md"
 		}
 
-		md, _, err := ingest.Convert(context.Background(), input, cfg, firstPage, lastPage, ingest.AssembleOptions{DocType: *docType})
-		if err != nil {
+		prog := newProgress(os.Stderr, progressModeFor(*jsonOut))
+		prog.begin(input)
+		attempted := 0
+		md, done, err := ingest.Convert(ctx, input, cfg, ingest.ConvertOptions{
+			First: firstPage, Last: lastPage, DocType: *docType,
+			Progress: func(ev ingest.Event) {
+				if ev.Total > 0 {
+					attempted = ev.Total
+				}
+				prog.event(ev)
+			},
+		})
+		prog.finish(err)
+
+		switch {
+		case err != nil && md != "":
+			if werr := os.WriteFile(outPath, []byte(md), 0o644); werr != nil { //nolint:gosec // draft output, not a secret
+				fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, werr)
+				exitCode = 1
+				continue
+			}
+			// The partial path is announced on stderr even in text mode:
+			// stdout carries the path of a finished draft only, so
+			// `out=$(docc ingest x.pdf)` cannot hand a script half a document.
+			fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
+			fmt.Fprintf(os.Stderr, "docc ingest: wrote %d of %d pages to %s\n", len(done), attempted, outPath)
+			if *jsonOut {
+				fmt.Printf("{\"ok\":false,\"partial\":true,\"output\":%q,\"pages\":%d,\"attempted\":%d}\n",
+					outPath, len(done), attempted)
+			}
+			exitCode = 1
+
+		case err != nil:
 			fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
 			exitCode = 1
-			continue
-		}
-		if err := os.WriteFile(outPath, []byte(md), 0o644); err != nil { //nolint:gosec // draft output, not a secret
-			fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
-			exitCode = 1
-			continue
-		}
-		if *jsonOut {
-			fmt.Printf("{\"ok\":true,\"output\":%q}\n", outPath)
-		} else {
-			fmt.Println(outPath)
+
+		default:
+			if err := os.WriteFile(outPath, []byte(md), 0o644); err != nil { //nolint:gosec // draft output, not a secret
+				fmt.Fprintf(os.Stderr, "docc ingest: %s: %v\n", input, err)
+				exitCode = 1
+				continue
+			}
+			if *jsonOut {
+				fmt.Printf("{\"ok\":true,\"output\":%q}\n", outPath)
+			} else {
+				fmt.Println(outPath)
+			}
 		}
 	}
 	return exitCode

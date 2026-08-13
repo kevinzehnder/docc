@@ -10,6 +10,7 @@ package ingest
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/goccy/go-yaml"
 )
@@ -36,6 +37,11 @@ type Config struct {
 	// list, a big table — can need more than a typical chat reply; too low
 	// a value silently truncates the transcription rather than erroring.
 	MaxTokens int `yaml:"max_tokens"`
+	// StallTimeout bounds the silence between two streamed response chunks.
+	// It replaces a whole-request deadline, which cannot tell a slow page
+	// from a dead server. Raise it for hardware where the first token of a
+	// page takes minutes to appear.
+	StallTimeout time.Duration `yaml:"stall_timeout"`
 }
 
 // Defaults returns the configuration used when no .docc/ingest.yaml exists.
@@ -46,6 +52,8 @@ func Defaults() Config {
 		DPI:         200,
 		Anchor:      true,
 		MaxTokens:   4096,
+
+		StallTimeout: defaultStallTimeout,
 	}
 }
 

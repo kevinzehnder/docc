@@ -334,6 +334,45 @@ The output is a `.md` file with a banner comment marking it machine-generated
 and low-confidence pages called out by number — pages with no text layer to
 cross-check against, worth a closer read before trusting them.
 
+### While it runs
+
+Every page is a VLM call, so a long document is minutes of work. Ingest
+streams the model's response rather than waiting for it whole, and reports
+what the server is actually doing on stderr — stdout stays the machine
+channel, carrying only the output path:
+
+```
+ingest klage_mueller.pdf
+  rasterized 17 pages @200dpi
+  ⠹ page 4/17  1.2k tok  38 tok/s  12s   [~3m40s left]
+```
+
+The line is redrawn in place on a terminal. Piped or redirected, the same
+information arrives as one line per finished page; under `--json` nothing is
+written to stderr at all. There is no flag for this — `2>/dev/null` silences
+it.
+
+Before rasterizing anything, ingest checks that the server is up and its model
+loaded, so a `llama-server` that was never started fails in three seconds
+instead of after a minute of `pdftoppm`. A configured `model` the server does
+not list is a warning, not an error: a router in front of several models may
+resolve names it does not advertise.
+
+An interrupted run keeps its work. Ctrl-C, or a page that fails outright,
+still writes the pages transcribed so far, marked, with the command that
+converts the rest:
+
+```
+<!-- INCOMPLETE — docc ingest stopped after 3 of 17 pages: interrupted -->
+<!-- convert the rest with: docc ingest --pages 4-17 klage_mueller.pdf -->
+```
+
+The page that failed is not included even if it was half transcribed — a
+transcription cut off mid-sentence and merged in silently is the failure the
+low-confidence markers exist to prevent. The exit status is 1 and, in text
+mode, the path of a partial draft is reported on stderr rather than stdout, so
+a script reading stdout never receives half a document.
+
 Configure the endpoint, model and precision knobs in `.docc/ingest.yaml`,
 overridable per run with flags:
 
@@ -344,7 +383,13 @@ temperature: 0.1   # low by default — determinism over range, for a small corp
 dpi: 200
 anchor: true       # inject the PDF's own text layer into the prompt as ground truth
 max_tokens: 4096   # caps each page's response; a dense page needs more than a chat reply
+stall_timeout: 3m  # give up when the server sends nothing at all for this long
 ```
+
+`stall_timeout` bounds silence, not the request: a page that legitimately
+takes six minutes is fine, a server that dies mid-generation is not, and a
+whole-request deadline cannot tell those apart. Raise it on hardware where the
+first token of a page takes minutes to appear.
 
 `anchor` implements what OCR research calls "document-anchoring": for a
 born-digital PDF (not a scan), the page's own extracted text is given to the

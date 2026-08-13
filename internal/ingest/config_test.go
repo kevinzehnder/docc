@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestDefaults(t *testing.T) {
@@ -50,6 +51,19 @@ func TestLoadConfigOverridesDefaults(t *testing.T) {
 	// Fields not mentioned in the file keep their defaults.
 	if cfg.DPI != Defaults().DPI {
 		t.Errorf("DPI = %d, want the default %d", cfg.DPI, Defaults().DPI)
+	}
+}
+
+func TestLoadConfigParsesStallTimeout(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ingest.yaml")
+	writeFile(t, path, "stall_timeout: 5m\n")
+
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if cfg.StallTimeout != 5*time.Minute {
+		t.Errorf("StallTimeout = %v, want 5m — the key is the only escape hatch for slow hardware, and a silent parse failure would hand it the default", cfg.StallTimeout)
 	}
 }
 
