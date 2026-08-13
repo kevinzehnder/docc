@@ -37,3 +37,6 @@ go.work.sum
 # to. Test fixtures belong in testdata/, which is committed on purpose — this
 # is the directory that must never be swept in by a git add -A.
 assets/
+
+# ── docc build output ─────────────────────────────────────────────────────────
+output/
