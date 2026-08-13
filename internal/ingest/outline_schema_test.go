@@ -103,6 +103,34 @@ func TestDezimalOutlineLevelsByDepth(t *testing.T) {
 	})
 }
 
+// `1.` opens a third-level heading and an ordered list item alike, and a Swiss
+// brief's Rechtsbegehren is a numbered list of sentences. Without the length
+// and punctuation constraints every prayer for relief in the corpus becomes a
+// section title — measured, four spurious headings on a four-page fixture.
+func TestOutlineDoesNotPromoteOrderedListItems(t *testing.T) {
+	for _, docType := range []string{"legal", "legal_reference"} {
+		t.Run(docType, func(t *testing.T) {
+			o := outlineFor(t, docType, "")
+
+			for _, item := range []string{
+				"1. Die Beklagte sei zu verpflichten, der Klägerin CHF 42'000.00 nebst Zins zu 5 % seit 1. Juli 2024 zu bezahlen;",
+				"2. unter Kosten- und Entschädigungsfolgen zulasten der Beklagten.",
+				"1. Werkvertrag vom 3. März 2024, unterzeichnet von beiden Parteien.",
+			} {
+				if got := o.Apply(item); got != item {
+					t.Errorf("list item promoted:\n  %q\n→ %q", item, got)
+				}
+			}
+
+			// A real numbered heading still has to be marked, or the constraint
+			// has simply disabled the level.
+			if got := o.Apply("1. Werklohnforderung"); got == "1. Werklohnforderung" {
+				t.Errorf("a short numbered title was not marked: %q", got)
+			}
+		})
+	}
+}
+
 // One type carries all three, and names a default, so that a run without
 // --outline still gets the common case rather than nothing.
 func TestLegalReferenceCarriesEveryScheme(t *testing.T) {

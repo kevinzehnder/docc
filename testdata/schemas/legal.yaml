@@ -150,6 +150,41 @@ styles:
 #
 # Changing where either starts is this one line — set start_at_heading to
 # BEGRÜNDUNG and the Rechtsbegehren falls outside the outline.
+# What our own briefs look like once rendered, for transcribing one back.
+#
+# The source markdown carries no numbers at all — `# RECHTSBEGEHREN`, not
+# `# I. RECHTSBEGEHREN` — because render.heading_numbering below has Word draw
+# the labels from numbering.xml. A transcription is made from the printed page,
+# so it sees the labels the source does not have, and this is what tells it they
+# are an outline rather than the first word of a sentence.
+#
+# The levels therefore mirror LegalHeadingNumbering in the theme: upperRoman,
+# then upperLetter, then decimal. If one moves, the other has to.
+outline:
+  default: roman-first
+  schemes:
+    roman-first:
+      # I. RECHTSBEGEHREN   II. BEGRÜNDUNG
+      - pattern: '^(?:X{1,3}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)\.\s+\S'
+        level: 1
+      # A. Zuständigkeit
+      - pattern: '^[A-ZÄÖÜ]\.\s+\S'
+        level: 2
+      # 1. Werklohnforderung
+      #
+      # The length cap and the closing character class are what keep this off
+      # an ordered list, which is written `1. ` too and is indistinguishable
+      # from a third-level heading by its opening alone. A Rechtsbegehren is a
+      # numbered list of sentences — "1. Die Beklagte sei zu verpflichten, der
+      # Klägerin CHF 42'000.00 … zu bezahlen;" — and without this every prayer
+      # for relief in the corpus becomes a section title.
+      #
+      # So: a title is short and does not end in sentence punctuation. Both
+      # halves are needed, since a short prayer still ends in a semicolon and a
+      # long title still would not.
+      - pattern: '^\d{1,2}\.\s+\S.{0,58}[^.;:,]$'
+        level: 3
+
 render:
   heading_numbering:
     definition: LegalHeadingNumbering

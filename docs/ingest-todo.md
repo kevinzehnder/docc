@@ -76,60 +76,60 @@ which is what a second, harder document is for.
 ### What the layout-first backend changed
 
 `--backend mineru` runs MinerU2.5's two-pass protocol instead of one call per
-page. Scored against the same fixture as the table above, and the chat rows
-reproduce it exactly, which is the evidence that these numbers are comparable:
+page. The chat rows reproduce the table above exactly, which is the evidence
+that these are comparable:
 
-| backend | model | mode | words P / R | F1 | headings | Randziffern | leaked | 4 pages |
-|---|---|---|---|---|---|---|---|---|
-| mineru | MinerU2.5-**Pro**-2605 | — | 0.703 / **0.988** | 0.821 | **13 of 8** | 1 of 4 | 0 pn, 1 lh | **14s** |
-| mineru | MinerU2.5-2509 | — | 0.667 / 0.946 | 0.782 | **13 of 8** | 1 of 4 | 0 pn, 1 lh | **12s** |
-| chat | olmOCR-2-7B | vision-only | 0.642 / 0.982 | 0.777 | 0 of 8 | 1 of 4 | 0 pn, 1 lh | 35s |
-| chat | olmOCR-2-7B | anchored | 0.758 / 0.982 | **0.855** | 0 of 8 | 1 of 4 | 0 pn, 1 lh | 30s |
-| chat | Qwen3.5-9B | vision-only | 0.642 / 0.982 | 0.777 | 4 of 8 | 1 of 4 | 0 pn, 1 lh | 35s |
-| chat | Qwen3.5-9B | anchored | 0.758 / 0.982 | **0.855** | 4 of 8 | 1 of 4 | 0 pn, 1 lh | 30s |
+| backend | model | mode | words P / R | F1 | headings | Randziffern | 4 pages |
+|---|---|---|---|---|---|---|---|
+| mineru | Pro-2605, `--type` | — | **0.763 / 0.988** | **0.861** | 15 of 8 | 1 of 4 | **8s** |
+| mineru | Pro-2605, no type | — | 0.703 / 0.988 | 0.821 | 13 of 8 | 1 of 4 | 13s |
+| mineru | 2509, no type | — | 0.667 / 0.946 | 0.782 | 13 of 8 | 1 of 4 | 12s |
+| chat | olmOCR-2-7B | anchored | 0.758 / 0.982 | 0.855 | 0 of 8 | 1 of 4 | 30s |
+| chat | Qwen3.5-9B | anchored | 0.758 / 0.982 | 0.855 | 4 of 8 | 1 of 4 | 30s |
+| chat | either | vision-only | 0.642 / 0.982 | 0.777 | 0 / 4 of 8 | 1 of 4 | 35s |
 
-Four findings, and one claim withdrawn.
+The top row is the whole pipeline — the backend, the Pro checkpoint, and the
+schema's declared outline — and it is ahead of anchored chat on every word
+metric at roughly a quarter of the wall time, from a 1.2B model against a 7B and
+a 9B.
 
-- **The checkpoint decided the fidelity question, not the protocol.** 2509
-  dropped eight ordinary body words against the chat backends' two, and that
-  read as a flaw in assembling independently-recognized blocks. Pro-2605, same
-  code and same protocol, drops one — `klageschrift`, which every model in this
-  table drops — and takes recall to 0.988, the highest score here. So the
-  block-join loss was mostly the older checkpoint being worse at reading its
-  crops, and the two MinerU rows are the evidence: nothing between them changed
-  but the weights.
-- **Better layout data did not fix the heading over-marking.** Thirteen against
-  an expected eight, identical on both checkpoints, even though the 2605
-  release notes specifically claim cleaned-up layout training data to reduce
-  category errors. It types docc's own numbered section headings *and* several
-  short lines beside them as `title`, and it does so consistently. Over-marking
-  is the better failure — a draft with too many `##` is fixed by deleting them,
-  a draft with none has to be re-read against the source — but this will not
-  come out in the wash with a newer model, and needs code or a prompt.
-- **Precision is now the only metric where chat is clearly ahead**: 0.703
-  against 0.758 anchored, and it is not the boilerplate floor doing it — the
-  invented-word lists are near-identical across all six rows. F1 still favours
-  anchored chat, 0.855 to 0.821.
+- **The fidelity question was the checkpoint, not the protocol.** 2509 dropped
+  eight ordinary body words against the chat backends' two; Pro-2605, same code,
+  drops one — `klageschrift`, which every model here drops.
 - **Randziffern did not improve, and the reason is geometric.** On a scanned
   third-party brief the layout pass separates the gutter cleanly — body at
   x=0.131, margin numbers at x=0.085 — and `[Rz 55]`, `[Rz 56]` come out
-  correct. On our own render it emits no gutter block at all: every block on
-  the page starts at x=0.067 or x=0.113, because the theme sets the Randziffer
-  close enough to the body that the model reads them as one region. So the win
-  is real on the documents ingest exists for and invisible on the fixture that
-  measures it. A second fixture with a wider gutter would show it; changing the
-  theme to suit the scorer would not.
-- **It is twice as fast despite costing more calls** — 14s against 30-35s for
-  four pages, and it is a 1.2B model against a 7B and a 9B. The layout pass
-  sees a thumbnail and each crop is small, so the pixels per page are well
-  under one whole-page image.
+  correct. On our own render it emits no gutter block at all: every block starts
+  at x=0.067 or x=0.113, because the theme sets the Randziffer close enough to
+  the body that the model reads them as one region. The win is real on the
+  documents ingest exists for and invisible on the fixture that measures it.
+- **Headings: the eight real ones are now exactly right.** `I. RECHTSBEGEHREN`
+  through `V. FAZIT`, each at its correct level, which no model managed unaided.
+  The remaining seven are over-marking left in place on purpose: five are the
+  layout pass typing cover-page lines (`EINSCHREIBEN`, a party name) as `title`,
+  and two are `Beilagen` items short enough to look like numbered titles. A
+  spurious `##` is visible and deletable; unmarking on suspicion would strip the
+  structure out of any brief written to a convention nobody anticipated.
 
-**Withdrawn: "dropping page furniture in code fixes the leak."** It does drop
-`header` and `page_number` blocks mechanically, and that is still the right
-mechanism — but this fixture cannot show it. Every row above leaks zero page
-numbers and exactly one letterhead, chat backends included. The five-and-seven
-leak in §2 was measured on a scanned brief, not here, so the claim has to be
-re-measured there before it can be made. Nothing in this table supports it.
+Two bugs the outline work surfaced, both fixed:
+
+- **The layout pass reports a container and its children both.** A `list` block
+  spanning three `text` blocks was recognized alongside them, so a Rechtsbegehren
+  with two prayers transcribed as four. Containers are skipped now, which also
+  removes the round trips.
+- **`1.` opens an ordered list and a third-level heading alike.** Every prayer
+  for relief was becoming a section title. The patterns now require a title to
+  be short and to end in something other than sentence punctuation.
+
+**Correction, recorded because it was acted on.** This file previously said
+llama.cpp strips the special tokens carrying table structure. It does not:
+`common_token_to_piece` defaults to `special = true`, and the OTSL tokens
+(`<fcel>`, `<ecel>`, `<nl>` …) are present in the GGUF vocabulary. The output is
+nonetheless unstructured — a ruled four-row table returns its rows as newlines
+and its columns concatenated, identically on both checkpoints, so it is neither
+the quantization nor the model version. Column structure is not recoverable from
+this path today, and the cause is still unknown; that is a smaller and more
+honest claim than the one it replaces.
 
 ## 2. Ingest still leaks running headers and footers
 

@@ -21,6 +21,21 @@ var furniture = map[string]bool{
 	"page_number": true,
 }
 
+// container is the set of block types that group other blocks rather than
+// holding text of their own.
+//
+// The layout pass reports both a container and its children: a list of three
+// items on a scanned brief came back as three `text` blocks at y 594-627,
+// 631-665 and 670-685, and then a `list` block spanning 594-685. Recognizing
+// both transcribes the same lines twice, which is what a rendered Rechtsbegehren
+// with two prayers turned into four. Skipping containers also saves the round
+// trips, since every word in one is already being read as a child.
+var container = map[string]bool{
+	"list":           true,
+	"image_block":    true,
+	"equation_block": true,
+}
+
 // visual is the set of block types with no text to recognize. They are
 // announced rather than dropped silently: a reviewer comparing the draft
 // against the source needs to know that something was on the page here.
@@ -128,7 +143,7 @@ func splitGutter(blocks []Block) ([]positioned, map[int]string) {
 	left := bodyLeft(blocks)
 	for _, b := range blocks {
 		switch {
-		case furniture[b.Type]:
+		case furniture[b.Type], container[b.Type]:
 			continue
 		case b.Box.X1 <= left-marginGap && isGutterText(b.Text):
 			gutter = append(gutter, b)

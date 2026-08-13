@@ -100,9 +100,10 @@ func (m *minerU) Page(ctx context.Context, page Page, _ string, onDelta func(str
 
 	for i := range blocks {
 		b := &blocks[i]
-		if visual[b.Type] || furniture[b.Type] {
-			// Neither has text worth a round trip: one is a picture, the other
-			// is about to be dropped.
+		if visual[b.Type] || furniture[b.Type] || container[b.Type] {
+			// None is worth a round trip: a picture has no text, furniture is
+			// about to be dropped, and a container's words are already being
+			// read as its children.
 			continue
 		}
 		crop := cropBlock(img, b.Box)

@@ -83,7 +83,10 @@ func TestRoundTrip(t *testing.T) {
 							runCfg.Anchor = anchor
 
 							start := time.Now()
-							md, pages, err := ingest.Convert(context.Background(), pdfPath, runCfg, ingest.ConvertOptions{})
+							md, pages, err := ingest.Convert(context.Background(), pdfPath, runCfg, ingest.ConvertOptions{
+								DocType: "legal",
+								Outline: outlineFor(t, root, "legal"),
+							})
 							if err != nil {
 								t.Fatalf("convert: %v", err)
 							}
@@ -234,6 +237,38 @@ func buildPDF(t *testing.T, root, srcPath string, src []byte) (string, map[strin
 		t.Fatalf("render to pdf: %v", err)
 	}
 	return pdfPath, res.Meta.Values
+}
+
+// outlineFor compiles a document type's default section-title scheme, the way
+// cmd/docc does for --type.
+//
+// Without it the heading count measures the model alone, which is a fair number
+// about the model and a misleading one about the pipeline: what an author gets
+// is `docc ingest --type`, and the schema knows that this theme has Word draw an
+// I./A./1. outline the source markdown does not contain.
+func outlineFor(t *testing.T, root, docType string) []ingest.OutlineRule {
+	t.Helper()
+	set, err := schema.Load(filepath.Join(root, "schemas"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sc, err := set.Get(docType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules, ok := sc.Outline.Schemes[sc.Outline.Default]
+	if !ok {
+		t.Fatalf("%s declares no default outline scheme", docType)
+	}
+	patterns := make([]ingest.OutlinePattern, 0, len(rules))
+	for _, r := range rules {
+		patterns = append(patterns, ingest.OutlinePattern{Pattern: r.Pattern, Level: r.Level})
+	}
+	compiled, err := ingest.CompileOutline(patterns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return compiled
 }
 
 func loadConfig(t *testing.T) ingest.Config {

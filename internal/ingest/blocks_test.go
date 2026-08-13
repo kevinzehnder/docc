@@ -81,6 +81,26 @@ func TestAssembleBlocksKeepsMarginalProse(t *testing.T) {
 	}
 }
 
+// The layout pass reports a container and its children both. Recognizing both
+// transcribes the same lines twice, which turned a Rechtsbegehren with two
+// prayers into four on the round-trip fixture.
+func TestAssembleBlocksSkipsContainerBlocks(t *testing.T) {
+	md := AssembleBlocks([]Block{
+		block("list_item", 0.242, 0.594, 0.698, 0.627, "Die Beklagte sei zu verpflichten"),
+		block("list_item", 0.242, 0.631, 0.683, 0.665, "unter Kosten- und Entschädigungsfolgen"),
+		// The container spans both, and holds no text of its own that is not
+		// already in them.
+		block("list", 0.242, 0.594, 0.698, 0.685, "Die Beklagte sei zu verpflichten unter Kosten- und Entschädigungsfolgen"),
+	})
+
+	if got := strings.Count(md, "Die Beklagte sei zu verpflichten"); got != 1 {
+		t.Errorf("text appears %d times, want 1:\n%s", got, md)
+	}
+	if got := strings.Count(md, "unter Kosten- und Entschädigungsfolgen"); got != 1 {
+		t.Errorf("second item appears %d times, want 1:\n%s", got, md)
+	}
+}
+
 func TestAssembleBlocksAnnouncesImages(t *testing.T) {
 	md := AssembleBlocks([]Block{
 		block("image", 0.131, 0.193, 0.870, 0.532, ""),
