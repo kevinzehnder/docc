@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kevinzehnder/docc/pkg/docx"
+	"github.com/kevinzehnder/docc/internal/docx"
 )
 
 // TestLoadRejectsUnknownPageSize guards the config contract: an unknown page

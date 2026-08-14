@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kevinzehnder/docc/internal/docx"
 	"github.com/kevinzehnder/docc/internal/ir"
 	"github.com/kevinzehnder/docc/internal/parse"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/theme"
-	"github.com/kevinzehnder/docc/pkg/docx"
 )
 
 func testTheme() *theme.Theme {

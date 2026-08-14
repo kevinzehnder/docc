@@ -15,7 +15,7 @@ internal/parse/      goldmark wrapper: frontmatter split, block tree, positions
 internal/schema/     doc-type spec loading and `extends` resolution
 internal/sema/       validation passes → diagnostics
 internal/project/    .docc directory discovery
-pkg/docx/            .docx writer — stdlib only, no template, deterministic
+internal/docx/       .docx writer — stdlib only, no template, deterministic
 testdata/            golden corpus: schemas/, good/, bad/
 ```
 
@@ -76,7 +76,7 @@ that is the check working.
 - Fenced divs (`::: beweis`) are a local block parser in `internal/parse/fences.go`;
   goldmark has no built-in support.
 
-## Working on pkg/docx
+## Working on internal/docx
 
 No dependencies. `archive/zip` and `encoding/xml` cover the container; XML is
 written through the `xw` helper rather than `encoding/xml` marshalling, because

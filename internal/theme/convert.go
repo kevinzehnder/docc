@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kevinzehnder/docc/pkg/docx"
+	"github.com/kevinzehnder/docc/internal/docx"
 )
 
 // DocxStyles converts the theme's style table. Output order is sorted by name

@@ -35,7 +35,7 @@ on a template when opened in Word.
 | Margins, fonts, label format, indents, and fixed furniture | `../pi_assistant/.docc/themes/zbp-legal.yaml` |
 | Generic YAML loading and validation | `internal/schema`, `internal/theme` |
 | Generic application of configured numbering to IR blocks | `internal/emit` |
-| DOCX `numbering.xml` and paragraph `w:numPr` serialization | `pkg/docx` |
+| DOCX `numbering.xml` and paragraph `w:numPr` serialization | `internal/docx` |
 
 The engine must not know the words `RECHTSBEGEHREN`, `Randziffer`, German, or
 Swiss legal practice. The schema supplies the start-heading text and the theme
@@ -176,7 +176,7 @@ numbering:
 
 `size`, `align`, and `suffix` are not currently exposed by `theme.NumFormat`.
 Add them generically to `theme.NumFormat`, convert them to `docx.NumLevel`, and
-write them in `pkg/docx` (`w:sz`, `w:lvlJc`, and `w:suff`). The label should be
+write them in `internal/docx` (`w:sz`, `w:lvlJc`, and `w:suff`). The label should be
 small but baseline-aligned; do not make it superscript unless that is expressly
 wanted.
 
@@ -282,7 +282,7 @@ render numbering while source documents still carry manually typed `I.` and `1.`
 prefixes doubles every label, so it is one atomic change that wants the
 reference brief from task 3 in front of it.
 
-**`pkg/docx` needed less than expected.** `NumLevel` already had `Align` and
+**`internal/docx` needed less than expected.** `NumLevel` already had `Align` and
 `Suffix`, and `writeNumLevel` already wrote `w:lvlJc` and `w:suff`. Only `Size`
 (`w:sz`/`w:szCs` inside the level's `w:rPr`) was new.
 
