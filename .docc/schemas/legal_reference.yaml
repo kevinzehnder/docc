@@ -3,8 +3,8 @@ extends: base
 description: A third party's brief, transcribed for reference and citation.
 theme: legal-reference
 
-# A reference document is somebody else's filing, transcribed by docc ingest so
-# that our own documents can cite it. It is not ours to restructure: the body is
+# A reference document is somebody else's filing, transcribed from the source PDF
+# so that our own documents can cite it. It is not ours to restructure: the body is
 # whatever the source says, in the order the source says it, and the only
 # structure docc enforces is that the transcription is intact.
 #
@@ -12,7 +12,7 @@ theme: legal-reference
 # below. In our own briefs the marginal number is generated and renumbers itself
 # when a section moves. Here it is the opposite: the number is the citation key,
 # fixed by whoever wrote the document, and it must survive verbatim. Generating
-# it would silently renumber the document around a page ingest failed to convert,
+# it would silently renumber the document around a page the transcription dropped,
 # and every citation pointing into it would then be wrong without saying so.
 
 frontmatter:
@@ -58,135 +58,6 @@ frontmatter:
 
 # No `sections:` block. The body follows the source document's own structure,
 # which we do not get to dictate.
-
-# What we do get to say is what that structure usually *looks like*, which is
-# not the same thing. Swiss legal writing outlines itself by convention, and
-# stating the convention is what lets `docc ingest` mark the headings instead of
-# leaving it to whichever model transcribed the page — measured on two pages of
-# one brief, the chat backend marked four of seven titles and put a fifth at the
-# wrong depth, while the layout-first backend marked thirteen on a document with
-# eight.
-#
-# Several schemes, because the conventions disagree. The University of Zurich's
-# own guidance sanctions all three below, and its two sheets invert the top two
-# levels between them:
-#
-#   Merkblatt für (rechts-)wissenschaftliche Arbeiten, worked example:
-#       I. / A. / 1. / a)
-#   Merkblatt zum Verfassen rechtswissenschaftlicher Arbeiten:
-#       "Für den Textteil empfiehlt sich die Gliederung nach dem üblichen
-#       System (A./I./1./a)/aa)); es kann aber auch das Dezimalsystem
-#       verwendet werden (1/1.1/1.2/1.2.1/1.2.2) nicht aber Mischformen."
-#
-# So `I.` is level 2 in one document and level 1 in the next. Pick with
-# `docc ingest --outline <name>`; `default` is what a run that does not.
-#
-# All of this is a baseline and none of it is a contract. The document being
-# transcribed is a third party's, written to their conventions, and a firm that
-# outlines its filings some way nobody anticipated is unusual rather than wrong.
-# A line matching no rule is therefore left exactly as the model produced it —
-# ingest promotes what it recognizes and never unmarks what it does not, because
-# the documents whose structure we cannot predict are precisely the ones that
-# would lose it.
-outline:
-  default: roman-first
-
-  schemes:
-    # The order this corpus uses. A filed brief opens its parts with an all-caps
-    # title, which the UZH sheets have no level for because they govern academic
-    # writing rather than filings.
-    #
-    # First match wins, so order is load-bearing, and so is the shape of the
-    # Roman pattern. The obvious `[IVXLCDM]+` is wrong: C and D are Roman
-    # numerals, so `C. STREITWERT` and `D. KOSTEN` would come out a level too
-    # shallow — output that reads perfectly well and has the wrong structure.
-    # Spelling the numerals out for 1-39 instead lets a standalone C, D, L or M
-    # fall through to the letter rule, where it belongs.
-    roman-first:
-      # BEGRÜNDUNG:  ANTRÄGE:  SACHVERHALT:
-      - pattern: '^[A-ZÄÖÜ][A-ZÄÖÜ\s]+:$'
-        level: 1
-      # I. FORMELLES   II. MATERIELLES   IV. KOSTEN
-      - pattern: '^(?:X{1,3}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)\.\s+\S'
-        level: 2
-      # A. FRIST   B. KLAGEHÄUFUNG   C. STREITWERT
-      #
-      # A single `I.` is claimed by the rule above, deliberately: a brief
-      # reaches Roman I on every one of its parts and letter I only in a
-      # section with nine subsections.
-      - pattern: '^[A-ZÄÖÜ]\.\s+\S'
-        level: 3
-      # 1. Vorbemerkungen
-      - pattern: '^\d{1,2}\.\s+\S.{0,90}[^.;:,]$'
-        level: 4
-      # A number alone is a heading too: a Klageantwort in this corpus writes
-      # its sub-sections as a bare "1." with the prose following unnamed.
-      - pattern: '^\d{1,2}\.$'
-        level: 4
-      # a) Erstens     aa) Erstens
-      - pattern: '^[a-zäöü]{1,2}\)\s+\S.{0,90}[^.;:,]$'
-        level: 5
-      # b. Falsche Kündigungsbegründungen — the same level with a dot, which
-      # the transcribed Replik uses. One letter only: two would match "ff."
-      # and other abbreviations more often than any real title.
-      - pattern: '^[a-zäöü]\.\s+\S.{0,90}[^.;:,]$'
-        level: 5
-
-    # The LL.M. sheet's "übliches System", which puts the letters on top.
-    #
-    # Declared Roman-first even though letters are level 1, so the rules below
-    # do not read in order. That is deliberate and it is the only interesting
-    # decision here: with letters on top, I., V. and X. are each both a level-1
-    # letter and a level-2 numeral. The counts pick the winner. Reaching I. as a
-    # letter takes nine top-level sections and V. takes twenty-two; reaching I.
-    # as a numeral happens in the first subsection of every one of them.
-    #
-    # The residual cost is a brief with twenty-two or more top-level sections,
-    # whose V. lands a level too deep. If one turns up, it wants its own scheme
-    # rather than a cleverer regex.
-    letter-first:
-      # I. Frist   II. Klagehäufung   IV. Kosten
-      - pattern: '^(?:X{1,3}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)\.\s+\S'
-        level: 2
-      # A. FORMELLES   B. MATERIELLES
-      - pattern: '^[A-ZÄÖÜ]\.\s+\S'
-        level: 1
-      # 1. Vorbemerkungen
-      - pattern: '^\d{1,2}\.\s+\S.{0,90}[^.;:,]$'
-        level: 3
-      # aa) Erstens — before a), which cannot match it but reads as though it might
-      - pattern: '^[a-zäöü]{2}\)\s+\S.{0,90}[^.;:,]$'
-        level: 5
-      # a) Erstens
-      - pattern: '^[a-zäöü]\)\s+\S.{0,90}[^.;:,]$'
-        level: 4
-
-    # The scheme the Merkblatt likes least — "unüblich, aber nicht verboten …
-    # sollte wegen ihrer Unübersichtlichkeit nicht gewählt werden". Discouraged
-    # is not forbidden, and a transcription does not get to hold an opinion
-    # about the document it is transcribing.
-    #
-    # Deepest-first. The patterns are unambiguous on their own — `1.1.1` cannot
-    # match the level-1 rule, which needs whitespace where the second dot is —
-    # but a scheme whose levels are prefixes of each other is exactly where
-    # first-match-wins stops being obvious to the next reader.
-    #
-    # No part-title rule: a document numbering 1 / 1.1 numbers its parts too, so
-    # the all-caps title above would be a second system on the same page, the
-    # Mischform the sheet forbids.
-    decimal:
-      # 1.1.1.1 Erstens
-      - pattern: '^\d{1,2}(?:\.\d{1,2}){3}\.?\s+\S'
-        level: 4
-      # 1.1.1 Vorbemerkungen
-      - pattern: '^\d{1,2}(?:\.\d{1,2}){2}\.?\s+\S'
-        level: 3
-      # 1.1 Frist
-      - pattern: '^\d{1,2}\.\d{1,2}\.?\s+\S'
-        level: 2
-      # 1 Formelles   1. Formelles
-      - pattern: '^\d{1,2}\.?\s+\S'
-        level: 1
 
 styles:
   h1: Ueberschrift1

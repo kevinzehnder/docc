@@ -9,7 +9,7 @@ See `README.md` for the schema format and CLI usage.
 ## Layout
 
 ```
-cmd/docc/            CLI: check | build | ingest | structure | types | explain | version
+cmd/docc/            CLI: check | build | types | themes | explain | version
 internal/diag/       Diagnostic type, source-excerpt and JSON rendering
 internal/parse/      goldmark wrapper: frontmatter split, block tree, positions
 internal/schema/     doc-type spec loading and `extends` resolution
