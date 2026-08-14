@@ -353,6 +353,13 @@ func Load(dir string) (*Set, error) {
 		if t.Name == "" {
 			t.Name = strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
 		}
+		// An unknown page size must fail loudly rather than fall back to A4:
+		// `size: A5` silently rendering as A4 is exactly the kind of production
+		// surprise a compiler exists to prevent. Omitting it stays a documented
+		// default; naming one that does not exist is an error.
+		if s := strings.ToLower(t.Page.Size); s != "" && s != "a4" && s != "letter" {
+			return nil, fmt.Errorf("%s: unknown page size %q — use A4 or Letter, or set page.width and page.height", path, t.Page.Size)
+		}
 		if prev, dup := set.byName[t.Name]; dup {
 			return nil, fmt.Errorf("%s: theme %q already declared (%s)", path, t.Name, prev.Description)
 		}

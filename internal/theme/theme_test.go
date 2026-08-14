@@ -1,11 +1,30 @@
 package theme
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/kevinzehnder/docc/pkg/docx"
 )
+
+// TestLoadRejectsUnknownPageSize guards the config contract: an unknown page
+// size is an error, not a silent fall-back to A4.
+func TestLoadRejectsUnknownPageSize(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "t.yaml"), []byte("name: t\ndescription: x\npage:\n  size: A5\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Load(dir)
+	if err == nil {
+		t.Fatal("expected an error for an unknown page size")
+	}
+	if !strings.Contains(err.Error(), "unknown page size") {
+		t.Errorf("error = %q, want it to mention the unknown page size", err)
+	}
+}
 
 func TestParseLength(t *testing.T) {
 	tests := []struct {
