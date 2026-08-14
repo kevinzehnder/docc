@@ -75,3 +75,35 @@ func TestParseLayoutRejectsAnEmptyResponse(t *testing.T) {
 		t.Fatal("ParseLayout of an empty response succeeded, want an error")
 	}
 }
+
+// The layout pass re-detects a region: on a real page it answered with the
+// same "165 607 848 694text" line three times, and each copy was recognized
+// and transcribed as its own paragraph.
+func TestDedupeBlocksDropsRedetectedRegions(t *testing.T) {
+	same := BBox{X0: 0.165, Y0: 0.607, X1: 0.848, Y1: 0.694}
+	blocks := dedupeBlocks([]Block{
+		{Type: "text", Box: BBox{X0: 0.164, Y0: 0.273, X1: 0.851, Y1: 0.378}},
+		{Type: "text", Box: same},
+		{Type: "text", Box: same},
+		{Type: "text", Box: BBox{X0: 0.165, Y0: 0.608, X1: 0.849, Y1: 0.695}}, // off by a thousandth
+		{Type: "text", Box: BBox{X0: 0.164, Y0: 0.748, X1: 0.849, Y1: 0.907}},
+	})
+	if len(blocks) != 3 {
+		t.Fatalf("got %d blocks, want 3: %v", len(blocks), blocks)
+	}
+}
+
+// A list container and its text share a box but not a type; the container
+// skip handles that pair, not the dedupe. And a caption inside a figure is
+// not a re-detection.
+func TestDedupeBlocksKeepsDistinctBlocks(t *testing.T) {
+	blocks := dedupeBlocks([]Block{
+		{Type: "list", Box: BBox{X0: 0.164, Y0: 0.186, X1: 0.851, Y1: 0.254}},
+		{Type: "text", Box: BBox{X0: 0.164, Y0: 0.186, X1: 0.851, Y1: 0.254}},
+		{Type: "image", Box: BBox{X0: 0.2, Y0: 0.4, X1: 0.8, Y1: 0.8}},
+		{Type: "image_caption", Box: BBox{X0: 0.3, Y0: 0.75, X1: 0.7, Y1: 0.79}},
+	})
+	if len(blocks) != 4 {
+		t.Fatalf("got %d blocks, want 4: %v", len(blocks), blocks)
+	}
+}

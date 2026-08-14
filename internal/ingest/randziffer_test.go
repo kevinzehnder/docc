@@ -357,3 +357,37 @@ func TestApplyNodesDoesNotResumeBelowTheChain(t *testing.T) {
 		}
 	}
 }
+
+// The longest run is not always the first. On the whole transcribed Replik
+// the longest chain was 51 to 119, and a forward-only resume discarded 1
+// through 50 — half the document's numbers, orphaned for sitting before the
+// winner. Runs before the longest one are chains in their own right.
+func TestApplyNodesKeepsChainsBeforeTheLongestRun(t *testing.T) {
+	rz := rzNormalizer{}
+	var nodes []Node
+	// 1-20 with a gap, then 51-119 unbroken: the second run is the longest.
+	var want []int
+	for n := 1; n <= 20; n++ {
+		if n == 10 { // the gap that keeps the first run shorter
+			continue
+		}
+		want = append(want, n)
+	}
+	for n := 51; n <= 119; n++ {
+		want = append(want, n)
+	}
+	for _, n := range want {
+		nodes = append(nodes, para(fmt.Sprintf("%d Ein Absatz.", n), nil))
+	}
+
+	got := rz.ApplyNodes([][]Node{nodes})[0]
+	for i, w := range want {
+		if got[i].SourceNumber == nil {
+			t.Errorf("paragraph %d (%d) lost its number", i, w)
+			continue
+		}
+		if *got[i].SourceNumber != w {
+			t.Errorf("paragraph %d numbered %d, want %d", i, *got[i].SourceNumber, w)
+		}
+	}
+}

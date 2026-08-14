@@ -84,13 +84,41 @@ func splitGutter(blocks []Block) ([]positioned, map[int]string) {
 		}
 	}
 
+	// A gutter column often comes back as one block holding every number on
+	// the page — "25\n26\n27\n28" spanning half the page height. The block has
+	// one Y0 and the numbers do not, so each line's position is interpolated
+	// across the block's span: the first number sits at the top, the last at
+	// the bottom, and paragraph starts are close enough to evenly spaced for
+	// the nearest-paragraph search below to land. Attachment then advances
+	// monotonically — a number never binds above the one before it, which is
+	// what stops two numbers landing on the same paragraph when the
+	// interpolation is off by a line.
+	//
+	// An interpolated position is fuzzy where an exact one is not, so only the
+	// interpolated path skips the blocks a Randziffer never numbers — an offer
+	// of proof, or an indented continuation of one. A single number's position
+	// is the number's own, and beside an indented block it means the indented
+	// block.
 	margins := map[int]string{}
 	for _, g := range gutter {
-		for _, n := range gutterNumbers(g.Text) {
-			if i, ok := nearestBelow(body, g.Box.Y0); ok {
+		nums := gutterNumbers(g.Text)
+		var skip func(positioned) bool
+		if len(nums) > 1 {
+			skip = func(b positioned) bool {
+				return b.Box.X0 > left+marginGap || evidenceLead.MatchString(b.Text)
+			}
+		}
+		prev := -1
+		for k, n := range nums {
+			y := g.Box.Y0
+			if len(nums) > 1 {
+				y += float64(k) * (g.Box.Y1 - g.Box.Y0) / float64(len(nums)-1)
+			}
+			if i, ok := nearestBelow(body, y, prev, skip); ok {
 				if _, taken := margins[i]; !taken {
 					margins[i] = n
 				}
+				prev = i
 			}
 		}
 	}
@@ -139,12 +167,15 @@ func gutterNumbers(text string) []string {
 }
 
 // nearestBelow finds the body block a gutter number sits beside: the first one
-// whose top is not above it. Randziffern are set against the paragraph they
-// number, and a number that lands between two paragraphs belongs to the one
-// starting after it.
-func nearestBelow(body []positioned, y float64) (int, bool) {
+// past index after, not skipped, whose bottom is not above y. Randziffern are
+// set against the paragraph they number, and a number that lands between two
+// paragraphs belongs to the one starting after it.
+func nearestBelow(body []positioned, y float64, after int, skip func(positioned) bool) (int, bool) {
 	const tolerance = 0.01
 	for _, b := range body {
+		if b.index <= after || (skip != nil && skip(b)) {
+			continue
+		}
 		if b.Box.Y1 >= y+tolerance {
 			return b.index, true
 		}

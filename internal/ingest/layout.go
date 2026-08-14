@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -122,6 +123,44 @@ func parseBlockLine(line string) (Block, error) {
 		return Block{}, fmt.Errorf("block %q has no area in %q", rest, line)
 	}
 	return Block{Type: rest, Box: box, Angle: angle}, nil
+}
+
+// dedupeBlocks drops layout blocks that re-detect a region an earlier block
+// of the same type already covers. The layout pass emits these: on a real
+// page it answered with the same "165 607 848 694text" line three times, and
+// each copy would be recognized and transcribed as its own paragraph. The
+// crop is the same crop; reading it twice cannot say anything new.
+//
+// Overlap rather than equality, because two detections of one region can
+// disagree by a thousandth. A block genuinely inside another — a caption in a
+// figure — shares little area with it and survives.
+func dedupeBlocks(blocks []Block) []Block {
+	out := make([]Block, 0, len(blocks))
+	for _, b := range blocks {
+		dup := false
+		for _, kept := range out {
+			if kept.Type == b.Type && iou(kept.Box, b.Box) > 0.9 {
+				dup = true
+				break
+			}
+		}
+		if !dup {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// iou is intersection over union of two boxes.
+func iou(a, b BBox) float64 {
+	ix := math.Min(a.X1, b.X1) - math.Max(a.X0, b.X0)
+	iy := math.Min(a.Y1, b.Y1) - math.Max(a.Y0, b.Y0)
+	if ix <= 0 || iy <= 0 {
+		return 0
+	}
+	inter := ix * iy
+	union := (a.X1-a.X0)*(a.Y1-a.Y0) + (b.X1-b.X0)*(b.Y1-b.Y0) - inter
+	return inter / union
 }
 
 func leadingDigits(s string) string {

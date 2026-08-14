@@ -69,6 +69,69 @@ func TestAssembleBlocksMarksGutterNumbers(t *testing.T) {
 	}
 }
 
+// A gutter column recognized as one block carries every number on the page,
+// and each must reach its own paragraph. Page 6 of a real Replik came back as
+// a single aside_text "25\n26\n27\n28" spanning half the page; binding every
+// number at the block's top attached 25 and silently dropped 26 through 28.
+func TestAssembleBlocksSplitsMergedGutterColumn(t *testing.T) {
+	md := Render(Nodes([]Block{
+		block("aside_text", 0.165, 0.153, 0.184, 0.652, "25\n26\n27\n28"),
+		block("text", 0.221, 0.150, 0.854, 0.293, "Damit hatte die Vermieterschaft ..."),
+		block("text", 0.223, 0.303, 0.519, 0.318, "BO: Mietvertrag vom 03./07.09.2001"),
+		block("text", 0.768, 0.303, 0.841, 0.317, "Beilage 3"),
+		block("text", 0.222, 0.336, 0.852, 0.406, "Ein Zustimmungserfordernis gilt ..."),
+		block("text", 0.223, 0.418, 0.518, 0.432, "BO: Mietvertrag vom 03./07.09.2001"),
+		block("text", 0.768, 0.418, 0.841, 0.432, "Beilage 3"),
+		block("text", 0.221, 0.450, 0.853, 0.593, "Angesprochen ist hier die Übertragung ..."),
+		block("text", 0.223, 0.604, 0.518, 0.619, "BO: Mietvertrag vom 03./07.09.2001"),
+		block("text", 0.768, 0.604, 0.841, 0.618, "Beilage 3"),
+		block("text", 0.221, 0.636, 0.853, 0.887, "Gleichwohl kam die Klägerin ..."),
+	}))
+
+	for _, want := range []string{
+		"[Rz 25] Damit hatte",
+		"[Rz 26] Ein Zustimmungserfordernis",
+		"[Rz 27] Angesprochen ist",
+		"[Rz 28] Gleichwohl kam",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("missing %q:\n%s", want, md)
+		}
+	}
+}
+
+// An interpolated gutter position is fuzzy, and an offer of proof sits between
+// paragraphs exactly where the fuzz lands. Page 16 of a real Replik attached
+// [Rz 63] to "BO: Christian Magnani ..." because the interpolated y for 63
+// fell a line short of its paragraph and the BO block's bottom caught it.
+func TestAssembleBlocksMergedGutterSkipsEvidenceRows(t *testing.T) {
+	md := Render(Nodes([]Block{
+		block("text", 0.221, 0.149, 0.853, 0.310, "Noch am 8. Mai 2023 ..."),
+		block("text", 0.221, 0.320, 0.841, 0.354, "BO: Christian Magnani, Mitglied der Geschäftsleitung Klägerin"),
+		block("aside_text", 0.163, 0.373, 0.181, 0.846, "62\n63\n64\n65"),
+		block("text", 0.220, 0.370, 0.853, 0.513, "Eine EBIT-Klausel war ..."),
+		block("text", 0.221, 0.524, 0.841, 0.556, "BO: Christian Magnani, Mitglied der Geschäftsleitung Klägerin"),
+		block("text", 0.282, 0.568, 0.838, 0.582, "E-Mail-Korrespondenz der Parteien vom 03./19.4.2024 Beilage 15"),
+		block("text", 0.220, 0.601, 0.850, 0.655, "Die Behauptung einer Zerstörung ..."),
+		block("text", 0.220, 0.671, 0.852, 0.814, "Tatsächlich dürfte die Situation ..."),
+		block("text", 0.220, 0.832, 0.851, 0.903, "Die folgende umfangreiche Kritik ..."),
+	}))
+
+	for _, want := range []string{
+		"[Rz 62] Eine EBIT-Klausel",
+		"[Rz 63] Die Behauptung",
+		"[Rz 64] Tatsächlich dürfte",
+		"[Rz 65] Die folgende",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("missing %q:\n%s", want, md)
+		}
+	}
+	if strings.Contains(md, "[Rz 63] BO:") {
+		t.Errorf("number attached to an offer of proof:\n%s", md)
+	}
+}
+
 // A narrow block in the margin that says something other than a number is a
 // marginal note, and throwing it away would lose document text.
 func TestAssembleBlocksKeepsMarginalProse(t *testing.T) {

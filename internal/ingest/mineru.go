@@ -3,6 +3,8 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 )
 
 // MinerU's own prompts, from mineru_vl_utils' DEFAULT_PROMPTS. They are the
@@ -97,6 +99,7 @@ func (m *minerU) Page(ctx context.Context, page Page, _ string, onDelta func(str
 	if err != nil {
 		return PageOutput{}, err
 	}
+	blocks = dedupeBlocks(blocks)
 
 	for i := range blocks {
 		b := &blocks[i]
@@ -124,6 +127,13 @@ func (m *minerU) Page(ctx context.Context, page Page, _ string, onDelta func(str
 			return PageOutput{}, fmt.Errorf("recognizing %s block %d of %d: %w", b.Type, i+1, len(blocks), err)
 		}
 		b.Text = res.Content
+		if b.Type != "table" {
+			// A decoder that falls into a loop answers a one-paragraph crop
+			// with the paragraph two or three times over. The crop is the
+			// evidence: a block the layout pass boxed once holds its text
+			// once. Tables are exempt because rows may legitimately repeat.
+			b.Text = collapseRepeats(b.Text)
+		}
 		out.Tokens += res.Tokens
 		out.Truncated = out.Truncated || res.Truncated
 	}
@@ -133,4 +143,36 @@ func (m *minerU) Page(ctx context.Context, page Page, _ string, onDelta func(str
 	// again, and every block keeps the box it was read from.
 	out.Nodes = Nodes(blocks)
 	return out, nil
+}
+
+// collapseRepeats returns one copy of a passage the decoder emitted several
+// times over. Measured on a real Replik: a five-line paragraph came back three
+// times from one crop, identically, separated by blank lines — a sampling
+// accident that two independent runs of the same page reproduced once and not
+// the other time. Only exact repetition collapses (after whitespace
+// normalization), plus a trailing prefix of the passage, which is what a loop
+// cut off at max_tokens leaves behind.
+var blankLine = regexp.MustCompile(`\n\s*\n`)
+
+func collapseRepeats(s string) string {
+	parts := blankLine.Split(strings.TrimSpace(s), -1)
+	if len(parts) < 2 {
+		return s
+	}
+	first := oneLine(parts[0])
+	if first == "" {
+		return s
+	}
+	for i, p := range parts[1:] {
+		flat := oneLine(p)
+		if flat == first {
+			continue
+		}
+		// A truncated last copy is still the loop, not new content.
+		if i+1 == len(parts)-1 && flat != "" && strings.HasPrefix(first, flat) {
+			continue
+		}
+		return s
+	}
+	return parts[0]
 }

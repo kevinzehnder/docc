@@ -3,6 +3,56 @@
 The pipeline works end to end: `docc ingest` → `docc structure` → `docc check`.
 What follows is the work that is not done, in the order it is worth doing.
 
+## 0. What the 38-page Replik iteration fixed (2026-08-13)
+
+Converting `assets/example_replik.pdf` whole, repeatedly, against the page
+images as ground truth. Five defects found and fixed, each with a regression
+test; the committed round-trip fixture holds its baseline exactly (its four
+born-digital pages never trip these bugs, which is the argument for a second,
+scanned fixture), and the full Replik now carries 118 of its 119 Randziffern
+with every heading at its correct level.
+
+- **A merged gutter column lost every number but its first.** The layout pass
+  returns the whole margin as one `aside_text` ("25\n26\n27\n28"), and
+  attachment used the block's top for all four. Positions are now interpolated
+  across the block's span and advance monotonically; the fuzzy interpolated
+  path also skips offers of proof and indented continuations, which a
+  Randziffer never numbers.
+- **Merged-into-body numbers failed on wrapped paragraphs.** A recognized
+  paragraph keeps the source's line wraps, and the `randziffer` regexp's `$`
+  never matched text with a newline in it — every wrapped paragraph, which on
+  a brief is most of them. `(?s)`.
+- **The layout pass re-detects a region.** On page 26 it answered the same
+  `text` line three times; each copy was recognized and transcribed, tripling
+  paragraph 108. Blocks whose box overlaps an earlier same-type block at
+  IoU > 0.9 are dropped before recognition, which also saves their round
+  trips. `collapseRepeats` separately collapses a decoder loop's copies
+  inside one block, table crops exempt.
+- **The chain normalizer orphaned everything before its longest run.** On the
+  whole document the longest consecutive run was 51-119, and resumption only
+  walked forward: Rz 1-50 were thrown away. `chainWithin` now recurses into
+  the prefix and suffix around each chosen run, so every run that earns
+  minRZRun keeps its numbers.
+- **Frontmatter knows its provenance.** `source_file` and `source_pages` are
+  filled in by ingest when the target schema declares both fields; `docc
+  check`'s missing-field list shrinks to the ones only a person can answer.
+
+Schema, not code: the numbered-title patterns' length cap was 58 chars, which
+demoted `2. Fehlende Kündigungsberechtigung der Beklagten – Unwirksamkeit der
+Kündigungen` (77); it is 90 now. `roman-first` also gained the dot form of the
+letter level (`b. Falsche Kündigungsbegründungen`), which this corpus uses.
+
+Two things left visible on purpose. Rz 50's digit is dropped by recognition
+nondeterministically (the paragraph itself survives), and REF010 points a
+reviewer straight at it — inventing the number from the sequence would be
+guessing about somebody else's brief. And `TestDebugPage` in
+`internal/ingest/debug_live_test.go` stays: env-gated, skipped in CI, and it
+found three of the five bugs above by dumping the raw layout answer for one
+page (`DOCC_DEBUG_PDF=... DOCC_DEBUG_PAGE=6 DOCC_DEBUG_DPI=150 go test -run
+TestDebugPage -v ./internal/ingest`). The 150/200 DPI split matters: the
+layout pass answers differently per DPI, and a bug that reproduces at the
+config's 150 can vanish at the debug default.
+
 ## 1. The evaluation harness is thin
 
 `task test:eval` exists and works: it renders `testdata/good/legal_valid.md` to

@@ -11,7 +11,12 @@ import (
 // a marginal paragraph number is transcribed when the model does not mark it
 // itself. The number must be followed by a word starting the sentence, so a
 // markdown list item ("1. Erstens") and a heading are not candidates.
-var randziffer = regexp.MustCompile(`^(\d{1,4})\s+([^\s\d].*)$`)
+//
+// (?s), because a recognized paragraph keeps the source's own line wraps: a
+// block reading "53 In der Tat hatte die Klägerin ...\nMusterverträge ..."
+// is one paragraph, and without the flag the final $ fails on every paragraph
+// long enough to wrap — which on a brief is most of them.
+var randziffer = regexp.MustCompile(`(?s)^(\d{1,4})\s+([^\s\d].*)$`)
 
 // marked matches a paragraph number the model did mark, so the two paths keep
 // one shared sequence.
@@ -246,38 +251,51 @@ func longestChain(cands []rzCandidate) []int {
 		return nil
 	}
 
-	// The numbering resumes after a gap, so the chain does too.
+	// The numbering resumes after a gap, so the chain does too — in both
+	// directions.
 	//
 	// A document loses a few of its numbers where a page went missing at
 	// ingest, or where the layout pass did not read the gutter on one spread.
-	// Taking only the single longest run then discards every number after the
-	// gap: on a transcribed Replik, 1 to 25 were marked and 31, 32 and 33 —
+	// Taking only the single longest run then discards every number outside
+	// it: on a transcribed Replik, 1 to 25 were marked and 31, 32 and 33 —
 	// consecutive, ascending, plainly Randziffern — were thrown away for being
-	// a shorter run. That also removed the last `[Rz N]` from half the
-	// document, and EvidenceRegions used those as terminators.
+	// a shorter run. And on the same document converted whole, the longest run
+	// was 51 to 119, and a forward-only resume then discarded 1 through 50 —
+	// half the document's numbers, orphaned for sitting before the winner.
 	//
-	// Each further run has to earn its place the same way the first did, by
-	// being at least minRZRun long, and it has to continue upward: a run whose
-	// values repeat ones already taken is a second document's numbering, not
-	// this one's resuming.
-	var chosen []int
-	from, above := 0, 0
-	for {
-		chain := chainFrom(cands, from, above)
-		if len(chain) == 0 {
-			break
-		}
-		chosen = append(chosen, chain...)
-		last := chain[len(chain)-1]
-		from, above = last+1, cands[last].n
-	}
-	return chosen
+	// So the winner splits the problem instead of ending it: earlier
+	// candidates with smaller values and later candidates with larger ones are
+	// each their own, smaller version of the same question. Each further run
+	// has to earn its place the same way the first did, by being at least
+	// minRZRun long, and it has to fit strictly between its neighbours: a run
+	// whose values repeat ones already taken is a second document's numbering,
+	// not this one's resuming.
+	return chainWithin(cands, 0, len(cands), 0, maxRZ)
 }
 
-// chainFrom returns the longest run of candidates at or after from, whose
-// values exceed above and increase by exactly one. It returns nil for a run
-// shorter than minRZRun.
-func chainFrom(cands []rzCandidate, from, above int) []int {
+// maxRZ bounds a Randziffer value from above where no chosen chain does yet.
+// No brief numbers ten thousand paragraphs.
+const maxRZ = 10000
+
+// chainWithin picks the longest run among cands[from:to) with values strictly
+// between above and below, then recurses on what sits before and after it.
+func chainWithin(cands []rzCandidate, from, to, above, below int) []int {
+	chain := chainFrom(cands, from, to, above, below)
+	if len(chain) == 0 {
+		return nil
+	}
+	first, last := chain[0], chain[len(chain)-1]
+	var out []int
+	out = append(out, chainWithin(cands, from, first, above, cands[first].n)...)
+	out = append(out, chain...)
+	out = append(out, chainWithin(cands, last+1, to, cands[last].n, below)...)
+	return out
+}
+
+// chainFrom returns the longest run of candidates in cands[from:to), whose
+// values exceed above, stay under below, and increase by exactly one. It
+// returns nil for a run shorter than minRZRun.
+func chainFrom(cands []rzCandidate, from, to, above, below int) []int {
 	length := make([]int, len(cands))
 	pred := make([]int, len(cands))
 	// endOf maps a value to the candidate index where the best chain ending on
@@ -286,7 +304,7 @@ func chainFrom(cands []rzCandidate, from, above int) []int {
 
 	best := -1
 	for i, c := range cands {
-		if i < from || c.n <= above {
+		if i < from || i >= to || c.n <= above || c.n >= below {
 			continue
 		}
 		length[i], pred[i] = 1, -1

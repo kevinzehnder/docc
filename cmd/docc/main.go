@@ -518,7 +518,7 @@ func cmdIngest(args []string) int {
 	// depends on what this draft is going to become, which only the target
 	// schema knows. Without one, ingest is a plain transcription tool and
 	// keeps them.
-	strip, outlinePatterns, schemaNote, err := ingestPolicy(*docType, *schemaDir, files[0], *outlineName)
+	strip, outlinePatterns, recordSource, schemaNote, err := ingestPolicy(*docType, *schemaDir, files[0], *outlineName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "docc ingest:", err)
 		return 2
@@ -549,6 +549,7 @@ func cmdIngest(args []string) int {
 			StripRandziffern: strip,
 			Outline:          outline,
 			OutlineStrict:    *outlineStrict,
+			RecordSource:     recordSource,
 			Progress: func(ev ingest.Event) {
 				if ev.Total > 0 {
 					attempted = ev.Total
@@ -720,38 +721,47 @@ func cmdStructure(args []string) int {
 // default, and deleting a marker afterwards is easier than re-converting a
 // document to recover one.
 func randzifferPolicy(docType, schemaDir, start string) (strip bool, note string) {
-	strip, _, note, _ = ingestPolicy(docType, schemaDir, start, "")
+	strip, _, _, note, _ = ingestPolicy(docType, schemaDir, start, "")
 	return strip, note
 }
 
-// ingestPolicy reads the two things a target schema tells a transcription: what
-// to do with the source's marginal numbers, and what its section titles look
-// like. One lookup, because both come from the same file and a second one could
+// ingestPolicy reads what a target schema tells a transcription: what to do
+// with the source's marginal numbers, what its section titles look like, and
+// whether the type has frontmatter fields for the source PDF's identity. One
+// lookup, because all of it comes from the same file and a second one could
 // disagree with the first.
-func ingestPolicy(docType, schemaDir, start, scheme string) (strip bool, outline []ingest.OutlinePattern, note string, err error) {
+func ingestPolicy(docType, schemaDir, start, scheme string) (strip bool, outline []ingest.OutlinePattern, recordSource bool, note string, err error) {
 	if docType == "" {
 		if scheme != "" {
-			return false, nil, "", fmt.Errorf("--outline %s needs --type: the section-title schemes belong to a document type", scheme)
+			return false, nil, false, "", fmt.Errorf("--outline %s needs --type: the section-title schemes belong to a document type", scheme)
 		}
-		return false, nil, "", nil
+		return false, nil, false, "", nil
 	}
 	set, loadErr := loadSchemas(schemaDir, start)
 	if loadErr != nil {
-		return false, nil, fmt.Sprintf("no schemas found, keeping the source document's paragraph numbers: %v", loadErr), nil
+		return false, nil, false, fmt.Sprintf("no schemas found, keeping the source document's paragraph numbers: %v", loadErr), nil
 	}
 	sc, getErr := set.Get(docType)
 	if getErr != nil {
-		return false, nil, fmt.Sprintf("keeping the source document's paragraph numbers: %v", getErr), nil
+		return false, nil, false, fmt.Sprintf("keeping the source document's paragraph numbers: %v", getErr), nil
 	}
+
+	// Filled only when the schema declares both fields: ingest knows the
+	// values, but only the schema knows whether the fields exist, and a field
+	// the type does not declare would open every draft with a warning about
+	// ingest's own boilerplate.
+	_, hasFile := sc.Frontmatter["source_file"]
+	_, hasPages := sc.Frontmatter["source_pages"]
+	recordSource = hasFile && hasPages
 
 	outline, err = outlineScheme(sc.Outline, docType, scheme)
 	if err != nil {
-		return false, nil, "", err
+		return false, nil, false, "", err
 	}
 	if sc.Render.ParagraphNumbering != nil {
-		return true, outline, fmt.Sprintf("%s numbers its paragraphs at render time — dropping the source document's own numbers", docType), nil
+		return true, outline, recordSource, fmt.Sprintf("%s numbers its paragraphs at render time — dropping the source document's own numbers", docType), nil
 	}
-	return false, outline, "", nil
+	return false, outline, recordSource, "", nil
 }
 
 // outlineScheme picks the section-title scheme to apply: the one named, or the

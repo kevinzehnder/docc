@@ -19,6 +19,12 @@ type AssembleOptions struct {
 	// DocType, if non-empty, is written into the frontmatter's document_type
 	// field so the draft can be checked without an extra --type flag.
 	DocType string
+	// RecordSource writes source_file and source_pages into the frontmatter.
+	// The caller sets it after confirming the target schema declares both
+	// fields — ingest knows the values, but only the schema knows whether the
+	// fields exist, and writing them into a type without them would open every
+	// draft with a warning about ingest's own boilerplate.
+	RecordSource bool
 	// Incomplete, if set, marks the document as the output of a run that
 	// stopped early.
 	Incomplete *Incomplete
@@ -145,6 +151,14 @@ func Assemble(pages []PageResult, opts AssembleOptions) string {
 	b.WriteString("docc: 1\n")
 	if opts.DocType != "" {
 		fmt.Fprintf(&b, "document_type: %s\n", opts.DocType)
+	}
+	if opts.RecordSource {
+		fmt.Fprintf(&b, "source_file: %s\n", opts.SourceFile)
+		nums := make([]string, len(pages))
+		for i, p := range pages {
+			nums[i] = strconv.Itoa(p.Index)
+		}
+		fmt.Fprintf(&b, "source_pages: [%s]\n", strings.Join(nums, ", "))
 	}
 	b.WriteString("---\n\n")
 

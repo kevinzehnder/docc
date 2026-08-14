@@ -33,6 +33,9 @@ type ConvertOptions struct {
 	// caller asserting that the scheme is this document's, which only somebody
 	// who has looked at the document can know.
 	OutlineStrict bool
+	// RecordSource writes source_file and source_pages into the frontmatter.
+	// See AssembleOptions.RecordSource.
+	RecordSource bool
 	// Progress, if non-nil, receives one Event per pipeline milestone. It is
 	// called synchronously from the goroutine driving the conversion,
 	// including once per streamed chunk, so it must not block: a renderer
@@ -125,8 +128,9 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 			reason = "interrupted"
 		}
 		return Assemble(results, AssembleOptions{
-			SourceFile: filepath.Base(inputPath),
-			DocType:    opts.DocType,
+			SourceFile:   filepath.Base(inputPath),
+			DocType:      opts.DocType,
+			RecordSource: opts.RecordSource,
 			Incomplete: &Incomplete{
 				Completed: len(results),
 				Total:     len(pages),
@@ -197,8 +201,9 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 
 	numberPages()
 	md := Assemble(results, AssembleOptions{
-		SourceFile: filepath.Base(inputPath),
-		DocType:    opts.DocType,
+		SourceFile:   filepath.Base(inputPath),
+		DocType:      opts.DocType,
+		RecordSource: opts.RecordSource,
 	})
 	return md, results, nil
 }

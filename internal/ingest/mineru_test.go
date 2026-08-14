@@ -299,3 +299,24 @@ func slicesContainsSubstring(haystack []string, needle string) bool {
 	}
 	return false
 }
+
+// A decoder loop answers a one-paragraph crop with the paragraph several times
+// over. The crop was boxed once, so its text appears once.
+func TestCollapseRepeats(t *testing.T) {
+	para := "108 Es ging ausschliesslich um eine Anpassung des Mietzinses im Rahmen\neines bestehenden Mietverhältnisses."
+	cases := []struct {
+		name, in, want string
+	}{
+		{"single passage untouched", para, para},
+		{"two copies collapse", para + "\n\n" + para, para},
+		{"three copies collapse", para + "\n\n" + para + "\n\n" + para, para},
+		{"truncated last copy collapses", para + "\n\n" + para + "\n\n108 Es ging ausschliesslich", para},
+		{"different paragraphs untouched", para + "\n\nEin anderer Absatz.", para + "\n\nEin anderer Absatz."},
+		{"repeat then different untouched", para + "\n\n" + para + "\n\nEin anderer Absatz.", para + "\n\n" + para + "\n\nEin anderer Absatz."},
+	}
+	for _, c := range cases {
+		if got := collapseRepeats(c.in); got != c.want {
+			t.Errorf("%s:\ngot  %q\nwant %q", c.name, got, c.want)
+		}
+	}
+}

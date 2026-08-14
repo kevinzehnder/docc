@@ -117,10 +117,15 @@ outline:
       - pattern: '^[A-ZÄÖÜ]\.\s+\S'
         level: 3
       # 1. Vorbemerkungen
-      - pattern: '^\d{1,2}\.\s+\S.{0,58}[^.;:,]$'
+      - pattern: '^\d{1,2}\.\s+\S.{0,90}[^.;:,]$'
         level: 4
       # a) Erstens     aa) Erstens
-      - pattern: '^[a-zäöü]{1,2}\)\s+\S.{0,58}[^.;:,]$'
+      - pattern: '^[a-zäöü]{1,2}\)\s+\S.{0,90}[^.;:,]$'
+        level: 5
+      # b. Falsche Kündigungsbegründungen — the same level with a dot, which
+      # the transcribed Replik uses. One letter only: two would match "ff."
+      # and other abbreviations more often than any real title.
+      - pattern: '^[a-zäöü]\.\s+\S.{0,90}[^.;:,]$'
         level: 5
 
     # The LL.M. sheet's "übliches System", which puts the letters on top.
@@ -143,13 +148,13 @@ outline:
       - pattern: '^[A-ZÄÖÜ]\.\s+\S'
         level: 1
       # 1. Vorbemerkungen
-      - pattern: '^\d{1,2}\.\s+\S.{0,58}[^.;:,]$'
+      - pattern: '^\d{1,2}\.\s+\S.{0,90}[^.;:,]$'
         level: 3
       # aa) Erstens — before a), which cannot match it but reads as though it might
-      - pattern: '^[a-zäöü]{2}\)\s+\S.{0,58}[^.;:,]$'
+      - pattern: '^[a-zäöü]{2}\)\s+\S.{0,90}[^.;:,]$'
         level: 5
       # a) Erstens
-      - pattern: '^[a-zäöü]\)\s+\S.{0,58}[^.;:,]$'
+      - pattern: '^[a-zäöü]\)\s+\S.{0,90}[^.;:,]$'
         level: 4
 
     # The scheme the Merkblatt likes least — "unüblich, aber nicht verboten …
