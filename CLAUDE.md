@@ -1,113 +1,130 @@
-# docc
+# docc contributor guide
 
-A compiler for structured markdown documents. Frontend parses and validates
-markdown + YAML frontmatter against a schema; the backend (not yet written)
-emits `.docx` from a Word-authored template.
+`docc` compiles schema-backed Markdown into deterministic DOCX and, through
+LibreOffice, PDF. The product boundary is deliberately narrow: parse, validate,
+and render documents. Project-specific conventions live in `.docc`; the Go
+engine remains generic.
 
-See `README.md` for the schema format and CLI usage.
+Read `README.md` for usage and `docs/production-readiness.md` for the current
+hardening plan.
 
 ## Layout
 
+```text
+cmd/docc/            CLI
+internal/diag/       diagnostics and JSON rendering
+internal/parse/      Markdown/frontmatter parsing and source positions
+internal/schema/     schema loading and inheritance
+internal/sema/       semantic validation
+internal/ir/         renderer-independent document model
+internal/theme/      theme loading and conversion
+internal/emit/       schema/theme validation and document emission
+internal/project/    .docc discovery
+internal/starter/    embedded starter project
+internal/lsp/        editor diagnostics over LSP
+pkg/docx/            deterministic OOXML writer
+skills/docc/         portable Agent Skill source
+testdata/            validation and OOXML golden corpus
 ```
-cmd/docc/            CLI: check | types | explain | version
-internal/diag/       Diagnostic type, source-excerpt and JSON rendering
-internal/parse/      goldmark wrapper: frontmatter split, block tree, positions
-internal/schema/     doc-type spec loading and `extends` resolution
-internal/sema/       validation passes → diagnostics
-internal/project/    .docc directory discovery
-pkg/docx/            .docx writer — stdlib only, no template, deterministic
-testdata/            golden corpus: schemas/, good/, bad/
-```
 
-## Conventions
+## Product boundaries
 
-- `task` runs the full CI chain. Run it before committing.
-- Formatting is `gofumpt`, enforced by the pre-commit hook (`task hooks:install`).
-- Dependencies stay minimal: `goldmark` for markdown, `goccy/go-yaml` for YAML
-  positions. Do not add a dependency for something the stdlib does.
+- Keep the engine focused on Markdown → validated DOCX/PDF.
+- Do not add document ingestion, OCR, VLM, retrieval, storage, collaboration, or
+  network services to this repository.
+- Keep law, language, organisations, letterheads, and house style out of Go.
+  Express them in project schemas and themes.
+- Do not turn themes into programs. Prefer a separate theme or explicit
+  frontmatter value over conditionals in YAML.
+- Add dependencies only when the standard library cannot reasonably do the job.
+- Treat new public commands, YAML fields, diagnostic codes, and exported Go
+  identifiers as compatibility commitments.
 
-## Working on the checker
+## Diagnostics
 
-- **Every diagnostic needs a source position and a hint.** A message that says
-  what is wrong but not what to do is incomplete. Anchor on a line that actually
-  relates to the problem — a caret under an unrelated line is worse than a
-  file-level diagnostic.
-- **Diagnostic codes are stable.** Never renumber a released code; schemas,
-  `docc explain` and agent workflows reference them.
-- **Passes collect, they do not stop.** All checks run and append to one list.
-  An author fixing one error at a time runs the compiler ten times.
-- **Adding a check:** implement it in `internal/sema/rules.go`, register it in
-  `registry`, document it in the README table. Schemas select checks by name and
-  supply their own code and severity.
-- **Schema/theme mismatches are caught in `emit.Validate`, not at load.** It is
-  the only place holding both. Every style a schema maps, every field a theme
-  interpolates and every definition a render rule names is checked there, before
-  a single paragraph is built.
-- **Adding a diagnostic code:** add it to `explanations` in `cmd/docc/main.go`.
+- Give every diagnostic a useful source position and actionable hint.
+- Collect independent failures in one pass instead of stopping at the first.
+- Keep released diagnostic codes stable.
+- Register new named rules in `internal/sema/rules.go` and document their
+  schema-facing behaviour.
+- Add engine diagnostic explanations to `cmd/docc/main.go`.
+- Keep stdout machine-readable when `--json` is selected; send operational
+  errors to stderr.
+
+`diag.Position.Col` and `.Len` are byte offsets. Convert them to runes only
+when presenting text. The corpus intentionally contains non-ASCII characters.
+
+## Schema and theme rules
+
+- Parse configuration strictly. Unknown explicit values must fail; omission may
+  use a documented default.
+- Validate schema/theme relationships in `emit.Validate`, the layer that owns
+  both inputs.
+- Check that every schema style, numbering definition, and theme interpolation
+  resolves before rendering.
+- A schema `default:` is applied during semantic analysis so it affects both
+  required-field checks and emitted metadata.
+- A theme's `levels:` list is flat: the definition is level 0 and each item is
+  the next level, up to Word's limit of nine.
+- Preserve the distinction between an omitted measurement and an explicit zero.
+
+## DOCX writer
+
+The writer uses the standard library. OOXML is emitted through the local XML
+writer because namespace prefixes and element ordering matter to Word.
+
+- Preserve byte-for-byte deterministic output.
+- Use fixed archive timestamps, sorted parts, and position-derived identifiers.
+- Do not introduce process-global counters or wall-clock values.
+- Keep measurement units distinct: `Twips`, `EMU`, `HalfPt`, and `Eighth`.
+- Ensure every table cell, header, footer, and document body contains the
+  structures Word requires.
+- Use `Numbering.AddList` and `Numbering.NewInstance`; independent lists need
+  independent `numId` values.
+- Run the LibreOffice round-trip test after structural writer changes.
 
 ## Testing
 
-`testdata/` is the regression suite, checked against `testdata/schemas/`:
+Run before committing:
 
-- `good/` — must produce zero errors (`TestGoodDocumentsHaveNoErrors`)
-- `bad/` — exercises specific failures
-- `*.golden` — committed rendered diagnostics for every fixture
-- `golden/<fixture>/*.xml` — the `word/` parts every `good/` fixture builds to
-  (`TestBuildGolden`), discovered from the archive so a theme that grows a
-  header or footer adds a file here
+```sh
+task
+```
 
-Two document types, `legal` and `letter`, cover complementary halves of the
-theme surface: frames and mixed-formatting runs on one side, epilogue, repeat,
-footer and metadata formatting on the other. A change that only one of them
-catches is the reason both exist — do not fold them together.
+Useful focused commands:
 
-Changing a message is expected to fail `TestGolden`; changing a style or the
-writer is expected to fail `TestBuildGolden`. Review the diff, then
-`task test:golden:update`. Never regenerate goldens without reading the diff —
-that is the check working.
+```sh
+task test
+task test:race
+task test:roundtrip
+task agent:test
+```
 
-## goldmark notes
+The golden corpus contains:
 
-- `Lines()` panics on inline nodes. Guard with `n.Type() != ast.TypeBlock`.
-- A `ListItem` holds its text in a child `TextBlock`, not on the item itself.
-  Walk to the leaves rather than assuming a depth.
-- Fenced divs (`::: beweis`) are a local block parser in `internal/parse/fences.go`;
-  goldmark has no built-in support.
+- `testdata/good/`: documents that must validate;
+- `testdata/bad/`: intentional failures;
+- `*.golden`: rendered diagnostics;
+- `testdata/golden/<fixture>/`: generated `word/*.xml` parts.
 
-## Working on pkg/docx
+A changed message should fail diagnostic goldens. A writer or theme change
+should fail OOXML goldens. Review the diff before running
+`task test:golden:update`.
 
-No dependencies. `archive/zip` and `encoding/xml` cover the container; XML is
-written through the `xw` helper rather than `encoding/xml` marshalling, because
-OOXML needs exact namespace prefixes and, in places, a specific attribute order.
+Never copy real client, court, employee, or firm data into fixtures. Use invented
+identities and domains.
 
-- **Output must stay deterministic.** Fixed archive timestamps, sorted parts,
-  identifiers assigned by position. Never introduce a counter whose state
-  survives across calls, or a timestamp read from the clock.
-- **Word rejects rather than degrades.** An empty table cell, a header part with
-  no paragraph, or a body without `sectPr` produces a repair prompt, not an
-  error message. The writer fills these in; keep it that way.
-- **Unbalanced XML panics at construction.** `xw.bytes` refuses to return a part
-  with an open element, because the alternative is finding out in Word.
-- **Units are distinct types.** `Twips`, `EMU`, `HalfPt`, `Eighth`. Do not add a
-  plain-int measurement parameter.
-- **Numbering is a two-level indirection.** A paragraph names a `numId`, which
-  names an `abstractNumId`. Two lists sharing a `numId` continue each other's
-  numbering. Use `Numbering.AddList` / `NewInstance`. Render numbering inverts
-  the usual rule: a heading outline and a marginal number each want *one*
-  shared instance for the whole document, because continuing is the point.
-- **Schema `default:` is applied in sema, not at render time.** It decides
-  whether a required field is actually missing, and it has to reach
-  `Meta.Values` for the emitter to interpolate it. It was declared and
-  documented but never applied for a while; `formats.date` had the same shape
-  of bug. Check that new schema knobs are read by something.
-- **A theme's `levels:` is flat, not a tree.** The definition is level 0 and
-  `levels[i]` is level `i+1`, capped at nine. Recursing into it gave two levels
-  the same `ilvl`, and Word renders the loser's `%N` as literal text.
-- **`task test:roundtrip` before trusting a structural change.** Unit tests
-  check strings; only a real renderer proves the file opens.
+## Parser notes
 
-## Positions
+- Goldmark's `Lines()` panics on inline nodes; guard for block nodes.
+- A `ListItem` stores text in descendant blocks, not on the list item itself.
+- Fenced divs are implemented locally in `internal/parse/fences.go`.
 
-`diag.Position.Col` and `.Len` are **byte** offsets, because that is what the
-parsers report. The caret renderer converts to runes. Umlauts are common in this
-corpus, so any new position arithmetic must keep that distinction straight.
+## Release discipline
+
+- Pin CI tool versions.
+- Build release artifacts only from a clean version tag.
+- Test the exact binaries and skill archives that will be published.
+- Record checksums for release artifacts.
+- Treat DOCX determinism separately from PDF rendering reproducibility: PDF
+  layout depends on LibreOffice and installed fonts.
