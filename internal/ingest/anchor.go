@@ -26,7 +26,7 @@ type AnchorText struct {
 // pdftotext -bbox. A PDF with no text layer (a scan) or an image input
 // produces no anchors and no error — the caller treats that as a
 // lower-confidence page, not a failure.
-func ExtractAnchors(pdfPath string, page int, timeout time.Duration) ([]AnchorText, error) {
+func ExtractAnchors(ctx context.Context, pdfPath string, page int, timeout time.Duration) ([]AnchorText, error) {
 	binary, err := findBinary("pdftotext")
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func ExtractAnchors(pdfPath string, page int, timeout time.Duration) ([]AnchorTe
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	p := strconv.Itoa(page)

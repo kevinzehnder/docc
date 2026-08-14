@@ -2,22 +2,54 @@ package ingest
 
 import "testing"
 
-func TestParsePageResponse(t *testing.T) {
-	got := ParsePageResponse(4, "  # Heading\n\nSome transcribed body text.\n  ")
+func TestNewPageResultRendersItsNodes(t *testing.T) {
+	got := NewPageResult(4, []Node{
+		{Kind: KindHeading, Level: 1, Text: "Heading"},
+		{Kind: KindPara, Text: "Some transcribed body text."},
+	})
 	if got.Index != 4 {
 		t.Errorf("Index = %d, want 4", got.Index)
 	}
 	if got.Markdown != "# Heading\n\nSome transcribed body text." {
 		t.Errorf("Markdown = %q", got.Markdown)
 	}
+	if len(got.Nodes) != 2 {
+		t.Errorf("Nodes = %d, want the 2 it was given — the elements outlive the rendering", len(got.Nodes))
+	}
 	if got.LowConfidence {
-		t.Error("ParsePageResponse itself never sets LowConfidence — that's Convert's job, based on anchor availability")
+		t.Error("NewPageResult itself never sets LowConfidence — that is Convert's job, based on anchor availability")
 	}
 }
 
-func TestParsePageResponseEmpty(t *testing.T) {
-	got := ParsePageResponse(1, "   \n  ")
-	if got.Markdown != "" {
-		t.Errorf("Markdown = %q, want empty after trimming", got.Markdown)
+// A page that produced nothing renders to nothing, rather than to a blank line
+// Assemble would go on to join with two more.
+func TestNewPageResultEmpty(t *testing.T) {
+	if got := NewPageResult(1, nil); got.Markdown != "" {
+		t.Errorf("Markdown = %q, want empty", got.Markdown)
+	}
+}
+
+// The chat backend's page crosses the seam whole and comes back byte for byte:
+// until a pass needs to see inside it, parsing it would only be a chance to
+// change it.
+func TestRawNodeRoundTripsUnchanged(t *testing.T) {
+	const page = "# Replik\n\nAd. KA Rz 6:\n\n55 Die Beklagte bestreitet.\n\n| a | b |\n| --- | --- |\n| 1 | 2 |"
+	if got := Render([]Node{{Kind: KindRaw, Text: page}}); got != page {
+		t.Errorf("Render of a raw page changed it:\n got %q\nwant %q", got, page)
+	}
+}
+
+// The page number is stamped here because this is the last point at which it is
+// known: a backend transcribes one page and has no reason to carry the
+// document's numbering, and Assemble sees the pages already joined.
+func TestNewPageResultStampsThePageOntoEveryNode(t *testing.T) {
+	res := NewPageResult(8, []Node{
+		{Kind: KindHeading, Level: 2, Text: "I. FORMELLES"},
+		{Kind: KindPara, Text: "Die Eingabe erfolgt fristgerecht."},
+	})
+	for i, n := range res.Nodes {
+		if n.Page != 8 {
+			t.Errorf("node %d has Page %d, want 8", i, n.Page)
+		}
 	}
 }

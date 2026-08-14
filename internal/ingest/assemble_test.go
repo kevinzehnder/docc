@@ -1,6 +1,8 @@
 package ingest
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -54,11 +56,176 @@ func TestAssembleNoLowConfidenceBanner(t *testing.T) {
 	}
 }
 
+func TestAssembleMarksIncompleteRun(t *testing.T) {
+	pages := []PageResult{
+		{Index: 1, Markdown: "first"},
+		{Index: 2, Markdown: "second", LowConfidence: true, Note: "no text layer found on this page — verify carefully"},
+	}
+	got := Assemble(pages, AssembleOptions{
+		SourceFile: "klage.pdf",
+		Incomplete: &Incomplete{Completed: 2, Total: 17, NextPage: 3, LastPage: 17, Reason: "interrupted"},
+	})
+
+	want := []string{
+		"<!-- INCOMPLETE — docc ingest stopped after 2 of 17 pages: interrupted -->",
+		"<!-- convert the rest with: docc ingest --pages 3-17 --output klage.pages-3-17.md klage.pdf -->",
+		"resuming does not merge",
+		"<!-- transcription stops here — pages 3-17 were not converted -->",
+		// The existing per-page notes are orthogonal and must survive.
+		"page 2: low confidence",
+	}
+	for _, w := range want {
+		if !strings.Contains(got, w) {
+			t.Errorf("incomplete document missing %q\n---\n%s", w, got)
+		}
+	}
+	if !strings.HasSuffix(strings.TrimSpace(got), "were not converted -->") {
+		t.Errorf("expected the closing marker at the end of the document, got:\n%s", got)
+	}
+}
+
+func TestAssembleIncompleteSinglePageResumeRange(t *testing.T) {
+	got := Assemble([]PageResult{{Index: 1, Markdown: "first"}}, AssembleOptions{
+		SourceFile: "two.pdf",
+		Incomplete: &Incomplete{Completed: 1, Total: 2, NextPage: 2, LastPage: 2, Reason: "interrupted"},
+	})
+
+	if !strings.Contains(got, "--pages 2 --output two.pages-2.md two.pdf") {
+		t.Errorf("a one-page remainder should read as --pages 2, not 2-2, got:\n%s", got)
+	}
+}
+
 func TestAssembleOmitsDocTypeWhenEmpty(t *testing.T) {
 	pages := []PageResult{{Index: 1, Markdown: "text"}}
 	got := Assemble(pages, AssembleOptions{SourceFile: "x.pdf"})
 
 	if strings.Contains(got, "document_type:") {
 		t.Errorf("did not expect a document_type line when DocType is empty, got:\n%s", got)
+	}
+}
+
+// The resume command must never default its output to the same path the
+// partial draft was written to: that overwrites the pages it exists to save.
+func TestAssembleResumeCommandDoesNotTargetTheDraftItself(t *testing.T) {
+	got := Assemble([]PageResult{{Index: 1, Markdown: "first"}}, AssembleOptions{
+		SourceFile: "klage.pdf",
+		Incomplete: &Incomplete{Completed: 1, Total: 17, NextPage: 2, LastPage: 17, Reason: "interrupted"},
+	})
+
+	if !strings.Contains(got, "--output klage.pages-2-17.md") {
+		t.Errorf("resume command must name an explicit --output, got:\n%s", got)
+	}
+	// klage.md is where this very draft lives.
+	if strings.Contains(got, "--output klage.md") {
+		t.Error("resume command points at the draft's own path — running it would destroy the completed pages")
+	}
+}
+
+func TestInspectDraft(t *testing.T) {
+	dir := t.TempDir()
+
+	generated := filepath.Join(dir, "gen.md")
+	if err := os.WriteFile(generated, []byte(Assemble(
+		[]PageResult{{Index: 1, Markdown: "text"}},
+		AssembleOptions{SourceFile: "x.pdf"},
+	)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	edited := filepath.Join(dir, "edited.md")
+	if err := os.WriteFile(edited, []byte("---\ndocc: 1\n---\n\n# Hand-written\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	partial := filepath.Join(dir, "partial.md")
+	if err := os.WriteFile(partial, []byte(Assemble(
+		[]PageResult{{Index: 1, Markdown: "text"}},
+		AssembleOptions{
+			SourceFile: "x.pdf",
+			Incomplete: &Incomplete{Completed: 1, Total: 9, NextPage: 2, LastPage: 9, Reason: "interrupted"},
+		},
+	)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, err := InspectDraft(generated); err != nil || !got.Generated || got.Incomplete {
+		t.Errorf("InspectDraft on a finished draft = %+v, %v; want generated and complete", got, err)
+	}
+	if got, err := InspectDraft(edited); err != nil || got.Generated {
+		t.Errorf("InspectDraft on a hand-written file = %+v, %v; want not generated", got, err)
+	}
+	if got, err := InspectDraft(partial); err != nil || !got.Generated || !got.Incomplete {
+		t.Errorf("InspectDraft on a partial draft = %+v, %v; want generated and incomplete", got, err)
+	}
+	if _, err := InspectDraft(filepath.Join(dir, "missing.md")); err == nil {
+		t.Error("InspectDraft on a missing file: want an error, so a caller cannot read absence as permission")
+	}
+}
+
+// Ingest does not know the schema its draft will be checked against, so the
+// only fields it may write are ones every schema accepts. `title` is defined
+// in the letter schema and not the legal one: emitting it as a placeholder
+// made every legal draft open with a DOC011 warning about ingest's own
+// boilerplate, before the author had touched anything.
+func TestAssembleWritesNoSchemaSpecificPlaceholders(t *testing.T) {
+	got := Assemble([]PageResult{{Index: 1, Markdown: "text"}}, AssembleOptions{
+		SourceFile: "klage.pdf",
+		DocType:    "legal",
+	})
+
+	frontmatter, _, ok := strings.Cut(strings.TrimPrefix(got, "---\n"), "---\n")
+	if !ok {
+		t.Fatalf("no frontmatter block in:\n%s", got)
+	}
+	for _, line := range strings.Split(strings.TrimSpace(frontmatter), "\n") {
+		field, _, _ := strings.Cut(line, ":")
+		switch field {
+		case "docc", "document_type":
+		default:
+			t.Errorf("frontmatter carries %q; only docc and document_type are accepted by every schema", line)
+		}
+	}
+}
+
+// A draft is reviewed against the PDF it came from, so it says where each page
+// began rather than making the reviewer count.
+func TestAssembleMarksPageBoundaries(t *testing.T) {
+	md := Assemble([]PageResult{
+		{Index: 7, Markdown: "Erste Seite."},
+		{Index: 8, Markdown: "Zweite Seite."},
+	}, AssembleOptions{SourceFile: "replik.pdf"})
+
+	for _, want := range []string{PageMarker(7), PageMarker(8)} {
+		if !strings.Contains(md, want) {
+			t.Errorf("missing %q:\n%s", want, md)
+		}
+	}
+	// The marker introduces its page, rather than trailing the one before it.
+	if strings.Index(md, PageMarker(8)) > strings.Index(md, "Zweite Seite.") {
+		t.Errorf("page 8's marker comes after its text:\n%s", md)
+	}
+}
+
+// The marker records the document's page, not this run's position in it: under
+// --pages 8-17 the first page transcribed is page 8.
+func TestAssemblePageMarkerUsesTheDocumentsNumbering(t *testing.T) {
+	md := Assemble([]PageResult{{Index: 8, Markdown: "x"}}, AssembleOptions{SourceFile: "replik.pdf"})
+	if !strings.Contains(md, PageMarker(8)) {
+		t.Errorf("marker does not name page 8:\n%s", md)
+	}
+	if strings.Contains(md, PageMarker(1)) {
+		t.Errorf("marker renumbered the page from 1:\n%s", md)
+	}
+}
+
+func TestIsPageMarker(t *testing.T) {
+	for _, yes := range []string{PageMarker(3), "  " + PageMarker(12) + "  "} {
+		if !IsPageMarker(yes) {
+			t.Errorf("IsPageMarker(%q) = false", yes)
+		}
+	}
+	for _, no := range []string{"<!-- page 3 -->", "Seite 3", "", "<!-- generated by `docc ingest` -->"} {
+		if IsPageMarker(no) {
+			t.Errorf("IsPageMarker(%q) = true", no)
+		}
 	}
 }

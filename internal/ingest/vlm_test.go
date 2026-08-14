@@ -3,23 +3,61 @@ package ingest
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
+
+// sseFrames serves each frame as one SSE event, flushing after every one.
+// Without the flush httptest buffers the whole response and every assertion
+// about incremental delivery below becomes vacuous.
+func sseFrames(t *testing.T, onRequest func(*http.Request), frames ...string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if onRequest != nil {
+			onRequest(r)
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			t.Error("test server response writer does not flush")
+			return
+		}
+		for _, f := range frames {
+			if _, err := w.Write([]byte(f + "\n\n")); err != nil {
+				return
+			}
+			flusher.Flush()
+		}
+	}))
+}
+
+func dataFrame(content, finishReason string) string {
+	return `data: {"choices":[{"delta":{"content":` + quote(content) + `},"finish_reason":` + quote(finishReason) + `}]}`
+}
+
+func quote(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
+}
 
 func TestClientCompletePageSendsExpectedRequest(t *testing.T) {
 	var gotReq chatRequest
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := sseFrames(t, func(r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&gotReq); err != nil {
 			t.Errorf("decode request body: %v", err)
 		}
-		body := `{"choices":[{"message":{"content":"# hello\n\nsome transcribed text"},"finish_reason":"stop"}]}`
-		_, _ = w.Write([]byte(body))
-	}))
+	},
+		dataFrame("# hello", ""),
+		dataFrame("\n\nsome transcribed text", "stop"),
+		"data: [DONE]",
+	)
 	defer srv.Close()
 
 	imgPath := filepath.Join(t.TempDir(), "page.png")
@@ -35,10 +73,16 @@ func TestClientCompletePageSendsExpectedRequest(t *testing.T) {
 	if truncated {
 		t.Error("truncated = true for finish_reason \"stop\"")
 	}
-	if !strings.Contains(got, "hello") {
-		t.Errorf("response = %q, want it to contain the model's markdown", got)
+	if want := "# hello\n\nsome transcribed text"; got != want {
+		t.Errorf("response = %q, want the deltas concatenated in order: %q", got, want)
 	}
 
+	if !gotReq.Stream {
+		t.Error("request stream = false, want true — progress reporting depends on the streamed response")
+	}
+	if gotReq.StreamOptions == nil || !gotReq.StreamOptions.IncludeUsage {
+		t.Errorf("request stream_options = %+v, want include_usage true", gotReq.StreamOptions)
+	}
 	if gotReq.Model != "qwen3-vl" {
 		t.Errorf("request model = %q, want qwen3-vl", gotReq.Model)
 	}
@@ -56,10 +100,54 @@ func TestClientCompletePageSendsExpectedRequest(t *testing.T) {
 	}
 }
 
+func TestClientCompletePageStreamReportsDeltas(t *testing.T) {
+	srv := sseFrames(t, nil,
+		dataFrame("one ", ""),
+		": keep-alive",
+		"",
+		dataFrame("two ", ""),
+		"event: message",
+		dataFrame("three", "stop"),
+		`data: {"choices":[],"usage":{"completion_tokens":412}}`,
+		"data: [DONE]",
+	)
+	defer srv.Close()
+
+	var deltas []string
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
+	out, err := c.CompletePageStream(context.Background(), "", "prompt", func(d string) {
+		deltas = append(deltas, d)
+	})
+	if err != nil {
+		t.Fatalf("CompletePageStream: %v", err)
+	}
+	if got, want := strings.Join(deltas, "|"), "one |two |three"; got != want {
+		t.Errorf("deltas = %q, want %q", got, want)
+	}
+	if out.Content != "one two three" {
+		t.Errorf("content = %q, want the deltas concatenated", out.Content)
+	}
+	if out.Tokens != 412 {
+		t.Errorf("Tokens = %d, want 412 from the server's usage frame", out.Tokens)
+	}
+}
+
+func TestClientCompletePageStreamCountsChunksWithoutUsage(t *testing.T) {
+	srv := sseFrames(t, nil, dataFrame("a", ""), dataFrame("b", "stop"), "data: [DONE]")
+	defer srv.Close()
+
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
+	out, err := c.CompletePageStream(context.Background(), "", "prompt", nil)
+	if err != nil {
+		t.Fatalf("CompletePageStream: %v", err)
+	}
+	if out.Tokens != 2 {
+		t.Errorf("Tokens = %d, want the chunk count 2 when the server reports no usage", out.Tokens)
+	}
+}
+
 func TestClientCompletePageTruncated(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"cut off mid-sente"},"finish_reason":"length"}]}`))
-	}))
+	srv := sseFrames(t, nil, dataFrame("cut off mid-sente", "length"), "data: [DONE]")
 	defer srv.Close()
 
 	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
@@ -89,15 +177,173 @@ func TestClientCompletePageHTTPError(t *testing.T) {
 	}
 }
 
+func TestClientCompletePageStreamError(t *testing.T) {
+	srv := sseFrames(t, nil, `data: {"error":{"message":"context window exceeded"}}`)
+	defer srv.Close()
+
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
+	_, _, err := c.CompletePage(context.Background(), "", "prompt")
+	if err == nil {
+		t.Fatal("expected an error for an error frame mid-stream")
+	}
+	if !strings.Contains(err.Error(), "context window exceeded") {
+		t.Errorf("error = %v, want it to include the server's message", err)
+	}
+}
+
 func TestClientCompletePageNoChoices(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"choices":[]}`))
-	}))
+	srv := sseFrames(t, nil, `data: {"choices":[]}`, "data: [DONE]")
 	defer srv.Close()
 
 	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
 	_, _, err := c.CompletePage(context.Background(), "", "prompt")
 	if err == nil {
 		t.Fatal("expected an error when the server returns no choices")
+	}
+}
+
+// stalledServer sends the given frames, then holds the connection open
+// without sending anything more — a server that died mid-generation.
+func stalledServer(t *testing.T, started chan<- struct{}, frames ...string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, _ := w.(http.Flusher)
+		for _, f := range frames {
+			_, _ = w.Write([]byte(f + "\n\n"))
+			flusher.Flush()
+		}
+		if started != nil {
+			close(started)
+		}
+		<-r.Context().Done()
+	}))
+}
+
+func TestClientStallTimeout(t *testing.T) {
+	srv := stalledServer(t, nil, dataFrame("first ", ""))
+	defer srv.Close()
+
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client(), StallTimeout: 50 * time.Millisecond}
+	start := time.Now()
+	_, _, err := c.CompletePage(context.Background(), "", "prompt")
+	if err == nil {
+		t.Fatal("expected an error when the server stops sending")
+	}
+	if !strings.Contains(err.Error(), "sent nothing for") {
+		t.Errorf("error = %v, want it to name the stall rather than a bare context error", err)
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Errorf("stall took %s to surface, want it bounded by StallTimeout", elapsed)
+	}
+}
+
+func TestClientCancellationIsNotReportedAsAStall(t *testing.T) {
+	started := make(chan struct{})
+	srv := stalledServer(t, started, dataFrame("first ", ""))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-started
+		cancel()
+	}()
+
+	// A stall timeout long enough that only the cancellation can end this.
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client(), StallTimeout: time.Minute}
+	_, _, err := c.CompletePage(ctx, "", "prompt")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want it to wrap context.Canceled so a Ctrl-C is recognisable", err)
+	}
+	if strings.Contains(err.Error(), "sent nothing for") {
+		t.Errorf("error = %v, want a cancelled run not to be reported as a stalled server", err)
+	}
+}
+
+// docc is reproducible everywhere else it emits something; a transcription
+// that differs between two identical runs cannot be diffed to see what a
+// prompt change did.
+func TestClientSendsSeed(t *testing.T) {
+	var gotReq chatRequest
+	srv := sseFrames(t, func(r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotReq); err != nil {
+			t.Errorf("decode request body: %v", err)
+		}
+	}, dataFrame("x", "stop"), "data: [DONE]")
+	defer srv.Close()
+
+	c := &Client{Endpoint: srv.URL, Seed: 42, HTTPClient: srv.Client()}
+	if _, _, err := c.CompletePage(context.Background(), "", "prompt"); err != nil {
+		t.Fatalf("CompletePage: %v", err)
+	}
+	if gotReq.Seed != 42 {
+		t.Errorf("request seed = %d, want 42", gotReq.Seed)
+	}
+}
+
+func TestClientSendsSeedZeroExplicitly(t *testing.T) {
+	var body []byte
+	srv := sseFrames(t, func(r *http.Request) {
+		body, _ = io.ReadAll(r.Body)
+	}, dataFrame("x", "stop"), "data: [DONE]")
+	defer srv.Close()
+
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
+	if _, _, err := c.CompletePage(context.Background(), "", "prompt"); err != nil {
+		t.Fatalf("CompletePage: %v", err)
+	}
+	// Omitting the field is what makes a server choose a random seed, so the
+	// default seed of 0 has to appear on the wire.
+	if !strings.Contains(string(body), `"seed":0`) {
+		t.Errorf("request body does not carry an explicit seed: %s", body)
+	}
+}
+
+// The data URL has to name the type it actually carries: a JPEG announced as
+// PNG works only against a server that sniffs the bytes.
+func TestEncodeImageDeclaresTheRealMediaType(t *testing.T) {
+	dir := t.TempDir()
+	for _, tt := range []struct{ name, want string }{
+		{"page.png", "data:image/png;base64,"},
+		{"scan.jpg", "data:image/jpeg;base64,"},
+		{"scan.JPEG", "data:image/jpeg;base64,"},
+		{"shot.webp", "data:image/webp;base64,"},
+		{"anim.gif", "data:image/gif;base64,"},
+	} {
+		path := filepath.Join(dir, tt.name)
+		if err := os.WriteFile(path, []byte("bytes"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		got, err := encodeImage(path)
+		if err != nil {
+			t.Fatalf("encodeImage(%s): %v", tt.name, err)
+		}
+		if !strings.HasPrefix(got, tt.want) {
+			t.Errorf("encodeImage(%s) declares %.30q, want prefix %q", tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestCompletePageSendsTheImagesRealMediaType(t *testing.T) {
+	var gotReq chatRequest
+	srv := sseFrames(t, func(r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotReq); err != nil {
+			t.Errorf("decode request body: %v", err)
+		}
+	}, dataFrame("x", "stop"), "data: [DONE]")
+	defer srv.Close()
+
+	jpg := filepath.Join(t.TempDir(), "scan.jpg")
+	if err := os.WriteFile(jpg, []byte{0xFF, 0xD8, 0xFF}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	c := &Client{Endpoint: srv.URL, HTTPClient: srv.Client()}
+	if _, _, err := c.CompletePage(context.Background(), jpg, "prompt"); err != nil {
+		t.Fatalf("CompletePage: %v", err)
+	}
+	url := gotReq.Messages[0].Content[1].ImageURL.URL
+	if !strings.HasPrefix(url, "data:image/jpeg;base64,") {
+		t.Errorf("image part declares %.30q, want image/jpeg", url)
 	}
 }

@@ -40,12 +40,60 @@ func IsPDF(path string) bool {
 	return strings.EqualFold(filepath.Ext(path), ".pdf")
 }
 
+// imageMIME is the set of image inputs ingest accepts, mapped to the media
+// type its data URL has to declare. It is a map rather than a list because
+// the type has to be named correctly on the wire — a JPEG announced as
+// image/png is at the mercy of whether the server sniffs the bytes.
+var imageMIME = map[string]string{
+	".png":  "image/png",
+	".jpg":  "image/jpeg",
+	".jpeg": "image/jpeg",
+	".webp": "image/webp",
+	".gif":  "image/gif",
+}
+
+// CheckInput reports whether path is something ingest can convert. It exists
+// so that a mistyped command fails immediately, naming the offending file,
+// rather than after a page has already been sent to the VLM — every page is
+// minutes of work, and discovering the mistake afterwards means paying for
+// the pages that did convert twice.
+func CheckInput(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s: no such file", path)
+		}
+		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("%s: is a directory — ingest converts one document at a time", path)
+	}
+	if IsPDF(path) {
+		return nil
+	}
+	if _, ok := imageMIME[strings.ToLower(filepath.Ext(path))]; ok {
+		return nil
+	}
+	return fmt.Errorf("%s: not a PDF or image — ingest converts %s; to name the output file use --output",
+		path, strings.Join(supportedExtensions(), ", "))
+}
+
+func supportedExtensions() []string {
+	exts := make([]string, 0, len(imageMIME)+1)
+	exts = append(exts, ".pdf")
+	for ext := range imageMIME {
+		exts = append(exts, ext)
+	}
+	sort.Strings(exts)
+	return exts
+}
+
 // RenderPages rasterizes every page of a PDF to PNG in outDir using pdftoppm,
 // following the same discipline as internal/emit/pdf.go's soffice wrapper:
 // bounded timeout, fixed argv, and verification by output rather than exit
 // code, since a tool that reports success having produced nothing is worse
 // than one that fails loudly.
-func RenderPages(pdfPath, outDir string, opts RasterOptions) ([]Page, error) {
+func RenderPages(ctx context.Context, pdfPath, outDir string, opts RasterOptions) ([]Page, error) {
 	binary, err := findBinary("pdftoppm")
 	if err != nil {
 		return nil, err
@@ -62,7 +110,7 @@ func RenderPages(pdfPath, outDir string, opts RasterOptions) ([]Page, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	prefix := filepath.Join(outDir, "page")

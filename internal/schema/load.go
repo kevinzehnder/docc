@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -60,7 +61,40 @@ func loadFile(path string) (*Schema, error) {
 	if err := yaml.UnmarshalWithOptions(b, &sc, yaml.Strict()); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
+	if err := checkOutline(sc.Outline); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
 	return &sc, nil
+}
+
+// checkOutline rejects an unusable outline at load, where the schema file can
+// be named, rather than at the ingest that would have used it — by which point
+// the pages have been rasterized and the model has been paid for.
+func checkOutline(o Outline) error {
+	if o.Default != "" {
+		if _, ok := o.Schemes[o.Default]; !ok {
+			return fmt.Errorf("outline default %q names no scheme — declared schemes are %s",
+				o.Default, joinKeys(o.Schemes))
+		}
+	}
+	for _, name := range sortedKeys(o.Schemes) {
+		rules := o.Schemes[name]
+		if len(rules) == 0 {
+			return fmt.Errorf("outline scheme %q declares no rules", name)
+		}
+		for i, r := range rules {
+			if r.Pattern == "" {
+				return fmt.Errorf("outline scheme %q rule %d is missing `pattern`", name, i+1)
+			}
+			if r.Level < 1 || r.Level > 6 {
+				return fmt.Errorf("outline scheme %q rule %d has level %d — markdown headings run from 1 to 6", name, i+1, r.Level)
+			}
+			if _, err := regexp.Compile(r.Pattern); err != nil {
+				return fmt.Errorf("outline scheme %q rule %d has an invalid pattern %q: %w", name, i+1, r.Pattern, err)
+			}
+		}
+	}
+	return nil
 }
 
 // resolve merges a schema with its ancestor chain. seen guards against cycles.
@@ -119,6 +153,12 @@ func merge(parent, child *Schema) *Schema {
 	}
 	if len(child.Rules) == 0 {
 		out.Rules = parent.Rules
+	}
+	// Inherited whole, not merged: a scheme is an ordered set of levels, and
+	// splicing a child's two patterns into a parent's three produces a document
+	// structure neither file describes.
+	if len(child.Outline.Schemes) == 0 {
+		out.Outline = parent.Outline
 	}
 	if child.Theme == "" {
 		out.Theme = parent.Theme
