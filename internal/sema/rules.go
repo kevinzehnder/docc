@@ -124,7 +124,6 @@ var registry = map[string]CheckFunc{
 	"div_items_match":     checkDivItemsMatch,
 	"cross_reference":     checkCrossReference,
 	"no_empty_sections":   checkNoEmptySections,
-	"randziffer_sequence": checkRandzifferSequence,
 }
 
 // KnownChecks lists registered check names, for error messages and docs.
@@ -430,68 +429,4 @@ func sortedKeys[T any](m map[string]T) []string {
 		return out[i] < out[j]
 	})
 	return out
-}
-
-// randzifferRe matches a paragraph opening with a fixed Randziffer marker.
-// The negative lookahead goldmark's regexp cannot express is handled below:
-// a line reading `[Rz 7]: url` is a markdown link reference definition, not a
-// paragraph number.
-var randzifferRe = regexp.MustCompile(`^(\[Rz (\d+)\])`)
-
-// checkRandzifferSequence verifies that a reference document's paragraph
-// numbers run unbroken.
-//
-// In a document docc renders, the marginal number is generated and renumbers
-// itself. In a document transcribed from a third party it is the opposite: the
-// number is the citation key, fixed by whoever wrote it, and the transcription
-// has to reproduce it exactly. A gap therefore means the transcription lost
-// something — most often a page ingest failed to convert — and every citation
-// after the gap points at the wrong paragraph. Nothing else in the pipeline can
-// notice that.
-//
-// The first marker sets the count; a document that begins at 55 is a legitimate
-// extract, not an error.
-//
-// args:
-//
-//	pattern: what a marker looks like. Defaults to `[Rz N]` at the line start.
-func checkRandzifferSequence(c *ruleContext) {
-	re, ok := c.argRegexp("pattern", randzifferRe)
-	if !ok {
-		return
-	}
-
-	prev, prevLine := 0, 0
-	for i := 1; i <= countLines(c.File.Source); i++ {
-		line := c.File.LineText(i)
-		loc := matchSpan(re, line)
-		if loc == nil {
-			continue
-		}
-		// `[Rz 7]: https://…` defines a markdown link reference.
-		if rest := line[loc[1]:]; strings.HasPrefix(rest, ":") {
-			continue
-		}
-		m := re.FindStringSubmatch(line)
-		n, err := strconv.Atoi(m[len(m)-1])
-		if err != nil {
-			continue
-		}
-		pos := diag.Position{Line: i, Col: loc[0] + 1, Len: loc[1] - loc[0]}
-
-		switch {
-		case prev == 0: // the first marker starts the count wherever it likes
-		case n == prev+1:
-		case n == prev:
-			c.report(pos, "give each paragraph its own number, as the source document does",
-				"paragraph number %d repeats the previous one", n)
-		case n < prev:
-			c.report(pos, "restore the source document's order",
-				"paragraph number %d goes backwards after %d on line %d", n, prev, prevLine)
-		default:
-			c.report(pos, "a gap means the transcription lost text — re-convert the missing pages and splice them in",
-				"paragraph numbers jump from %d to %d, skipping %d", prev, n, n-prev-1)
-		}
-		prev, prevLine = n, i
-	}
 }

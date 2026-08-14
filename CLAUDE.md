@@ -52,9 +52,6 @@ testdata/            golden corpus: schemas/, good/, bad/
 - `good/` — must produce zero errors (`TestGoodDocumentsHaveNoErrors`) *and* build
   to `.docx` (`TestBuildGolden`). A fixture only belongs here if its schema has a
   theme that can render it.
-- `reference/` — valid documents that are checked but not built. A transcription
-  of a third party's brief has none of the fields our filing theme interpolates
-  (court, parties, signatory), because it is read and cited rather than filed.
 - `bad/` — exercises specific failures
 - `*.golden` — committed rendered diagnostics for every fixture
 - `golden/<fixture>/*.xml` — the `word/` parts every `good/` fixture builds to

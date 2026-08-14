@@ -409,7 +409,6 @@ func cmdExplain(args []string) int {
 // explanations backs `docc explain`. Codes the schema author defines for named
 // rules are documented in the schema, not here.
 var explanations = map[string]string{
-	"REF010": "a reference document's paragraph numbers do not run unbroken. Those numbers are the source document's own citation keys, not something docc generates, so a gap, a repeat or a step backwards means the transcription lost or reordered text — re-convert the affected pages rather than renumbering.",
 	"DOC001": "the file has no YAML frontmatter. Every document starts with a `---` delimited block declaring `docc: 1` and `document_type`.",
 	"DOC002": "the frontmatter block was opened with `---` but never closed.",
 	"DOC003": "the frontmatter is not valid YAML.",
