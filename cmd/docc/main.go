@@ -136,11 +136,11 @@ func cmdCheck(args []string) int {
 		return 2
 	}
 
-	set, err := loadSchemas(cf.schemaDir, files[0])
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 2
-	}
+	// Schemas are resolved per file, not once from the first argument. Files
+	// named on one command line may live in different projects, and loading one
+	// project's contract to check another's document validates against the wrong
+	// schema — a silent false pass. The cache keeps a shared project loaded once.
+	cache := map[string]*schema.Set{}
 
 	var all diag.List
 	sources := map[string][]byte{}
@@ -152,6 +152,12 @@ func cmdCheck(args []string) int {
 		}
 		name := displayPath(path)
 		sources[name] = src
+
+		set, err := loadSchemasCached(cache, cf.schemaDir, path)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 2
+		}
 
 		f, parseDiags := parse.Parse(name, src)
 		res := sema.Check(f, set, parseDiags, cf.docType)
@@ -324,16 +330,42 @@ func cmdBuild(args []string) int {
 	f, parseDiags := parse.Parse(name, src)
 	res := sema.Check(f, schemas, parseDiags, cf.docType)
 
+	// --strict is the caller asking for the warnings to bind too, so a document
+	// that only warns is treated exactly like one that errors: the build stops.
+	diags := res.Diagnostics
+	if cf.strict {
+		for i := range diags {
+			diags[i].Severity = diag.Error
+		}
+	}
+
+	srcText := func(string) string { return string(src) }
+	// Diagnostics go to stderr so stdout carries only the output path (or the
+	// result object under --json); --json keeps them machine-readable there too,
+	// rather than falling back to the human caret rendering.
+	emitDiags := func() {
+		if len(diags) == 0 {
+			return
+		}
+		if cf.jsonOut {
+			_ = diags.RenderJSON(os.Stderr)
+		} else {
+			_ = diags.Render(os.Stderr, srcText, cf.color())
+		}
+	}
+
 	// Validation gates the build. Reporting the diagnostics and stopping is the
 	// whole point: a document that fails its schema should not reach a court.
-	if res.Diagnostics.HasErrors() && !*force {
-		_ = res.Diagnostics.Render(os.Stderr, func(string) string { return string(src) }, cf.color())
-		fmt.Fprintln(os.Stderr, "\nrefusing to build — fix the errors above, or pass --force")
+	if diags.HasErrors() && !*force {
+		emitDiags()
+		if cf.jsonOut {
+			fmt.Printf("{\"ok\":false,\"error\":\"validation failed\",\"type\":%q}\n", res.DocType)
+		} else {
+			fmt.Fprintln(os.Stderr, "\nrefusing to build — fix the errors above, or pass --force")
+		}
 		return 1
 	}
-	if len(res.Diagnostics) > 0 {
-		_ = res.Diagnostics.Render(os.Stderr, func(string) string { return string(src) }, cf.color())
-	}
+	emitDiags()
 	if res.Schema == nil {
 		fmt.Fprintln(os.Stderr, "docc: no schema resolved; cannot build")
 		return 1
@@ -365,22 +397,35 @@ func cmdBuild(args []string) int {
 		outPath = strings.TrimSuffix(input, filepath.Ext(input)) + "." + *to
 	}
 
-	docxPath := outPath
-	if *to == "pdf" {
-		docxPath = strings.TrimSuffix(outPath, filepath.Ext(outPath)) + ".docx"
-	}
-	if err := built.Write(docxPath); err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 1
-	}
-
-	if *to == "pdf" {
-		if err := emit.ToPDF(docxPath, outPath, emit.PDFOptions{Retries: 1}); err != nil {
+	switch *to {
+	case "docx":
+		if err := writeAtomic(outPath, built.Write); err != nil {
 			fmt.Fprintln(os.Stderr, "docc:", err)
 			return 1
 		}
-		// The intermediate .docx is not what was asked for.
-		_ = os.Remove(docxPath)
+	case "pdf":
+		// The intermediate .docx is built in a private temp directory, never
+		// derived from outPath. Deriving it — outPath with a .docx extension —
+		// collides when the caller writes `--to pdf --output x.docx`, and the
+		// cleanup step then deletes the file that was just produced.
+		tmpDir, err := os.MkdirTemp("", "docc-build-")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 1
+		}
+		defer func() { _ = os.RemoveAll(tmpDir) }()
+
+		tmpDocx := filepath.Join(tmpDir, "doc.docx")
+		if err := built.Write(tmpDocx); err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 1
+		}
+		if err := writeAtomic(outPath, func(dst string) error {
+			return emit.ToPDF(tmpDocx, dst, emit.PDFOptions{Retries: 1})
+		}); err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 1
+		}
 	}
 
 	if cf.jsonOut {
@@ -444,6 +489,62 @@ func loadSchemas(schemaDir, start string) (*schema.Set, error) {
 		return nil, err
 	}
 	return schema.Load(proj.SchemaDir())
+}
+
+// loadSchemasCached is loadSchemas memoised across the files of one `docc check`
+// run. The key is the schema directory each file resolves to — the flag when
+// given, otherwise the file's own project — so files sharing a project load its
+// schemas once, and files in different projects each get their own contract.
+func loadSchemasCached(cache map[string]*schema.Set, schemaDir, start string) (*schema.Set, error) {
+	key := schemaDir
+	if key == "" {
+		if proj, err := project.Resolve(start); err == nil {
+			key = proj.Dir
+		}
+	}
+	if key != "" {
+		if set, ok := cache[key]; ok {
+			return set, nil
+		}
+	}
+	set, err := loadSchemas(schemaDir, start)
+	if err != nil {
+		return nil, err
+	}
+	if key != "" {
+		cache[key] = set
+	}
+	return set, nil
+}
+
+// writeAtomic writes to a temporary file in the destination's own directory and
+// renames it over dest, so an interrupted or failed build never truncates or
+// half-writes an existing output. The rename is atomic because the temp file
+// shares dest's filesystem. write receives the temp path and must create it.
+func writeAtomic(dest string, write func(path string) error) error {
+	dir := filepath.Dir(dest)
+	tmp, err := os.CreateTemp(dir, "."+filepath.Base(dest)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	_ = tmp.Close()
+
+	committed := false
+	defer func() {
+		if !committed {
+			_ = os.Remove(tmpName)
+		}
+	}()
+
+	if err := write(tmpName); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpName, dest); err != nil {
+		return err
+	}
+	committed = true
+	return nil
 }
 
 // loadThemes resolves the theme directory the same way loadSchemas resolves the
