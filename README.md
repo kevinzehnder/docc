@@ -84,7 +84,7 @@ docc check --json document.md     emit machine-readable diagnostics
 docc check --strict document.md   treat warnings as errors
 docc build document.md            create document.docx
 docc build --to pdf document.md   create document.pdf
-docc build -o out.docx document.md
+docc build --output out.docx document.md
 docc types                        list available document types
 docc themes                       list available themes
 docc explain DOC010               explain an engine diagnostic
