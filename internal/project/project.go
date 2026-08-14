@@ -31,9 +31,6 @@ func (p *Project) SchemaDir() string { return filepath.Join(p.Dir, "schemas") }
 // ThemeDir returns the directory holding theme definitions and their assets.
 func (p *Project) ThemeDir() string { return filepath.Join(p.Dir, "themes") }
 
-// IngestConfigPath returns the path of the VLM ingest configuration file.
-func (p *Project) IngestConfigPath() string { return filepath.Join(p.Dir, "ingest.yaml") }
-
 // Resolve walks up from start looking for a .docc directory, the way git finds
 // .git. start may be a file or a directory.
 func Resolve(start string) (*Project, error) {
