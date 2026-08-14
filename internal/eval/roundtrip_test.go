@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -39,6 +40,7 @@ var (
 	dpiFlag    = flag.Int("dpi", 0, "rasterization DPI (default: from .docc/ingest.yaml)")
 	endpoint   = flag.String("endpoint", "", "VLM endpoint (default: from .docc/ingest.yaml)")
 	docFlag    = flag.String("doc", "", "an external PDF to score instead of the round trip; needs a text layer")
+	corpusFlag = flag.String("corpus", "", "a directory of real PDFs (e.g. scans) to transcribe and report on, one by one")
 	keepFlag   = flag.Bool("keep", false, "keep the rendered PDF for inspection")
 	updateFlag = flag.Bool("update", false, "rewrite testdata/baseline.txt with this run's scores")
 )
@@ -177,6 +179,85 @@ func TestExternalDocument(t *testing.T) {
 				Markdown:   md,
 				SourceText: want,
 			}), len(pages), time.Since(start))
+		})
+	}
+}
+
+// TestCorpus transcribes every PDF in a directory and reports on each, so a
+// folder of real documents — the scans a firm actually files, which cannot live
+// in the repository — can be run through the pipeline in one command:
+//
+//	task test:eval -- -run Corpus -corpus assets
+//
+// It scores, it does not gate. There is no committed baseline because there is
+// no committed corpus: the documents are a third party's, they vary, and a
+// number measured against a folder nobody else has is not a regression anyone
+// can reproduce. The value is the readout, read by a person deciding whether the
+// pipeline is good enough for the documents it will actually see.
+//
+// Two regimes, decided per document by whether it carries a text layer:
+//
+//   - Born-digital or already-OCR'd PDF: the text layer is an approximate
+//     ground truth, so the word scores mean something, with the reading-order
+//     caveat TestExternalDocument notes.
+//   - A scan: no text layer, so the word scores are skipped and only the
+//     structural signals remain. The one that needs no ground truth is the
+//     Randziffer sequence — a gap, repeat or reversal is a page the pipeline
+//     lost or doubled, visible without knowing what the page was supposed to
+//     say. Leaked page numbers and letterheads are the other two.
+func TestCorpus(t *testing.T) {
+	if *corpusFlag == "" {
+		t.Skip("pass -corpus <dir> to transcribe a directory of PDFs")
+	}
+	// `go test` runs in the package directory, so a relative -corpus is resolved
+	// against the repository root the way a person naming "assets" means it,
+	// rather than against internal/eval where nothing they have lives.
+	dir := *corpusFlag
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join("..", "..", dir)
+	}
+	pdfs, err := filepath.Glob(filepath.Join(dir, "*.pdf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pdfs) == 0 {
+		t.Skipf("no PDFs in %s", dir)
+	}
+	sort.Strings(pdfs)
+
+	cfg := loadConfig(t)
+	// The convention a third party's brief is most likely to follow, so the
+	// headings that can be recognized are marked. Not strict: an unfamiliar
+	// document is exactly the one whose structure we would rather keep than
+	// discard, so a line matching no rule is left as the model produced it.
+	outline := outlineFor(t, filepath.Join("..", "..", "testdata"), "legal_reference")
+
+	for _, model := range models(cfg) {
+		t.Run(model, func(t *testing.T) {
+			for _, pdf := range pdfs {
+				t.Run(filepath.Base(pdf), func(t *testing.T) {
+					runCfg := cfg
+					runCfg.Model = model
+					runCfg.Anchor = false
+
+					want := textLayer(t, pdf)
+					if strings.TrimSpace(want) == "" {
+						t.Logf("%s has no text layer — a scan; only the structural scores mean anything", filepath.Base(pdf))
+					}
+
+					start := time.Now()
+					md, pages, err := ingest.Convert(context.Background(), pdf, runCfg, ingest.ConvertOptions{
+						Outline: outline,
+					})
+					if err != nil {
+						t.Fatalf("convert: %v", err)
+					}
+					report(t, filepath.Base(pdf), "vision-only", Grade(Transcription{
+						Markdown:   md,
+						SourceText: want,
+					}), len(pages), time.Since(start))
+				})
+			}
 		})
 	}
 }
