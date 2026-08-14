@@ -453,3 +453,7 @@ schema declares: beilagen, closing, date, document_type, recipient, ...
 
 `docc init`, `docc check`, `docc build` and the `internal/docx` writer are implemented and wired together.
 Remaining work is in `docs/next-steps.md`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
