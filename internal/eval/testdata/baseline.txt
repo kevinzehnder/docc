@@ -5,8 +5,4 @@
 # fault — the theme prints boilerplate that is on the page and in no source.
 # Wall time is not recorded; it changes for reasons unrelated to any change
 # under test.
-# The chat rows are absent on purpose: the ones recorded before the scoring
-# fixes understated precision, and a row measured by a different scorer reads
-# as a permanent improvement that can never fire. Re-record them with
-#   task test:eval -- -update -backends chat -models <model>
-mineru/mineru-pro-2605 vision-only precision=0.817 recall=0.988 f1=0.894 rz=4/4 breaks=0 headings=8/8 pagenumbers=0 letterheads=1
+mineru/mineru-pro-2605 vision-only precision=0.930 recall=0.998 f1=0.962 rz=20/20 breaks=0 headings=14/14 pagenumbers=0 letterheads=1

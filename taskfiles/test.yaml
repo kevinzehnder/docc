@@ -39,9 +39,10 @@ tasks:
   eval:
     desc: score ingest against a document docc rendered itself (needs a VLM and soffice)
     summary: |
-      Renders testdata/good/legal_valid.md to PDF, transcribes it back, and
-      reports how much survived. The ground truth is exact because the fixture
-      is ours.
+      Renders testdata/good/legal_complex.md to PDF, transcribes it back, and
+      reports how much survived. The brief runs across several pages on purpose,
+      so a lost page shows up as a break in the Randziffer sequence. The ground
+      truth is exact because the fixture is ours.
 
       Scores are compared against internal/eval/testdata/baseline.txt and the
       run fails on anything worse, so "did this change help?" is a diff rather
@@ -50,6 +51,10 @@ tasks:
 
       Compare models on the same page:
         task test:eval -- -models olmocr-2-7b,ggml-org/gemma-4-E4B-it-GGUF:Q4_0
+
+      Check that a reference document's hardcoded [Rz N] survive verbatim —
+      they are citation keys, so this asserts rather than scores:
+        task test:eval -- -run ReferenceRandziffern
 
       Score somebody else's document against its own text layer:
         task test:eval -- -run External -doc assets/Replik.pdf

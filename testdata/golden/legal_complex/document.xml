@@ -1,0 +1,1073 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<w:body>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Kanzlei"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Advokatur und Notariat</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_KanzleiName"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Muster &amp; Partner</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Rule"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_AddrBold"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Musterstrasse 1</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_AddrBold"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">5000 Aarau</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Telefon 000 000 00 00</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_AddrBold"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Dr. iur. Anna Beispiel</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Rechtsanwalt und Notar</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">ab@example.ch</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_AddrBold"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">lic. iur. Bruno Beispiel</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Rechtsanwalt</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">bb@example.ch</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_AddrBold"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">lic. iur. Clara Muster</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Rechtsanwalt LL.M.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">cm@example.ch</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_AddrBold"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">lic. iur. David Muster</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Rechtsanwalt</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">dm@example.ch</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LH_Addr"/>
+<w:framePr w:w="2551" w:hAnchor="page" w:vAnchor="page" w:x="8391" w:y="2268" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">im Anwaltsregister eingetragen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalVersand"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">EINSCHREIBEN</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalGericht"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Bezirksgericht Baden</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalGericht"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Präsidium des Zivilgerichts</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalGericht"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Mellingerstrasse 2a</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalGericht"/>
+<w:framePr w:w="5386" w:hAnchor="page" w:vAnchor="page" w:x="1417" w:y="3402" w:wrap="around"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">5400 Baden</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalDate"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Baden, 27. Mai 2026</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalCaseRef"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">ZG.2026.087</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalDocTitle"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Klageschrift</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalPlain"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">für</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalPartyEntry"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="LegalBold"/>
+</w:rPr>
+<w:t xml:space="preserve">Anna Muster</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">Klägerin</w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="LegalSmall"/>
+</w:rPr>
+<w:br/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="LegalSmall"/>
+</w:rPr>
+<w:t xml:space="preserve">5000 Aarau, Musterstrasse 1</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalVertreter"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">vertreten durch </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">lic. iur. David Muster, Rechtsanwalt, Aarau</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalPlain"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">gegen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalPartyEntry"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="LegalBold"/>
+</w:rPr>
+<w:t xml:space="preserve">Beispiel AG</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">Beklagte</w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="LegalSmall"/>
+</w:rPr>
+<w:br/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="LegalSmall"/>
+</w:rPr>
+<w:t xml:space="preserve">5400 Baden, Industrieweg 5</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBetreff"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">betreffend </w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="LegalBold"/>
+</w:rPr>
+<w:t xml:space="preserve">Forderung aus Werkvertrag</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBodyStart"/>
+<w:pageBreakBefore/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">RECHTSBEGEHREN</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Rechtsbegehren"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="2"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Beklagte sei zu verpflichten, der Klägerin CHF 84'500.00 nebst Zins zu 5 % seit 1. Juli 2024 zu bezahlen;</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Rechtsbegehren"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="2"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">es sei der Rechtsvorschlag in der Betreibung Nr. 2024/1187 des Betreibungsamtes Baden im Umfang von CHF 84'500.00 zu beseitigen;</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Rechtsbegehren"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="2"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">eventualiter sei die Beklagte zu verpflichten, der Klägerin den nach richterlichem Ermessen festzusetzenden Werklohn zu bezahlen;</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Rechtsbegehren"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="2"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">unter Kosten- und Entschädigungsfolgen zulasten der Beklagten.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">BEGRÜNDUNG</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Zuständigkeit</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die örtliche Zuständigkeit des angerufenen Gerichts ergibt sich aus dem Sitz der Beklagten in Baden. Nach Art. 10 Abs. 1 lit. b ZPO ist für Klagen gegen eine juristische Person das Gericht an deren Sitz zuständig, soweit keine abweichende Gerichtsstandsvereinbarung besteht.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Eine solche Vereinbarung haben die Parteien nicht getroffen. Der Werkvertrag enthält keine Gerichtsstandsklausel, und die Beklagte hat sich vorprozessual auch nie auf einen anderen Gerichtsstand berufen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Prozessvoraussetzungen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Klägerin hat das nach Art. 197 ZPO vorgeschriebene Schlichtungsverfahren durchlaufen. Die Klagebewilligung der Schlichtungsbehörde Baden vom 14. April 2026 liegt vor und ist bei Einreichung dieser Klage noch nicht abgelaufen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Der Streitwert übersteigt CHF 30'000.00, weshalb das ordentliche Verfahren zur Anwendung gelangt und die Streitsache in die sachliche Zuständigkeit des Bezirksgerichts fällt.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Sachverhalt</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Vertragsschluss</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Parteien schlossen am 3. März 2024 einen schriftlichen Werkvertrag über den Innenausbau der Geschäftsräume der Beklagten an der Industrieweg 5 in Baden. Gegenstand des Vertrages waren Schreiner-, Maler- und Bodenlegerarbeiten zu einem Pauschalpreis von CHF 84'500.00.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Grundlage des Vertrages bildete der Kostenvoranschlag der Klägerin vom 15. Februar 2024, den die Beklagte vorbehaltlos genehmigte. Als Fertigstellungstermin wurde der 31. Mai 2024 vereinbart.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Beweismittel"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="4"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">[Beilage 1] Werkvertrag vom 3. März 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Beweismittel"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="4"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">[Beilage 2] Kostenvoranschlag vom 15. Februar 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Ausführung der Arbeiten</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Klägerin nahm die Arbeiten am 18. März 2024 auf und führte sie ohne Unterbruch aus. Sämtliche im Kostenvoranschlag beschriebenen Positionen wurden fach- und termingerecht erbracht.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Während der Ausführung verlangte die Beklagte mündlich mehrere Anpassungen an der Materialwahl. Diese Änderungen waren im vereinbarten Pauschalpreis enthalten und führten zu keiner Mehrforderung der Klägerin.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Abnahme und Mängel</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Am 12. Juni 2024 fand die gemeinsame Abnahme des Werks statt. Die Parteien hielten das Ergebnis in einem von beiden Seiten unterzeichneten Abnahmeprotokoll fest. Das Werk wurde als vertragsgemäss und vollständig abgenommen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Beklagte rügte anlässlich der Abnahme keine Mängel. Erst mit Schreiben vom 20. Juni 2024, also nach vorbehaltloser Abnahme, machte sie erstmals angebliche Mängel an der Oberflächenbehandlung geltend.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Beweismittel"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="5"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">[Beilage 3] Abnahmeprotokoll vom 12. Juni 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Beweismittel"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="5"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">[Beilage 4] Mängelrüge vom 20. Juni 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Zahlungsverzug</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Klägerin stellte der Beklagten den vereinbarten Werklohn am 14. Juni 2024 in Rechnung, zahlbar innert 14 Tagen. Trotz Fälligkeit und trotz mehrfacher Mahnung leistete die Beklagte keine Zahlung.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Nach unbeantworteter Zahlungserinnerung vom 5. August 2024 leitete die Klägerin die Betreibung ein. Die Beklagte erhob gegen den Zahlungsbefehl vom 2. September 2024 vollumfänglich Rechtsvorschlag.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Beweismittel"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="6"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">[Beilage 5] E-Mail-Korrespondenz vom 1. bis 31. Juli 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Beweismittel"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="6"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">[Beilage 6] Zahlungserinnerung vom 5. August 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Beweismittel"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="6"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">[Beilage 7] Betreibungsbegehren vom 2. September 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Rechtliches</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Werklohnforderung</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Nach Art. 363 OR verpflichtet der Werkvertrag den Unternehmer zur Herstellung des Werks und den Besteller zur Zahlung einer Vergütung. Die Vergütung wird nach Art. 372 Abs. 1 OR mit der Ablieferung des Werks fällig.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Klägerin hat das Werk vertragsgemäss abgeliefert und die Beklagte hat es vorbehaltlos abgenommen. Der Werklohn von CHF 84'500.00 ist damit vollumfänglich fällig und geschuldet.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Verzugszins</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Beklagte befindet sich seit dem 1. Juli 2024 in Verzug. Nach Art. 104 Abs. 1 OR schuldet der Schuldner Verzugszinsen zu 5 %, sofern keine höheren Zinsen vereinbart sind.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Der Zins ist ab dem auf die Fälligkeit folgenden Tag geschuldet. Die Klägerin macht ihn ab dem 1. Juli 2024 geltend.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Mängeleinrede der Beklagten</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die von der Beklagten nachträglich geltend gemachten Mängel sind unbeachtlich. Nach Art. 370 Abs. 1 OR gilt das Werk als genehmigt, soweit der Besteller es vorbehaltlos abnimmt und keine Mängel rügt.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Beklagte hat das Werk im Abnahmeprotokoll ausdrücklich und vorbehaltlos abgenommen. Ihre spätere Rüge vom 20. Juni 2024 ist verspätet und vermag die Fälligkeit des Werklohns nicht zu hindern.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Fazit</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Klägerin hat ihre vertraglichen Leistungen vollständig und mängelfrei erbracht. Die Beklagte schuldet den vereinbarten Werklohn von CHF 84'500.00 nebst Verzugszins und hat die Betreibung ohne rechtlichen Grund mit Rechtsvorschlag blockiert.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Klage ist demnach vollumfänglich gutzuheissen und der Rechtsvorschlag in der Betreibung Nr. 2024/1187 zu beseitigen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalSchlussLinie"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalSchlussformel"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Aufgrund der vorstehenden Erwägungen ersuche ich Sie um Gutheissung der vorgenannten Rechtsbegehren.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalGruss"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Mit freundlichen Grüssen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalUnterschrift"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">lic. iur. David Muster</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalVermerk"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Im Doppel</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalVermerk"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Beilagen gemäss separatem Beilagenverzeichnis</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenTitel"/>
+<w:pageBreakBefore/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Beilagen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="7"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Werkvertrag vom 3. März 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="7"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Kostenvoranschlag vom 15. Februar 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="7"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Abnahmeprotokoll vom 12. Juni 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="7"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Mängelrüge vom 20. Juni 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="7"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">E-Mail-Korrespondenz vom 1. bis 31. Juli 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="7"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Zahlungserinnerung vom 5. August 2024</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="LegalBeilagenItem"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="7"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Betreibungsbegehren vom 2. September 2024</w:t>
+</w:r>
+</w:p>
+<w:sectPr>
+<w:pgSz w:w="11906" w:h="16838"/>
+<w:pgMar w:top="1247" w:right="1417" w:bottom="1134" w:left="1417" w:header="680" w:footer="567" w:gutter="0"/>
+<w:cols w:space="708"/>
+<w:docGrid w:linePitch="360"/>
+</w:sectPr>
+</w:body>
+</w:document>

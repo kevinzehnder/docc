@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -55,7 +56,11 @@ func TestRoundTrip(t *testing.T) {
 	}
 	root := filepath.Join("..", "..", "testdata")
 
-	srcPath := filepath.Join(root, "good", "legal_valid.md")
+	// legal_complex is the yardstick rather than legal_valid: a longer brief
+	// whose Randziffern run across several pages is what proves the score
+	// notices a lost page, and the small fixture never spanned one. Both are
+	// authored by us, so the ground truth is exact either way.
+	srcPath := filepath.Join(root, "good", "legal_complex.md")
 	src, err := os.ReadFile(srcPath)
 	if err != nil {
 		t.Fatal(err)
@@ -172,6 +177,78 @@ func TestExternalDocument(t *testing.T) {
 				Markdown:   md,
 				SourceText: want,
 			}), len(pages), time.Since(start))
+		})
+	}
+}
+
+// TestReferenceRandziffernSurvive transcribes a numbered brief under
+// legal_reference semantics and checks that its paragraph numbers come back
+// exactly, 1..N with no gap, repeat or reversal.
+//
+// This is the opposite requirement to TestRoundTrip. There the Randziffer is
+// ours to regenerate: a transcription that renumbers is no error, because
+// building the document assigns the numbers afresh. Here the page belongs to
+// somebody else and the number is the citation key — carried as body text
+// rather than generated, since legal_reference declares no
+// render.paragraph_numbering — so a dropped or doubled number is a citation
+// pointing at the wrong paragraph. The assertion is exact equality, not a
+// score.
+//
+// The page under test is the same one TestRoundTrip renders: legal_complex
+// carries a continuous margin Randziffer 1..20, which is exactly what a filed
+// brief a firm would cite looks like. A reference is never itself rendered —
+// it is transcribed from a client PDF that cannot live in the repository — so
+// the fixture stands in for that PDF, and the only thing that changes from the
+// round trip is that ingest is told to treat the numbers as the source's rather
+// than its own.
+func TestReferenceRandziffernSurvive(t *testing.T) {
+	if _, err := exec.LookPath("soffice"); err != nil {
+		t.Skip("soffice not on PATH")
+	}
+	root := filepath.Join("..", "..", "testdata")
+
+	srcPath := filepath.Join(root, "good", "legal_complex.md")
+	src, err := os.ReadFile(srcPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The rendered page numbers every prose paragraph after RECHTSBEGEHREN
+	// continuously from 1, so the sequence that has to survive is 1..N.
+	n := ExpectedRandziffern(string(src), "BEGRÜNDUNG")
+	want := make([]int, n)
+	for i := range want {
+		want[i] = i + 1
+	}
+
+	pdfPath, _ := buildPDF(t, root, srcPath, src)
+	cfg := loadConfig(t)
+	outline := outlineFor(t, root, "legal_reference")
+
+	for _, model := range models(cfg) {
+		t.Run(model, func(t *testing.T) {
+			runCfg := cfg
+			runCfg.Model = model
+			// Anchoring feeds the text layer into the prompt, which would let a
+			// model copy the numbers rather than read them off the page. The
+			// point is whether the page survives transcription, so it is off.
+			runCfg.Anchor = false
+
+			md, _, err := ingest.Convert(context.Background(), pdfPath, runCfg, ingest.ConvertOptions{
+				DocType:       "legal_reference",
+				Outline:       outline,
+				OutlineStrict: true,
+			})
+			if err != nil {
+				t.Fatalf("convert: %v", err)
+			}
+
+			got := markedNumbers(md)
+			if !slices.Equal(got, want) {
+				t.Errorf("Randziffern did not survive verbatim\n  want %v\n  got  %v\n"+
+					"A reference document's numbers are citation keys and must come back exactly; "+
+					"a gap or repeat above is a page the transcription lost or doubled.", want, got)
+			}
 		})
 	}
 }
@@ -303,11 +380,12 @@ func buildPDF(t *testing.T, root, srcPath string, src []byte) (string, map[strin
 		}
 		t.Logf("keeping rendered output in %s", dir)
 	}
-	docxPath := filepath.Join(dir, "legal_valid.docx")
+	base := strings.TrimSuffix(filepath.Base(srcPath), ".md")
+	docxPath := filepath.Join(dir, base+".docx")
 	if err := os.WriteFile(docxPath, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	pdfPath := filepath.Join(dir, "legal_valid.pdf")
+	pdfPath := filepath.Join(dir, base+".pdf")
 	if err := emit.ToPDF(docxPath, pdfPath, emit.PDFOptions{Retries: 1}); err != nil {
 		t.Fatalf("render to pdf: %v", err)
 	}
