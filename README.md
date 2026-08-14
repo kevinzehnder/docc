@@ -398,23 +398,12 @@ stops the engine quietly specialising in one document shape.
 
 ## Writing Word documents
 
-`pkg/docx` writes `.docx` from scratch — no template to fill, no dependencies
-beyond the standard library. It is importable on its own:
+`internal/docx` writes `.docx` from scratch — no template to fill, no
+dependencies beyond the standard library. It is an implementation detail of
+`docc build`, not a published Go library: the package is internal so its API can
+change with the compiler rather than being versioned as a separate product.
 
-```go
-d := &docx.Document{
-    Section: docx.Section{
-        Page:    docx.A4,
-        Margins: docx.Margins{Top: docx.Mm(20), Bottom: docx.Mm(20), Left: docx.Mm(26), Right: docx.Mm(15)},
-    },
-    Defaults: docx.Defaults{Run: docx.RunProps{Font: "Arial", Size: docx.FontPt(11)}},
-    Styles:   []docx.Style{{ID: "Standard", Name: "Standard", Default: true}},
-    Body:     []docx.Block{docx.P("Standard", "Sehr geehrte Damen und Herren,")},
-}
-err := d.Write("letter.docx")
-```
-
-Supports styles, numbered and bulleted lists, tables with spans and borders,
+It supports styles, numbered and bulleted lists, tables with spans and borders,
 headers and footers (including a distinct first page), embedded images, and
 absolutely positioned frames — which is how the address block lands in the
 envelope window.
@@ -462,5 +451,5 @@ schema declares: beilagen, closing, date, document_type, recipient, ...
 
 ## Status
 
-`docc init`, `docc check`, `docc build` and `pkg/docx` are implemented and wired together.
+`docc init`, `docc check`, `docc build` and the `internal/docx` writer are implemented and wired together.
 Remaining work is in `docs/next-steps.md`.

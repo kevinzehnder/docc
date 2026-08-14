@@ -18,7 +18,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/kevinzehnder/docc/pkg/docx"
+	"github.com/kevinzehnder/docc/internal/docx"
 )
 
 // Theme is one visual definition, loaded from a YAML file.

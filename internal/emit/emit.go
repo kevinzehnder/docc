@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kevinzehnder/docc/internal/docx"
 	"github.com/kevinzehnder/docc/internal/ir"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/theme"
-	"github.com/kevinzehnder/docc/pkg/docx"
 )
 
 // Options configures a build.

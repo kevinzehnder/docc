@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kevinzehnder/docc/pkg/docx"
+	"github.com/kevinzehnder/docc/internal/docx"
 )
 
 // Length is a measurement written with its unit: "20mm", "12pt", "1.5cm".

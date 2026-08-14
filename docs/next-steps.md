@@ -8,7 +8,7 @@ conventions before starting.
 **docc is a generic engine. The document conventions belong to the project being
 compiled.**
 
-- `pkg/docx`, `internal/{parse,schema,sema,ir,emit,theme}` — engine. Must not
+- `internal/docx`, `internal/{parse,schema,sema,ir,emit,theme}` — engine. Must not
   know about law, German, or any particular firm.
 - `<project>/.docc/schemas/*.yaml` — what a document type *is*.
 - `<project>/.docc/themes/*.yaml` — what it *looks like*.
