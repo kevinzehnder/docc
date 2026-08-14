@@ -1,0 +1,39 @@
+# Shared field shapes and fields common to every document type.
+# Filename starts with "_" by convention: this exists to be extended.
+type: base
+description: Common frontmatter shared by all document types.
+
+types:
+  address:
+    name: { type: string, required: true }
+    street: { type: string, required: true }
+    postal_code:
+      type: string
+      required: true
+      pattern: '^\d{4}$'
+      hint: 'Swiss postal codes are four digits and must be quoted: "5400"'
+    city: { type: string, required: true }
+
+  party:
+    name: { type: string, required: true }
+    role: { type: string, required: true }
+    street: { type: string, required: true }
+    postal_code:
+      type: string
+      required: true
+      pattern: '^\d{4}$'
+      hint: 'Swiss postal codes are four digits and must be quoted: "5400"'
+    city: { type: string, required: true }
+
+frontmatter:
+  document_type:
+    type: string
+    required: true
+    hint: must match a schema in .docc/schemas
+  date:
+    type: date
+    required: true
+    hint: ISO format, e.g. 2026-08-04
+  tags:
+    type: list<string>
+    default: []

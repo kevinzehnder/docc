@@ -1,0 +1,161 @@
+type: legal
+extends: base
+description: Formal legal brief (Klageschrift, Klageantwort, Rechtsschrift).
+theme: starter-legal
+
+frontmatter:
+  legal_doc_type:
+    type: enum
+    required: true
+    values:
+      - Klageschrift
+      - Klageantwort
+      - Replik
+      - Duplik
+      - Berufung
+      - Beschwerde
+      - Stellungnahme
+    hint: pick the procedural document type
+
+  case_ref:
+    type: string
+    required: true
+    pattern: '^[A-Z]{2}\.\d{4}\.\d+$'
+    hint: 'court reference in the form AA.YYYY.NNN, e.g. "ZG.2026.000"'
+
+  gericht:
+    type: court
+    required: true
+
+  klaeger:
+    type: party
+    required: true
+
+  klaeger_vertreter:
+    type: string
+    required: false
+
+  beklagter:
+    type: party
+    required: true
+
+  beklagter_vertreter:
+    type: string
+    required: true
+    nullable: true
+    hint: 'set to ~ when the opposing party has no legal representative'
+
+  betreff:
+    type: string
+    required: true
+
+  beilagen:
+    type: list<string>
+    default: []
+
+types:
+  court:
+    versand:
+      type: enum
+      required: true
+      values: [EINSCHREIBEN, A-POST, GERICHTSURKUNDE, ELEKTRONISCH]
+    name: { type: string, required: true }
+    abteilung: { type: string, required: false }
+    street: { type: string, required: true }
+    postal_code:
+      type: string
+      required: true
+      pattern: '^\d{4}$'
+      hint: 'four digits, quoted: "5400"'
+    city: { type: string, required: true }
+
+body:
+  - heading: RECHTSBEGEHREN
+    level: 1
+    required: true
+    ordered: true
+
+  - heading: BEGRÜNDUNG
+    level: 1
+    required: true
+    ordered: true
+    children:
+      - heading: Formelles
+        level: 1
+        required: false
+        children:
+          - heading: Zuständigkeit
+            level: 2
+            required_when: 'legal_doc_type == "Klageschrift"'
+          - heading: Prozessvoraussetzungen
+            level: 2
+
+  - heading: Sachverhalt
+    level: 1
+    required: true
+    ordered: true
+
+  - heading: Rechtliches
+    level: 1
+    required: true
+    ordered: true
+
+  - heading: Fazit
+    level: 1
+    required: false
+    ordered: true
+
+# Markdown construct -> style name in template. Style names must exist in the
+# .dotx; the emitter validates that at build time.
+styles:
+  h1: Ueberschrift1
+  h2: Ueberschrift2
+  h3: Ueberschrift3
+  paragraph: Standard
+  quote: Zitat
+  code: Code
+  ordered_list: Rechtsbegehrensliste
+  bullet_list: Aufzaehlung
+  "div.beweis": Beweismittel
+
+# Numbering the markdown does not express. The headings carry an I. / A. / 1.
+# outline from RECHTSBEGEHREN onwards, and every paragraph of prose after that
+# heading carries a continuous Randziffer. Both name a definition in the theme,
+# which is where they get their appearance.
+#
+# Changing where either starts is this one line — set start_at_heading to
+# BEGRÜNDUNG and the Rechtsbegehren falls outside the outline.
+render:
+  heading_numbering:
+    definition: LegalHeadingNumbering
+    start_at_heading: RECHTSBEGEHREN
+  paragraph_numbering:
+    definition: Randziffer
+    start_after_heading: RECHTSBEGEHREN
+
+rules:
+  - id: LEG031
+    check: no_placeholder_text
+    severity: error
+
+  - id: LEG012
+    check: div_items_match
+    severity: error
+    args:
+      div: beweis
+      pattern: '//\s*Beilage\s+\d+\s*$'
+    message: "Beweismittel without a Beilage reference"
+    hint: 'append a reference, e.g. "// Beilage 3"'
+
+  - id: LEG020
+    check: cross_reference
+    severity: warning
+    args:
+      div: beweis
+      pattern: '//\s*Beilage\s+(\d+)'
+      list_field: beilagen
+      label: Beilage
+
+  - id: LEG040
+    check: no_empty_sections
+    severity: warning
