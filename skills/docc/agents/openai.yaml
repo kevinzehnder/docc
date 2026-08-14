@@ -1,0 +1,4 @@
+interface:
+  display_name: "docc"
+  short_description: "Compile structured Markdown to DOCX"
+  default_prompt: "Create or validate a schema-backed Markdown document and build the finished DOCX with docc."

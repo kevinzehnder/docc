@@ -35,6 +35,14 @@ It installs `.docc/`, `examples/docc/`, and this skill under
 `docc` finds `.docc` by walking up from the input document. For a document
 outside that tree, pass `--schema-dir` and, when building, `--theme-dir`.
 
+## Runtime
+
+Prefer `<skill-directory>/scripts/run-docc.sh` when it exists. Resolve the
+skill directory from this loaded `SKILL.md`; never assume the working directory.
+Published archives bundle static Linux binaries. A copy installed by `docc init`
+may omit the launcher; invoke `docc` from `PATH` instead. If neither exists,
+report the missing runtime without downloading executables or installing packages.
+
 ## Commands
 
 ```sh
