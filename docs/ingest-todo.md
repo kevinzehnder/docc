@@ -53,6 +53,47 @@ TestDebugPage -v ./internal/ingest`). The 150/200 DPI split matters: the
 layout pass answers differently per DPI, and a bug that reproduces at the
 config's 150 can vanish at the debug default.
 
+### The second document (2_Klageantwort.pdf, born-digital, 18 pages)
+
+A docc-rendered Klageantwort whose authored markdown is exact ground truth —
+the second fixture item 1 asks for, in spirit. Its margins are harder than the
+Replik's: Randziffern, bare section numbers ("5.") and misreads share one
+gutter column, and its lists (prayers for relief, a Beilagenverzeichnis) are
+exactly the shape of numbered section titles. Four more fixes:
+
+- **A noisy margin column leaked or vanished.** `gutterNumbers` required every
+  line to be a bare number, so "8\nE\n9\n10\n1" was neither gutter (the "E")
+  nor prose — it leaked as a garbage paragraph and every number it carried was
+  lost. `marginLines` now qualifies a column when its numeric lines outnumber
+  the junk; junk keeps its interpolation slot and attaches nothing. Interior
+  interpolated positions get half a step of slack — line spacing follows the
+  paragraphs, not a grid — while the endpoints stay exact.
+- **A dotted margin number is a section number.** "5." sits beside its heading,
+  not beside prose: it binds to the first heading below that does not already
+  carry a number, and never to a paragraph.
+- **A list is not a table of contents.** "1. Anwaltsvollmacht vom 4. August
+  2025" is an exhibit and "1. Die Klage sei abzuweisen" is a prayer, and each
+  alone matches the numbered-title pattern. `demoteNumberedRuns` unmarks
+  headings inside a run of consecutively numbered adjacent elements: nine
+  adjacent "titles" with no body between them are a Beilagenverzeichnis, and a
+  "title" whose neighbour paragraph carries the next number opens the list
+  that paragraph continues. Real numbered sections have content between them
+  and are never adjacent.
+- **I. between H. and J. is a letter.** The Roman/letter tie goes to Roman by
+  count, which is right until a brief actually reaches nine lettered sections.
+  `FinalizeNodes` — the first document-level outline pass — re-levels a single
+  I., V. or X. whose neighbouring letter headings are its alphabetic
+  predecessor or successor.
+
+The schema gained the bare-number heading (`^\d{1,2}\.$`), because this
+corpus writes sub-sections as "1." with unnamed prose following.
+
+Result over the whole document: Rz 1-67 with one gap (11, misread as "1" in
+the gutter, correctly rejected by the chain and flagged by REF010), every
+heading at its correct level including the A.-K. run, prayers and exhibits as
+lists. Remaining `docc check` errors are the three fields only a person can
+answer.
+
 ## 1. The evaluation harness is thin
 
 `task test:eval` exists and works: it renders `testdata/good/legal_valid.md` to

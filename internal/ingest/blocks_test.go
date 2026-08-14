@@ -132,6 +132,66 @@ func TestAssembleBlocksMergedGutterSkipsEvidenceRows(t *testing.T) {
 	}
 }
 
+// A real margin column is noisy: Randziffern, a section number beside its
+// heading, and the odd misread. Page 3 of a real Klageantwort came back as
+// "8\nE\n9\n10\n1"; requiring every line to be a number leaked the block into
+// the document as a garbage paragraph and lost every number it carried.
+func TestAssembleBlocksToleratesNoisyGutterColumn(t *testing.T) {
+	md := Render(Nodes([]Block{
+		block("aside_text", 0.100, 0.277, 0.115, 0.835, "8\nE\n9\n10\n1"),
+		block("text", 0.146, 0.074, 0.851, 0.256, "am 24.12.2024 auf Ende Juli 2025 gekündigt."),
+		block("text", 0.146, 0.274, 0.851, 0.458, "Die Klägerin hat die Formungültigkeit anerkannt."),
+		block("title", 0.102, 0.479, 0.241, 0.495, "E. Streitwert"),
+		block("text", 0.148, 0.514, 0.606, 0.530, "Die klägerische Berechnung ist überhöht."),
+		block("text", 0.148, 0.549, 0.851, 0.802, "Gemäss konstanter bundesgerichtlicher Rechtsprechung."),
+		block("text", 0.148, 0.820, 0.848, 0.861, "Ausgehend von einem Jahresmietzins."),
+	}))
+
+	if strings.Contains(md, "E\n9") || strings.Contains(md, "[Rz 8] E") {
+		t.Errorf("the gutter column leaked into the document:\n%s", md)
+	}
+	// The first paragraph continues the previous page's numbered paragraph —
+	// the page's first margin number sits beside the second block. The final
+	// "1" is a misread of 11; it binds somewhere, and the chain normalizer is
+	// what rejects it later, so it is not asserted on here.
+	for _, want := range []string{
+		"[Rz 8] Die Klägerin hat",
+		"[Rz 9] Die klägerische Berechnung",
+		"[Rz 10] Gemäss konstanter",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("missing %q:\n%s", want, md)
+		}
+	}
+}
+
+// A dotted number in the margin is the section number of the heading it sits
+// beside — "5." against "Vertragswidriges Verhalten". It belongs on the
+// heading, and never on a paragraph; the bare numbers around it stay
+// Randziffern and never land on the heading.
+func TestAssembleBlocksAttachesDottedMarginNumbersToHeadings(t *testing.T) {
+	// The column spans from the first number to the last, and a margin number
+	// sits level with the top line of the block it belongs to.
+	md := Render(Nodes([]Block{
+		block("aside_text", 0.100, 0.150, 0.115, 0.570, "33\n34\n5.\n35"),
+		block("text", 0.146, 0.140, 0.851, 0.300, "Erster Absatz der Seite."),
+		block("text", 0.146, 0.320, 0.851, 0.480, "Zweiter Absatz der Seite."),
+		block("title", 0.146, 0.520, 0.600, 0.540, "Vertragswidriges Verhalten"),
+		block("text", 0.146, 0.560, 0.851, 0.790, "Dritter Absatz der Seite."),
+	}))
+
+	for _, want := range []string{
+		"[Rz 33] Erster Absatz",
+		"[Rz 34] Zweiter Absatz",
+		"## 5. Vertragswidriges Verhalten",
+		"[Rz 35] Dritter Absatz",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("missing %q:\n%s", want, md)
+		}
+	}
+}
+
 // A narrow block in the margin that says something other than a number is a
 // marginal note, and throwing it away would lose document text.
 func TestAssembleBlocksKeepsMarginalProse(t *testing.T) {

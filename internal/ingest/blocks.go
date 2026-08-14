@@ -43,10 +43,15 @@ var visual = map[string]bool{
 	"chart": true,
 }
 
-// bareNumber matches a block that is nothing but a number, which is what a
+// bareNumber matches a line that is nothing but a number, which is what a
 // marginal paragraph number in the gutter looks like once it is recognized on
-// its own.
-var bareNumber = regexp.MustCompile(`^\d{1,4}$`)
+// its own. dottedNumber is the margin's other resident: a section number set
+// beside its heading, "5." against "Vertragswidriges Verhalten".
+var (
+	bareNumber   = regexp.MustCompile(`^\d{1,4}$`)
+	dottedNumber = regexp.MustCompile(`^\d{1,4}\.$`)
+	startsDigit  = regexp.MustCompile(`^\d`)
+)
 
 // marginGap is how far left of the body column a block has to start before it
 // counts as gutter rather than an indented paragraph, as a fraction of the page
@@ -70,15 +75,21 @@ type positioned struct {
 // starts at the same x.
 func splitGutter(blocks []Block) ([]positioned, map[int]string) {
 	var body []positioned
-	var gutter []Block
+	var gutter []marginBlock
 
 	left := bodyLeft(blocks)
 	for _, b := range blocks {
 		switch {
 		case furniture[b.Type], container[b.Type]:
 			continue
-		case b.Box.X1 <= left-marginGap && isGutterText(b.Text):
-			gutter = append(gutter, b)
+		case b.Box.X1 <= left-marginGap:
+			if lines, ok := marginLines(b.Text); ok {
+				gutter = append(gutter, marginBlock{box: b.Box, lines: lines})
+				continue
+			}
+			// A narrow block that says something else is a marginal note,
+			// and belongs in the document.
+			body = append(body, positioned{Block: b, index: len(body)})
 		default:
 			body = append(body, positioned{Block: b, index: len(body)})
 		}
@@ -87,42 +98,110 @@ func splitGutter(blocks []Block) ([]positioned, map[int]string) {
 	// A gutter column often comes back as one block holding every number on
 	// the page — "25\n26\n27\n28" spanning half the page height. The block has
 	// one Y0 and the numbers do not, so each line's position is interpolated
-	// across the block's span: the first number sits at the top, the last at
+	// across the block's span: the first line sits at the top, the last at
 	// the bottom, and paragraph starts are close enough to evenly spaced for
-	// the nearest-paragraph search below to land. Attachment then advances
+	// the nearest-block search below to land. Attachment then advances
 	// monotonically — a number never binds above the one before it, which is
 	// what stops two numbers landing on the same paragraph when the
 	// interpolation is off by a line.
 	//
-	// An interpolated position is fuzzy where an exact one is not, so only the
-	// interpolated path skips the blocks a Randziffer never numbers — an offer
-	// of proof, or an indented continuation of one. A single number's position
-	// is the number's own, and beside an indented block it means the indented
-	// block.
+	// The lines are of three kinds. A bare number is a Randziffer and binds to
+	// prose — never to a heading, an offer of proof, or an indented
+	// continuation of one, which the interpolated path skips because its
+	// position is fuzzy where a single number's is exact. A dotted number
+	// ("5.") is the margin's copy of a section number and binds to the first
+	// heading below that does not already carry one. Anything else is a
+	// misread — tolerated for its slot in the interpolation, attaching
+	// nothing.
 	margins := map[int]string{}
 	for _, g := range gutter {
-		nums := gutterNumbers(g.Text)
-		var skip func(positioned) bool
-		if len(nums) > 1 {
-			skip = func(b positioned) bool {
-				return b.Box.X0 > left+marginGap || evidenceLead.MatchString(b.Text)
+		var skipProse func(positioned) bool
+		if len(g.lines) > 1 {
+			skipProse = func(b positioned) bool {
+				return isHeadingType(b.Type) ||
+					b.Box.X0 > left+marginGap ||
+					evidenceLead.MatchString(b.Text)
 			}
 		}
+		// An interpolated position can overshoot its block — line spacing in
+		// the margin follows the paragraphs, not a grid — so an interior line
+		// accepts a block reaching back up to half a step. The first and last
+		// lines sit exactly at the block's edges, where the interpolation has
+		// no error and reaching back would bind a block that ends above the
+		// number. The cursor keeps a late estimate from re-binding something
+		// already passed.
+		step := 0.0
+		if len(g.lines) > 1 {
+			step = (g.box.Y1 - g.box.Y0) / float64(len(g.lines)-1)
+		}
 		prev := -1
-		for k, n := range nums {
-			y := g.Box.Y0
-			if len(nums) > 1 {
-				y += float64(k) * (g.Box.Y1 - g.Box.Y0) / float64(len(nums)-1)
+		for k, line := range g.lines {
+			y := g.box.Y0 + float64(k)*step
+			slack := 0.0
+			if k > 0 && k < len(g.lines)-1 {
+				slack = step / 2
 			}
-			if i, ok := nearestBelow(body, y, prev, skip); ok {
-				if _, taken := margins[i]; !taken {
-					margins[i] = n
+			switch {
+			case bareNumber.MatchString(line):
+				if i, ok := nearestBelow(body, y-slack, prev, skipProse); ok {
+					if _, taken := margins[i]; !taken {
+						margins[i] = line
+					}
+					prev = i
 				}
-				prev = i
+			case dottedNumber.MatchString(line):
+				onlyHeadings := func(b positioned) bool { return !isHeadingType(b.Type) }
+				if i, ok := nearestBelow(body, y-slack, prev, onlyHeadings); ok {
+					if !startsDigit.MatchString(body[i].Text) {
+						body[i].Text = line + " " + body[i].Text
+					}
+					prev = i
+				}
 			}
 		}
 	}
 	return body, margins
+}
+
+// marginBlock is one gutter-column block, split into its recognized lines.
+type marginBlock struct {
+	box   BBox
+	lines []string
+}
+
+// marginLines reports whether a narrow left block reads as the margin's
+// number column, and returns its non-empty lines.
+//
+// Real margins are noisy. Alongside the Randziffern sit section numbers set
+// beside their headings ("5.") and the odd misread — a page of a real
+// Klageantwort came back as "8\nE\n9\n10\n1", and requiring every line to be
+// a number leaked the whole block into the document as a garbage paragraph
+// while losing all four numbers it carried. The column qualifies when its
+// numeric lines outnumber the rest; the junk keeps its slot, so the
+// interpolation above stays honest about where each line sat.
+func marginLines(text string) ([]string, bool) {
+	var lines []string
+	numeric := 0
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		lines = append(lines, line)
+		if bareNumber.MatchString(line) || dottedNumber.MatchString(line) {
+			numeric++
+		}
+	}
+	if numeric == 0 || numeric*2 <= len(lines) {
+		return nil, false
+	}
+	return lines, true
+}
+
+// isHeadingType reports whether a backend block type is a heading.
+func isHeadingType(blockType string) bool {
+	k, _ := kindOf(blockType)
+	return k == KindHeading
 }
 
 // bodyLeft is the left edge most of the page's text shares. The median rather
@@ -140,30 +219,6 @@ func bodyLeft(blocks []Block) float64 {
 	}
 	sort.Float64s(xs)
 	return xs[len(xs)/2]
-}
-
-// isGutterText reports whether a block's recognized text is only numbers — one
-// per line, as a merged gutter column comes back. A narrow block to the left of
-// the body that says something else is a marginal note, and belongs in the
-// document.
-func isGutterText(text string) bool {
-	lines := gutterNumbers(text)
-	return len(lines) > 0
-}
-
-func gutterNumbers(text string) []string {
-	var nums []string
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		if !bareNumber.MatchString(line) {
-			return nil // one non-number and the whole block is prose
-		}
-		nums = append(nums, line)
-	}
-	return nums
 }
 
 // nearestBelow finds the body block a gutter number sits beside: the first one

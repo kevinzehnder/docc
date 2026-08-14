@@ -3,6 +3,7 @@ package ingest
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -111,7 +112,137 @@ func (o *outlineNormalizer) ApplyNodes(nodes []Node) []Node {
 		}
 		out = append(out, n)
 	}
-	return out
+	return demoteNumberedRuns(out)
+}
+
+// FinalizeNodes runs once over the whole document, after every page has been
+// through ApplyNodes. Per-page passes cannot see a heading's siblings on the
+// pages around it, and one real ambiguity needs exactly that.
+//
+// I., V. and X. are a Roman numeral and a letter both, and the scheme's
+// patterns settle the tie by count: Roman wins, because reaching letter I
+// takes nine top-level sections. On a Klageantwort with sections A. through
+// K., that put "I. Abbruchkosten" one level above the H. and J. it sits
+// between. The siblings are the evidence the pattern cannot see: a single
+// I., V. or X. whose neighbouring letter-led headings are its alphabetic
+// predecessor or successor is the letter, at their level.
+func (o *outlineNormalizer) FinalizeNodes(pages [][]Node) {
+	if len(o.rules) == 0 {
+		return
+	}
+	type ref struct{ p, i int }
+	var heads []ref
+	for p := range pages {
+		for i, n := range pages[p] {
+			if n.Kind == KindHeading {
+				heads = append(heads, ref{p, i})
+			}
+		}
+	}
+
+	letterAt := func(h int) (byte, int, bool) {
+		if h < 0 || h >= len(heads) {
+			return 0, 0, false
+		}
+		n := pages[heads[h].p][heads[h].i]
+		m := letterLead.FindStringSubmatch(n.Text)
+		if m == nil {
+			return 0, 0, false
+		}
+		return m[1][0], n.Level, true
+	}
+
+	for h, r := range heads {
+		m := ambiguousRoman.FindStringSubmatch(pages[r.p][r.i].Text)
+		if m == nil {
+			continue
+		}
+		c := m[1][0]
+		if ch, lv, ok := letterAt(h - 1); ok && ch+1 == c {
+			pages[r.p][r.i].Level = lv
+			continue
+		}
+		if ch, lv, ok := letterAt(h + 1); ok && ch == c+1 {
+			pages[r.p][r.i].Level = lv
+		}
+	}
+}
+
+// ambiguousRoman matches a heading led by the one-character Roman numerals,
+// which are letters too. II. and IV. cannot be letters and do not match.
+var ambiguousRoman = regexp.MustCompile(`^([IVX])\.\s`)
+
+// letterLead matches a heading led by a single capital letter.
+var letterLead = regexp.MustCompile(`^([A-ZÄÖÜ])\.\s`)
+
+// numberedLead reads the "N." a list item or a numbered title opens with.
+var numberedLead = regexp.MustCompile(`^(\d{1,4})\.(?:\s|$)`)
+
+// demoteNumberedRuns unmarks headings inside a run of consecutively numbered
+// adjacent elements, which is what a list looks like — not a table of
+// contents' worth of sections.
+//
+// The numbered-title patterns cannot see past one line: "1. Die Klage sei
+// abzuweisen" is a prayer for relief and "1. Anwaltsvollmacht vom 4. August
+// 2025" is an exhibit, and each on its own is exactly the shape of a numbered
+// section title. What gives them away is their company. Nine consecutive
+// "titles" with not a word of body between them are a Beilagenverzeichnis;
+// a "title" whose immediate neighbour is a paragraph carrying the next number
+// is the first entry of the list that paragraph continues. A real numbered
+// section heading is followed by its section's content, so it never sits
+// adjacent to the next number.
+//
+// A run of two all-heading elements is left alone: two adjacent numbered
+// headings are also what a section ending exactly where the next begins looks
+// like, and unmarking real structure costs more than leaving a two-entry list
+// marked.
+func demoteNumberedRuns(nodes []Node) []Node {
+	leadOf := func(n Node) (int, bool) {
+		if n.Kind != KindHeading && n.Kind != KindPara {
+			return 0, false
+		}
+		m := numberedLead.FindStringSubmatch(n.Text)
+		if m == nil {
+			return 0, false
+		}
+		v, err := strconv.Atoi(m[1])
+		if err != nil {
+			return 0, false
+		}
+		return v, true
+	}
+
+	for i := 0; i < len(nodes); {
+		v, ok := leadOf(nodes[i])
+		if !ok {
+			i++
+			continue
+		}
+		j, paras := i+1, 0
+		if nodes[i].Kind == KindPara {
+			paras++
+		}
+		for j < len(nodes) {
+			w, ok := leadOf(nodes[j])
+			if !ok || w != v+1 {
+				break
+			}
+			if nodes[j].Kind == KindPara {
+				paras++
+			}
+			v = w
+			j++
+		}
+		if run := j - i; run >= 2 && (paras > 0 || run >= 3) {
+			for k := i; k < j; k++ {
+				if nodes[k].Kind == KindHeading {
+					nodes[k].Kind, nodes[k].Level = KindPara, 0
+				}
+			}
+		}
+		i = j
+	}
+	return nodes
 }
 
 // Apply rewrites one page's markdown. With no rules it returns the input

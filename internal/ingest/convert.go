@@ -108,6 +108,9 @@ func Convert(ctx context.Context, inputPath string, cfg Config, opts ConvertOpti
 		for i, res := range results {
 			pages[i] = res.Nodes
 		}
+		// The document-level outline pass first: it needs to see a heading's
+		// siblings on the pages around it, which the per-page pass cannot.
+		outline.FinalizeNodes(pages)
 		for i, nodes := range rz.ApplyNodes(pages) {
 			results[i].Nodes = nodes
 			// Re-rendered rather than patched, so the two representations

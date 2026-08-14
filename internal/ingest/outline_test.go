@@ -226,3 +226,91 @@ func TestOutlineApplyNodesFallsBackForARawPage(t *testing.T) {
 		t.Errorf("raw page not re-levelled:\n%s", got[0].Text)
 	}
 }
+
+// Nine consecutive numbered "titles" with no body between them are a
+// Beilagenverzeichnis, and a "title" whose neighbour is a paragraph carrying
+// the next number is the first prayer of a Rechtsbegehren. Both were promoted
+// to headings by the numbered-title pattern on a real Klageantwort.
+func TestOutlineDemotesNumberedRuns(t *testing.T) {
+	rules, err := CompileOutline([]OutlinePattern{
+		{Pattern: `^\d{1,2}\.\s+\S.{0,90}[^.;:,]$`, Level: 4},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := outlineNormalizer{rules: rules}
+
+	t.Run("prayer next to numbered paragraphs", func(t *testing.T) {
+		nodes := o.ApplyNodes([]Node{
+			{Kind: KindPara, Text: "1. Die Klage sei abzuweisen"},
+			{Kind: KindPara, Text: "2. Der prozessuale Antrag: Die Klägerin sei zu verpflichten, sämtliche Untermietverträge einzureichen."},
+			{Kind: KindPara, Text: "3. Alles unter Kosten- und Entschädigungsfolgen zulasten der Klägerin zzgl. MWST."},
+		})
+		for i, n := range nodes {
+			if n.Kind != KindPara {
+				t.Errorf("node %d became a heading: %q", i, n.Text)
+			}
+		}
+	})
+
+	t.Run("exhibit list", func(t *testing.T) {
+		nodes := o.ApplyNodes([]Node{
+			{Kind: KindPara, Text: "Beilagen"},
+			{Kind: KindHeading, Level: 2, Text: "1. Anwaltsvollmacht vom 4. August 2025"},
+			{Kind: KindHeading, Level: 2, Text: "2. Verfügung der Schlichtungsbehörde vom 14. März 2025"},
+			{Kind: KindHeading, Level: 2, Text: "3. Auszug aus der Baubewilligung vom 22.04.2024"},
+		})
+		for i, n := range nodes[1:] {
+			if n.Kind != KindPara {
+				t.Errorf("exhibit %d stayed a heading: %q", i+1, n.Text)
+			}
+		}
+	})
+
+	t.Run("real numbered sections keep their headings", func(t *testing.T) {
+		nodes := o.ApplyNodes([]Node{
+			{Kind: KindHeading, Level: 2, Text: "1. Parteien"},
+			{Kind: KindPara, Text: "Die Ausgestaltung der Rechtsverhältnisse ist ohne Relevanz."},
+			{Kind: KindHeading, Level: 2, Text: "2. Das Mietverhältnis"},
+			{Kind: KindPara, Text: "Eine Änderung fand nicht statt."},
+		})
+		if nodes[0].Kind != KindHeading || nodes[2].Kind != KindHeading {
+			t.Errorf("numbered section headings were demoted: %+v", nodes)
+		}
+	})
+}
+
+// I., V. and X. are Roman numerals and letters both, and the pattern's tie
+// goes to Roman. A Klageantwort with sections A. through K. is where that is
+// wrong: its "I. Abbruchkosten" sits between H. and J., one level above them.
+// The siblings decide.
+func TestOutlineFinalizeRelevelsLetterI(t *testing.T) {
+	rules, err := CompileOutline([]OutlinePattern{
+		{Pattern: `^(?:X{1,3}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)\.\s+\S`, Level: 2},
+		{Pattern: `^[A-ZÄÖÜ]\.\s+\S`, Level: 3},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := outlineNormalizer{rules: rules}
+
+	pages := [][]Node{
+		{
+			{Kind: KindHeading, Level: 2, Text: "V. RECHTLICHES"},
+			{Kind: KindHeading, Level: 3, Text: "H. Verhandlungsverhalten der Parteien"},
+		},
+		{
+			{Kind: KindHeading, Level: 2, Text: "I. Abbruchkosten"},
+			{Kind: KindHeading, Level: 3, Text: "J. Weiteres"},
+		},
+	}
+	o.FinalizeNodes(pages)
+
+	if got := pages[1][0].Level; got != 3 {
+		t.Errorf("I. between H. and J. still at level %d, want 3", got)
+	}
+	// V. RECHTLICHES has no letter siblings U. or W., so it stays Roman.
+	if got := pages[0][0].Level; got != 2 {
+		t.Errorf("V. RECHTLICHES moved to level %d, want 2", got)
+	}
+}

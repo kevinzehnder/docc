@@ -119,6 +119,10 @@ outline:
       # 1. Vorbemerkungen
       - pattern: '^\d{1,2}\.\s+\S.{0,90}[^.;:,]$'
         level: 4
+      # A number alone is a heading too: a Klageantwort in this corpus writes
+      # its sub-sections as a bare "1." with the prose following unnamed.
+      - pattern: '^\d{1,2}\.$'
+        level: 4
       # a) Erstens     aa) Erstens
       - pattern: '^[a-zäöü]{1,2}\)\s+\S.{0,90}[^.;:,]$'
         level: 5
