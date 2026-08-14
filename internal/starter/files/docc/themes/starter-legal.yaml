@@ -1,8 +1,7 @@
 # Generic Swiss-legal starter theme.
 #
-# Reproduces assets/template_legal/legal.opendocument. The letterhead lives in a
-# first-page header rather than in anchored frames: it is the same result, far
-# less XML, and it cannot drift into the body when the text reflows.
+# The illustrative letterhead lives in a first-page header rather than anchored
+# frames, so it cannot drift into the body when text reflows.
 name: starter-legal
 description: Generic Swiss-legal briefs (Klageschrift, Klageantwort).
 

@@ -130,8 +130,8 @@ body:
     required: false
     ordered: true
 
-# Markdown construct -> style name in template. Style names must exist in the
-# .dotx; the emitter validates that at build time.
+# Markdown construct -> style name in the selected theme. The emitter validates
+# every mapped style at build time.
 styles:
   h1: Ueberschrift1
   h2: Ueberschrift2

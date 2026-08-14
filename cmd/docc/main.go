@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -29,7 +30,7 @@ const usage = `docc — a compiler for structured documents
 
 usage:
   docc check [flags] <file.md>...   validate documents against their schema
-  docc build [flags] <file.md>      validate, then render to .docx or .pdf
+  docc build [flags] <file.md>      validate, then render to .docx (or compatibility PDF)
   docc init [directory]             create a generic starter project
   docc lsp [flags]                  start a Language Server Protocol server
   docc types [flags]                list known document types
@@ -46,7 +47,7 @@ flags:
   --no-color           disable coloured output
 
 build flags:
-  --to docx|pdf        output format (default: docx)
+  --to docx|pdf        output format; pdf is compatibility-only and needs soffice (default: docx)
   --output <path>      output path (default: input with the new extension)
   --theme <name>       theme to render with (default: the schema's own)
   --force              render despite validation errors
@@ -248,12 +249,27 @@ func cmdTypes(args []string) int {
 		fmt.Fprintln(os.Stderr, "docc:", err)
 		return 2
 	}
+	if cf.jsonOut {
+		type item struct {
+			Type        string `json:"type"`
+			Description string `json:"description"`
+			Theme       string `json:"theme"`
+		}
+		items := make([]item, 0, len(set.Types()))
+		for _, t := range set.Types() {
+			sc, _ := set.Get(t)
+			items = append(items, item{Type: sc.Type, Description: sc.Description, Theme: sc.Theme})
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(struct {
+			Types []item `json:"types"`
+		}{Types: items}); err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 2
+		}
+		return 0
+	}
 	for _, t := range set.Types() {
 		sc, _ := set.Get(t)
-		if cf.jsonOut {
-			fmt.Printf("{\"type\":%q,\"description\":%q,\"theme\":%q}\n", sc.Type, sc.Description, sc.Theme)
-			continue
-		}
 		fmt.Printf("%-14s %s\n", sc.Type, sc.Description)
 	}
 	return 0
@@ -275,12 +291,27 @@ func cmdThemes(args []string) int {
 		fmt.Fprintln(os.Stderr, "docc:", err)
 		return 2
 	}
+	if cf.jsonOut {
+		type item struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			Styles      int    `json:"styles"`
+		}
+		items := make([]item, 0, len(set.Names()))
+		for _, name := range set.Names() {
+			th, _ := set.Get(name)
+			items = append(items, item{Name: th.Name, Description: th.Description, Styles: len(th.Styles)})
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(struct {
+			Themes []item `json:"themes"`
+		}{Themes: items}); err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 2
+		}
+		return 0
+	}
 	for _, name := range set.Names() {
 		th, _ := set.Get(name)
-		if cf.jsonOut {
-			fmt.Printf("{\"name\":%q,\"description\":%q,\"styles\":%d}\n", th.Name, th.Description, len(th.Styles))
-			continue
-		}
 		fmt.Printf("%-14s %s\n", th.Name, th.Description)
 	}
 	return 0

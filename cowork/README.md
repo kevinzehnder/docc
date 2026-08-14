@@ -18,7 +18,7 @@ cowork/
     bin/                    docc-linux-amd64  (generated, git-ignored)
   assemble.sh               build binary + emit both artifacts below
   docc-cowork-skill.zip     standalone skill (generated, git-ignored)
-  marketplace/              versioned plugin distribution (see its README)
+  marketplace/              experimental plugin prototype (not a distribution channel)
 ```
 
 The binary and the two packaged artifacts are **generated**, not committed.
@@ -28,13 +28,21 @@ Regenerate them any time:
 sh cowork/assemble.sh
 ```
 
-## Two ways to ship it
+## Distribution
 
-- **Standalone skill** — upload `docc-cowork-skill.zip` in Claude Desktop →
-  **Customize > Skills**. Simple, but every new version is a manual re-upload.
-- **Plugin** — a versioned package installed from the `marketplace/` git repo;
-  bump the version and push, and installers pull the update. See
-  [`marketplace/README.md`](marketplace/README.md).
+The supported distribution artifact is the generated standalone skill ZIP:
+
+```sh
+sh cowork/assemble.sh
+```
+
+Deploy `cowork/docc-cowork-skill.zip` through the target host's skill-upload
+workflow. Build and deploy a new ZIP for every release.
+
+The `marketplace/` directory is an **experimental plugin prototype**. Plugin
+support is still beta and its generated payload is intentionally not committed,
+so a clone of this repository is not an installable marketplace. It is retained
+for integration work only; do not use it as a production distribution path.
 
 ## Test in Cowork
 

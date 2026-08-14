@@ -1,6 +1,6 @@
 // Package schema defines the document-type contract: which frontmatter fields
 // exist and how they are typed, which headings the body must contain, which
-// named rules apply, and how markdown maps onto styles in the Word template.
+// named rules apply, and how markdown maps onto styles in the selected theme.
 //
 // Schemas are data, not Go code. Adding a document type is adding a YAML file
 // to a project's .docc/schemas directory.
@@ -141,8 +141,8 @@ type Rule struct {
 // Set is a resolved collection of schemas keyed by type.
 type Set struct {
 	byType map[string]*Schema
-	// Root is the directory schemas were loaded from, used to resolve
-	// Schema.Template.
+	// Root is the directory schemas were loaded from, retained for callers that
+	// need the configuration location.
 	Root string
 }
 

@@ -1,8 +1,8 @@
 # docc
 
-A compiler for structured markdown documents. Frontend parses and validates
-markdown + YAML frontmatter against a schema; the backend (not yet written)
-emits `.docx` from a Word-authored template.
+A compiler for structured Markdown documents. It parses and validates Markdown
+and YAML frontmatter against a schema, then emits self-contained `.docx` through
+the configured theme.
 
 See `README.md` for the schema format and CLI usage.
 

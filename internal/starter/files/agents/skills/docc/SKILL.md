@@ -44,7 +44,6 @@ docc check document.md             # validate
 docc check --json document.md      # use in an agent correction loop
 docc check --strict document.md    # warnings are errors
 docc build document.md             # validate, then emit document.docx
-docc build --to pdf document.md    # emit PDF; requires soffice on PATH
 docc build --output out.docx document.md
 docc explain DOC010                # explain an engine diagnostic
 ```
@@ -52,6 +51,10 @@ docc explain DOC010                # explain an engine diagnostic
 `docc build` validates before rendering. Do not use `--force` for a
 deliverable. Exit code `0` is clean, `1` reports diagnostics or a build
 failure, and `2` is a usage/configuration error.
+
+DOCX is the supported compiler output. When a user requests PDF, build the
+DOCX first, then use the host's document/PDF capability. `docc build --to pdf`
+is compatibility-only and requires `soffice`.
 
 ## Agent workflow
 
