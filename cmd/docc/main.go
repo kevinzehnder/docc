@@ -366,6 +366,12 @@ func cmdBuild(args []string) int {
 
 	f, parseDiags := parse.Parse(name, src)
 	res := sema.Check(f, schemas, parseDiags, cf.docType)
+	// Build-stage checks bind only here: `check` accepts a draft with blank
+	// fields, but a blank that is not completed by hand must not reach a
+	// rendered document.
+	if res.Schema != nil {
+		sema.CheckCompletion(f, res.Schema, &res.Diagnostics)
+	}
 
 	// --strict is the caller asking for the warnings to bind too, so a document
 	// that only warns is treated exactly like one that errors: the build stops.
@@ -520,6 +526,10 @@ var explanations = map[string]string{
 	"DOC035": "a block carries an attribute its schema declaration does not permit. Only `#id`, the discriminator and the keys in the block's `attributes:` list are allowed.",
 	"DOC036": "the schema declares `variants:` for a block but no `discriminator:`, so no document can satisfy it. This is a schema bug, not a document bug.",
 	"DOC037": "a span's `ref=` names a block id that does not exist in the document. References resolve against `{#id}` attributes on blocks; the hint lists the ids that do exist.",
+	"DOC038": "a field the schema requires does not appear in the document at all. A blank is content: write it visibly — `[____________]{.docc-field key=<name>}` — even when the value is not yet known.",
+	"DOC039": "a field is still blank at build time but its completion is not `handwritten`. Fill in the value before building, or declare `completion: handwritten` in the schema if a human completes it on paper.",
+	"DOC040": "a `.docc-field` span is missing its `key=`, or names a field the schema does not declare. The key ties the blank to its `fields:` entry.",
+	"DOC041": "the schema declares a field with a completion stage the compiler does not know. Use `handwritten` or `before-execution`.",
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest

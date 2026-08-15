@@ -37,7 +37,13 @@ type Schema struct {
 	Blocks map[string]BlockSpec `yaml:"blocks"`
 	// Spans declares the inline `[text]{.type}` span types this type permits.
 	// A schema that declares any makes untyped or undeclared spans an error.
+	// Types prefixed `docc-` are reserved for the compiler and need no
+	// declaration.
 	Spans map[string]SpanSpec `yaml:"spans"`
+	// Fields declares the intentionally incomplete fields of the type: blanks
+	// that are content, written `[____]{.docc-field key=<name>}`. The map key
+	// is the span key.
+	Fields map[string]FieldSpec `yaml:"fields"`
 	// Styles maps markdown constructs to style ids defined by the theme.
 	Styles map[string]string `yaml:"styles"`
 	// Rules lists named cross-cutting checks to run.
@@ -117,6 +123,22 @@ type BlockVariant struct {
 // SpanSpec declares one inline span type.
 type SpanSpec struct {
 	Description string `yaml:"description"`
+}
+
+// FieldSpec declares one intentionally incomplete field. A blank is content,
+// not missing content: it must appear visibly in the document, annotated as a
+// `.docc-field` span, and the spec says when it stops being allowed to be
+// blank.
+type FieldSpec struct {
+	Description string `yaml:"description"`
+	// Required makes the field's absence — no span with its key at all — an
+	// error at check time. A present-but-blank field satisfies Required.
+	Required bool `yaml:"required"`
+	// Completion says when the blank must be filled. "before-execution", the
+	// default, blocks `build` while the field is blank. "handwritten" lets the
+	// blank survive into the rendered document, because a human completes it
+	// on paper.
+	Completion string `yaml:"completion"`
 }
 
 // Fields is a set of named field declarations.

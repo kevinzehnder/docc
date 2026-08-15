@@ -130,6 +130,14 @@ func merge(parent, child *Schema) *Schema {
 		out.Spans[k] = v
 	}
 
+	out.Fields = map[string]FieldSpec{}
+	for k, v := range parent.Fields {
+		out.Fields[k] = v
+	}
+	for k, v := range child.Fields {
+		out.Fields[k] = v
+	}
+
 	if len(child.Body) == 0 {
 		out.Body = parent.Body
 	}

@@ -20,6 +20,7 @@ import (
 func checkMarkup(f *parse.File, sc *schema.Schema, ds *diag.List) {
 	checkUniqueIDs(f, ds)
 	checkRefs(f, ds)
+	checkDocFields(f, sc, ds)
 	if len(sc.Blocks) > 0 {
 		checkBlocks(f, sc, ds)
 	}
@@ -196,6 +197,10 @@ func checkRequiredSpans(f *parse.File, div *parse.Div, required []string, ds *di
 func checkSpans(f *parse.File, sc *schema.Schema, ds *diag.List) {
 	for _, span := range f.Spans() {
 		name := span.SpanType()
+		// `docc-` types are compiler-owned and need no declaration.
+		if strings.HasPrefix(name, "docc-") {
+			continue
+		}
 		if name == "" {
 			ds.Add(diag.Diagnostic{
 				File: f.Path, Pos: spanPos(f, span), Severity: diag.Error, Code: "DOC031",

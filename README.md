@@ -293,6 +293,29 @@ A span may reference a block by its id — `[Erwerberin]{.partei ref=erwerberin}
 — and the displayed wording stays the author's; docc only resolves the
 reference.
 
+An intentionally incomplete field is content, not missing content: it appears
+visibly as a blank and is annotated with the reserved `docc-field` type
+(`docc-` types need no declaration):
+
+```markdown
+Die Urkunde wurde am
+[____________________]{.docc-field key=beurkundungsdatum}
+unterzeichnet.
+```
+
+```yaml
+fields:
+  beurkundungsdatum:
+    required: true            # absence is an error at check time (DOC038)
+    completion: handwritten   # may stay blank through build
+  protokollnummer:
+    required: true
+    completion: before-execution   # blank blocks `docc build` (DOC039)
+```
+
+`check` accepts blank fields — drafting with them is the point; `build`
+refuses a blank whose completion is not `handwritten`.
+
 The checker reports undeclared blocks (`DOC030`), untyped or undeclared spans
 (`DOC031`), a missing discriminator or unknown variant (`DOC032`), missing
 required spans (`DOC033`), duplicate `#id`s (`DOC034`), unpermitted
