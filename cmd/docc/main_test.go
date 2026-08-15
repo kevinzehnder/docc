@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -130,6 +131,56 @@ func TestBuildJSONErrorEmitsJSON(t *testing.T) {
 	if !strings.HasPrefix(stdout, "{") || !strings.Contains(stdout, `"ok":false`) {
 		t.Errorf("stdout is not the JSON failure object:\n%s", stdout)
 	}
+}
+
+func TestCatalogJSONIsOneObject(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	themeDir := filepath.Join(dir, "themes")
+	write(t, filepath.Join(schemaDir, "memo.yaml"), memoSchema)
+	write(t, filepath.Join(themeDir, "t.yaml"), minimalTheme)
+
+	t.Run("types", func(t *testing.T) {
+		var code int
+		out := captureStdout(t, func() {
+			code = run([]string{"types", "--json", "--schema-dir", schemaDir})
+		})
+		if code != 0 {
+			t.Fatalf("run(types --json) = %d, want 0", code)
+		}
+		var got struct {
+			Types []struct {
+				Type string `json:"type"`
+			} `json:"types"`
+		}
+		if err := json.Unmarshal([]byte(out), &got); err != nil {
+			t.Fatalf("types JSON: %v\n%s", err, out)
+		}
+		if len(got.Types) != 1 || got.Types[0].Type != "memo" {
+			t.Errorf("types = %+v, want memo", got.Types)
+		}
+	})
+
+	t.Run("themes", func(t *testing.T) {
+		var code int
+		out := captureStdout(t, func() {
+			code = run([]string{"themes", "--json", "--theme-dir", themeDir})
+		})
+		if code != 0 {
+			t.Fatalf("run(themes --json) = %d, want 0", code)
+		}
+		var got struct {
+			Themes []struct {
+				Name string `json:"name"`
+			} `json:"themes"`
+		}
+		if err := json.Unmarshal([]byte(out), &got); err != nil {
+			t.Fatalf("themes JSON: %v\n%s", err, out)
+		}
+		if len(got.Themes) != 1 || got.Themes[0].Name != "t" {
+			t.Errorf("themes = %+v, want t", got.Themes)
+		}
+	})
 }
 
 func TestWriteAtomic(t *testing.T) {

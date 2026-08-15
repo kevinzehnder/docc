@@ -2,7 +2,7 @@
   "name": "docc",
   "displayName": "docc — schema-backed documents",
   "version": "0.1.0",
-  "description": "Validate and render schema-backed Markdown to .docx with the bundled docc compiler. Ships its own binary and config; no install, no network.",
+  "description": "EXPERIMENTAL: docc plugin prototype. Use the standalone skill ZIP for production distribution.",
   "author": {
     "name": "Kevin Zehnder",
     "email": "kevin.zehnder@jlmy.ch"

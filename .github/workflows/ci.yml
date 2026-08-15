@@ -1,0 +1,41 @@
+---
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # Tool versions are pinned: a CI that installs @latest is not
+      # reproducible and can start failing without a change in the repo.
+      - name: gofumpt
+        run: |
+          go install mvdan.cc/gofumpt@v0.7.0
+          out=$(gofumpt -l .)
+          if [ -n "$out" ]; then
+            echo "files need gofumpt:"; echo "$out"; exit 1
+          fi
+
+      - name: vet
+        run: go vet ./...
+
+      - name: lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.12.2
+
+      - name: test
+        run: go test -race ./...

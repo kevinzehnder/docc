@@ -4,8 +4,8 @@ A compiler for structured documents.
 
 `docc` treats a markdown document with YAML frontmatter as source code: it parses
 it, checks it against a schema, and reports errors with source positions and
-actionable hints. The intended backend emits Word `.docx` from a Word-authored
-template.
+actionable hints. It renders self-contained Word `.docx` files from the schema
+and theme configuration.
 
 A file becomes a docc document by declaring the marker in its frontmatter:
 
@@ -50,12 +50,35 @@ docc init                         # create the generic starter in this directory
 docc check docs/klage.md          # validate
 docc check --json docs/*.md       # machine-readable, for agents and CI
 docc check --strict docs/klage.md # warnings become errors
+docc build docs/klage.md          # validate, then emit a .docx
+docc build --to pdf docs/klage.md # optional compatibility export; needs soffice
 docc lsp                          # serve editor diagnostics over stdio
 docc types                        # list known document types
 docc explain DOC010               # describe a diagnostic code
 ```
 
 Exit codes: `0` clean, `1` diagnostics reported, `2` usage or configuration error.
+
+`.docx` is the supported compiler output. `--to pdf` remains a
+compatibility-only export for environments that provide LibreOffice (`soffice`).
+AgentSkill hosts should build DOCX and use their own document/PDF capability
+when a user requests a PDF.
+
+### JSON contract
+
+`--json` produces one JSON object on stdout for each successful command result.
+It never mixes human-readable status text into that stream.
+
+| Command | stdout JSON |
+|---|---|
+| `check --json` | `{ "ok", "errors", "warnings", "diagnostics" }` |
+| `build --json` | `{ "ok", "type", "theme", "format", "output" }`; validation diagnostics are a separate JSON object on stderr |
+| `types --json` | `{ "types": [{ "type", "description", "theme" }] }` |
+| `themes --json` | `{ "themes": [{ "name", "description", "styles" }] }` |
+
+Usage and configuration failures exit `2` and currently use human-readable
+stderr, even when `--json` is present. Consumers should treat a non-zero exit
+as failure and only parse stdout when the command reached its normal result.
 
 ## NeoVim
 
@@ -89,7 +112,7 @@ editing regular `.md` files next to docc documents is quiet.
 
 ## Projects
 
-`docc` is the engine. The schemas, Word templates and house style belong to the
+`docc` is the engine. The schemas, themes and house style belong to the
 project being compiled, in a `.docc` directory that `docc` finds by walking up
 from the input file the way `git` finds `.git`:
 
@@ -100,8 +123,8 @@ myproject/
       _base.yaml        # shared field shapes, extended by the rest
       legal.yaml
       letter.yaml
-    templates/
-      legal.dotx        # authored in Word, not hand-written XML
+    themes/
+      legal.yaml         # page geometry, styles, and fixed furniture
   docs/
     klage_mueller.md
 ```
@@ -151,8 +174,6 @@ unknown-field warning even in projects whose schemas do not extend the base.
 type: legal
 extends: base
 description: Formal legal brief.
-template: templates/legal.dotx
-
 frontmatter:
   case_ref:
     type: string
@@ -252,7 +273,7 @@ schema rather than quietly doing nothing.
 
 | check | what it catches | args |
 |---|---|---|
-| `no_placeholder_text` | template text that was never filled in | `pattern` — what a placeholder looks like. Defaults to a line that is nothing but bracketed prose, `[like this]`. |
+| `no_placeholder_text` | draft placeholder text that was never filled in | `pattern` — what a placeholder looks like. Defaults to a line that is nothing but bracketed prose, `[like this]`. |
 | `div_items_match` | items in a fenced div that do not have the required form | `div` — the fence name, `pattern` — a regexp every item must match |
 | `cross_reference` | keys cited in the body but missing from a frontmatter list, and entries listed but never cited | `div`, `pattern` — capture group 1 is the cited key, `list_field` — the frontmatter list, `label` — what one entry is called in messages |
 | `no_empty_sections` | a heading with no content beneath it | — |
@@ -418,16 +439,16 @@ Build them with `Mm`, `Pt`, `Cm`, `MmEMU`, `FontPt`, `BorderPt`.
 
 ### Verifying output
 
-Unit tests check structure. What they cannot check is whether a real renderer
-accepts the file, so a build-tagged round-trip test converts a generated
-document through LibreOffice:
+Unit tests check structure. An optional, build-tagged LibreOffice compatibility
+test also converts a generated document to PDF:
 
 ```bash
 task test:roundtrip     # needs soffice on PATH
 ```
 
 It asserts on the produced PDF, not on the exit code: `soffice` exits 0 even
-when it produces nothing.
+when it produces nothing. This is not a required release gate; DOCX generation
+and ZIP verification are the supported release checks.
 
 ### Validating a theme against a schema
 
@@ -451,8 +472,9 @@ schema declares: beilagen, closing, date, document_type, recipient, ...
 
 ## Status
 
-`docc init`, `docc check`, `docc build` and the `internal/docx` writer are implemented and wired together.
-Remaining work is in `docs/next-steps.md`.
+`docc init`, `docc check`, `docc build`, `docc lsp`, and the `internal/docx`
+writer are implemented and wired together. Planned maintenance work is tracked
+in [docs/next-steps.md](docs/next-steps.md).
 
 ## License
 

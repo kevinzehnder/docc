@@ -1,8 +1,8 @@
 // Package project locates the .docc directory that supplies a project's
-// schemas and Word templates.
+// schemas and themes.
 //
-// docc is the engine; the schemas, letterhead templates and house style are the
-// project's own content. Keeping them apart means a template change is a file
+// docc is the engine; the schemas, themes and house style are the project's own
+// content. Keeping them apart means a theme change is a file
 // edit rather than a compiler release.
 package project
 
@@ -18,8 +18,7 @@ const DirName = ".docc"
 
 // Project is a resolved .docc directory.
 type Project struct {
-	// Root is the directory containing .docc — the base for relative template
-	// paths declared in schemas.
+	// Root is the directory containing .docc.
 	Root string
 	// Dir is the .docc directory itself.
 	Dir string

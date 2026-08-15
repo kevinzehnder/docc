@@ -1,13 +1,13 @@
 {
   "name": "docc-marketplace",
   "version": "0.1.0",
-  "description": "docc plugins for Claude Cowork / Claude Code.",
+  "description": "Experimental docc plugin prototype; distribute the standalone skill ZIP for production use.",
   "plugins": [
     {
       "name": "docc",
       "displayName": "docc — schema-backed documents",
       "version": "0.1.0",
-      "description": "Validate and render schema-backed Markdown to .docx with the bundled docc compiler.",
+      "description": "EXPERIMENTAL: docc plugin prototype. Use the standalone skill ZIP for production distribution.",
       "author": {
         "name": "Kevin Zehnder",
         "email": "kevin.zehnder@jlmy.ch"

@@ -86,6 +86,10 @@ deliverable. Exit code `0` is clean, `1` reports diagnostics or a build failure,
 `2` is a usage/configuration error. Legal or contractual output is a **draft
 that requires human review**.
 
+DOCX is the supported compiler output. When the user requests a PDF, build the
+DOCX first, then use Cowork's document/PDF capability. The compiler's
+`--to pdf` option is compatibility-only and requires `soffice`.
+
 ## Diagnostics quick reference
 
 - `DOC004` required field missing · `DOC006` wrong scalar type · `DOC007` bad date

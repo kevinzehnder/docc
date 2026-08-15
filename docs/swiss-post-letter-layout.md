@@ -91,7 +91,7 @@ size is **70 × 35 mm**.
 
 ## `docc` implementation policy
 
-`jlmy-letter` is the canonical C5 left-window theme:
+`starter-letter` is the reference C5 left-window starter theme:
 
 - recipient text begins at x = 25 mm (5 mm inside the field's 20 mm left edge) and is targeted at y = 60 mm;
 - recipient text uses a black 10 pt sans-serif address style;

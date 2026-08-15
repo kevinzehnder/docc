@@ -3,7 +3,7 @@
 #
 # Produces (all git-ignored — regenerate anytime):
 #   1. docc-cowork-skill.zip                     — standalone skill (Customize > Skills upload)
-#   2. marketplace/plugins/docc/skills/docc/     — plugin payload (git marketplace install)
+#   2. marketplace/plugins/docc/skills/docc/     — experimental plugin payload
 #
 # The skill directory `cowork/docc/` is authoritative; both artifacts are copies
 # of it, so SKILL.md / config / examples are edited in one place only. The docc
@@ -41,4 +41,4 @@ cp -r "$SKILL" "$DEST"
 
 echo "done."
 echo "  standalone : $HERE/docc-cowork-skill.zip"
-echo "  plugin     : $HERE/marketplace/  (marketplace.json + plugins/docc/)"
+echo "  plugin     : $HERE/marketplace/  (experimental prototype only)"

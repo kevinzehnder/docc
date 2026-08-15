@@ -4,6 +4,7 @@ version: "3"
 includes:
   core: ./taskfiles/core.yaml
   test: ./taskfiles/test.yaml
+  skill: ./taskfiles/skill.yaml
 
 tasks:
   default:
@@ -49,6 +50,11 @@ tasks:
     desc: run unit tests
     cmds:
       - task: test:unit
+
+  release:skill:
+    desc: assemble, verify, and checksum the Cowork skill ZIP
+    cmds:
+      - task: skill:release
 
   hooks:install:
     desc: install local git hooks from .githooks
