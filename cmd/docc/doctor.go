@@ -122,7 +122,7 @@ func diagnose(cf commonFlags, start string) (*doctorReport, error) {
 		rep.SchemaSource = "--schema-dir"
 	}
 
-	themes, themeDir, themeErr := loadThemes(cf.themeDir, start)
+	themes, themeDir, _, themeErr := loadThemes(cf.themeDir, start)
 	if themeErr != nil {
 		rep.ThemeError = themeErr.Error()
 	} else {

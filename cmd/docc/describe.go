@@ -341,7 +341,7 @@ func renderedFields(cf commonFlags, sc *schema.Schema) map[string][]string {
 	if sc.Theme == "" {
 		return nil
 	}
-	set, _, err := loadThemes(cf.themeDir, cf.start())
+	set, _, _, err := loadThemes(cf.themeDir, cf.start())
 	if err != nil {
 		return nil
 	}

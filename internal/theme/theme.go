@@ -23,7 +23,15 @@ import (
 
 // Theme is one visual definition, loaded from a YAML file.
 type Theme struct {
-	Name        string `yaml:"name"`
+	Name string `yaml:"name"`
+	// Extends names another theme in the same directory whose page geometry,
+	// styles, numbering and furniture are inherited. Keys declared here win.
+	//
+	// A house style is one letterhead and one set of styles across a dozen
+	// document types; without inheritance each type restates the lot, and a new
+	// address is a dozen edits. A theme whose name begins with "_" is a
+	// fragment: it exists to be extended and cannot be selected by a schema.
+	Extends     string `yaml:"extends"`
 	Description string `yaml:"description"`
 
 	Page      Page                 `yaml:"page"`
@@ -309,6 +317,10 @@ type Set struct {
 	Dir string
 }
 
+// IsFragment reports whether a theme name is a fragment: a definition that
+// exists to be extended and is never selected by a schema.
+func IsFragment(name string) bool { return strings.HasPrefix(name, "_") }
+
 // Get returns a theme by name.
 func (s *Set) Get(name string) (*Theme, error) {
 	if s == nil || len(s.byName) == 0 {
@@ -318,30 +330,49 @@ func (s *Set) Get(name string) (*Theme, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown theme %q (known: %s)", name, strings.Join(s.Names(), ", "))
 	}
+	if IsFragment(name) {
+		return nil, fmt.Errorf("theme %q is a fragment: it exists to be extended, not selected (selectable: %s)", name, strings.Join(s.Names(), ", "))
+	}
 	return t, nil
 }
 
-// Names lists the loaded themes in sorted order.
+// Names lists the selectable themes in sorted order. Fragments are omitted:
+// they are not a choice a schema can make.
 func (s *Set) Names() []string {
 	if s == nil {
 		return nil
 	}
 	out := make([]string, 0, len(s.byName))
 	for k := range s.byName {
+		if IsFragment(k) {
+			continue
+		}
 		out = append(out, k)
 	}
 	sort.Strings(out)
 	return out
 }
 
-// Load reads every *.yaml file in dir as a theme.
+// rawTheme is one theme file before inheritance is applied: the struct, which
+// has already been checked for unknown keys, and the same document as a plain
+// map, which is what the merge works on.
+type rawTheme struct {
+	path    string
+	name    string
+	extends string
+	doc     map[string]any
+}
+
+// Load reads every *.yaml file in dir as a theme and resolves `extends`
+// inheritance. Files whose theme name begins with "_" are fragments that exist
+// only to be extended.
 func Load(dir string) (*Set, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("read theme dir: %w", err)
 	}
 
-	set := &Set{byName: map[string]*Theme{}, Dir: dir}
+	raw := map[string]*rawTheme{}
 	for _, e := range entries {
 		if e.IsDir() || !isYAML(e.Name()) {
 			continue
@@ -351,8 +382,17 @@ func Load(dir string) (*Set, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Decode twice. The struct pass rejects unknown keys and bad values
+		// against the file that wrote them, which is where the author can act
+		// on the error; the map pass is what inheritance merges, because only
+		// the document itself distinguishes a key left out from a key set to
+		// its zero value.
 		var t Theme
 		if err := yaml.UnmarshalWithOptions(b, &t, yaml.Strict()); err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		var doc map[string]any
+		if err := yaml.Unmarshal(b, &doc); err != nil {
 			return nil, fmt.Errorf("%s: %w", path, err)
 		}
 		if t.Name == "" {
@@ -365,15 +405,116 @@ func Load(dir string) (*Set, error) {
 		if s := strings.ToLower(t.Page.Size); s != "" && s != "a4" && s != "letter" {
 			return nil, fmt.Errorf("%s: unknown page size %q — use A4 or Letter, or set page.width and page.height", path, t.Page.Size)
 		}
-		if prev, dup := set.byName[t.Name]; dup {
-			return nil, fmt.Errorf("%s: theme %q already declared (%s)", path, t.Name, prev.Description)
+		if prev, dup := raw[t.Name]; dup {
+			return nil, fmt.Errorf("%s: theme %q already declared by %s", path, t.Name, prev.path)
 		}
-		set.byName[t.Name] = &t
+		raw[t.Name] = &rawTheme{path: path, name: t.Name, extends: t.Extends, doc: doc}
 	}
-	if len(set.byName) == 0 {
+	if len(raw) == 0 {
 		return nil, fmt.Errorf("no themes found in %s", dir)
 	}
+
+	set := &Set{byName: map[string]*Theme{}, Dir: dir}
+	merged := map[string]map[string]any{}
+	for name := range raw {
+		doc, err := resolve(name, raw, merged, nil)
+		if err != nil {
+			return nil, err
+		}
+		t, err := decode(raw[name], doc)
+		if err != nil {
+			return nil, err
+		}
+		set.byName[name] = t
+	}
 	return set, nil
+}
+
+// resolve merges a theme's document with its ancestors'. seen guards against
+// cycles.
+func resolve(name string, raw map[string]*rawTheme, done map[string]map[string]any, seen []string) (map[string]any, error) {
+	if doc, ok := done[name]; ok {
+		return doc, nil
+	}
+	r, ok := raw[name]
+	if !ok {
+		return nil, fmt.Errorf("theme %q extends unknown theme %q (known: %s)", strings.Join(seen, " -> "), name, joinNames(raw))
+	}
+	for _, s := range seen {
+		if s == name {
+			return nil, fmt.Errorf("theme inheritance cycle: %s -> %s", strings.Join(seen, " -> "), name)
+		}
+	}
+	if r.extends == "" {
+		done[name] = r.doc
+		return r.doc, nil
+	}
+	parent, err := resolve(r.extends, raw, done, append(seen, name))
+	if err != nil {
+		return nil, err
+	}
+	doc := mergeDoc(parent, r.doc)
+	done[name] = doc
+	return doc, nil
+}
+
+// mergeDoc layers a child document over its parent. Mappings merge key-wise so
+// a child can change one style without restating the gallery; sequences are
+// replaced wholesale, because a partial override of an ordered structure —
+// half a letterhead — is more confusing than restating it. This mirrors how
+// schema inheritance merges, deliberately: two different inheritance semantics
+// in one product is a defect, not a feature.
+func mergeDoc(parent, child map[string]any) map[string]any {
+	out := make(map[string]any, len(parent)+len(child))
+	for k, v := range parent {
+		out[k] = v
+	}
+	for k, v := range child {
+		if pm, ok := out[k].(map[string]any); ok {
+			if cm, ok := v.(map[string]any); ok {
+				out[k] = mergeDoc(pm, cm)
+				continue
+			}
+		}
+		out[k] = v
+	}
+	return out
+}
+
+// decode turns a merged document back into a Theme. Identity is never
+// inherited: a child that omits `name` is still itself, not its parent.
+func decode(r *rawTheme, doc map[string]any) (*Theme, error) {
+	if doc == nil {
+		doc = map[string]any{}
+	}
+	merged := make(map[string]any, len(doc)+2)
+	for k, v := range doc {
+		merged[k] = v
+	}
+	merged["name"] = r.name
+	if r.extends == "" {
+		delete(merged, "extends")
+	} else {
+		merged["extends"] = r.extends
+	}
+	b, err := yaml.Marshal(merged)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", r.path, err)
+	}
+	var t Theme
+	if err := yaml.UnmarshalWithOptions(b, &t, yaml.Strict()); err != nil {
+		return nil, fmt.Errorf("%s: %w", r.path, err)
+	}
+	return &t, nil
+}
+
+func joinNames(raw map[string]*rawTheme) string {
+	out := make([]string, 0, len(raw))
+	for k := range raw {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return strings.Join(out, ", ")
 }
 
 func isYAML(name string) bool {

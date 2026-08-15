@@ -21,7 +21,7 @@ import (
 
 	"github.com/kevinzehnder/docc/internal/diag"
 	"github.com/kevinzehnder/docc/internal/parse"
-	"github.com/kevinzehnder/docc/internal/project"
+	"github.com/kevinzehnder/docc/internal/profile"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/sema"
 )
@@ -243,16 +243,20 @@ func (s *Server) publish(uri string) error {
 func check(path string, source []byte, options Options) (diag.List, error) {
 	schemaDir := options.SchemaDir
 	if schemaDir == "" {
-		proj, err := project.Resolve(path)
+		paths, err := profile.XDGPaths()
 		if err != nil {
-			if errors.Is(err, project.ErrNotFound) {
-				return nil, nil // outside any .docc project: not a docc file
+			return nil, err
+		}
+		resolved, err := profile.Resolve(path, paths)
+		if err != nil {
+			if errors.Is(err, profile.ErrNotConfigured) {
+				return nil, nil // ordinary Markdown outside a configured profile stays quiet
 			}
 			return nil, err
 		}
-		schemaDir = proj.SchemaDir()
+		schemaDir = resolved.SchemaDir
 	}
-	// A .docc directory without a schemas/ subdirectory is a valid state: the
+	// A legacy .docc directory without schemas is a valid editing state: the
 	// project simply has no document types yet. Stay quiet instead of erroring.
 	if _, err := os.Stat(schemaDir); err != nil {
 		return nil, nil

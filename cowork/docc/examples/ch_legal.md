@@ -1,6 +1,6 @@
 ---
 docc: 1
-document_type: legal
+document_type: ch_legal
 legal_doc_type: Klageschrift
 case_ref: "EX.2026.001"
 date: 2026-03-11
@@ -48,7 +48,7 @@ The court has jurisdiction because the respondent is established in Sampletown.
 
 ## Vertragsschluss
 
-The parties entered into a contract on 3 March 2024.
+The parties entered into a contract on [3 March 2024]{.datum key=contract-date}.
 
 ::: beweis
 - Contract dated 3 March 2024 // Beilage 1

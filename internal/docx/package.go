@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,6 +40,7 @@ const (
 	relTypeOfficeDoc = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
 	relTypeCore      = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
 	relTypeApp       = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties"
+	relTypeCustom    = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties"
 )
 
 // AddImage stores an image and returns a Drawing that renders it at the given
@@ -185,13 +187,16 @@ func (d *Document) buildParts() (map[string][]byte, error) {
 	d.assignDrawingIDs()
 
 	parts["[Content_Types].xml"] = d.writeContentTypes()
-	parts["_rels/.rels"] = writeRootRels()
+	parts["_rels/.rels"] = d.writeRootRels()
 	parts["word/document.xml"] = d.writeDocument()
 	parts["word/_rels/document.xml.rels"] = writeRels(docRels)
 	parts["word/styles.xml"] = d.writeStyles()
 	parts["word/settings.xml"] = d.writeSettings()
 	parts["docProps/core.xml"] = d.writeCoreProps()
 	parts["docProps/app.xml"] = writeAppProps()
+	if len(d.Custom) > 0 {
+		parts["docProps/custom.xml"] = d.writeCustomProps()
+	}
 
 	if !d.Numbering.empty() {
 		parts["word/numbering.xml"] = d.writeNumbering()
@@ -334,6 +339,9 @@ func (d *Document) writeContentTypes() []byte {
 	}
 	override("/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml")
 	override("/docProps/app.xml", "application/vnd.openxmlformats-officedocument.extended-properties+xml")
+	if len(d.Custom) > 0 {
+		override("/docProps/custom.xml", "application/vnd.openxmlformats-officedocument.custom-properties+xml")
+	}
 
 	w.close("Types")
 	return w.bytes()
@@ -358,12 +366,41 @@ func imageContentType(ext string) string {
 	}
 }
 
-func writeRootRels() []byte {
-	return writeRelsWithNS([]relationship{
+func (d *Document) writeRootRels() []byte {
+	rels := []relationship{
 		{"rId1", relTypeOfficeDoc, "word/document.xml"},
 		{"rId2", relTypeCore, "docProps/core.xml"},
 		{"rId3", relTypeApp, "docProps/app.xml"},
-	})
+	}
+	if len(d.Custom) > 0 {
+		rels = append(rels, relationship{"rId4", relTypeCustom, "docProps/custom.xml"})
+	}
+	return writeRelsWithNS(rels)
+}
+
+// writeCustomProps renders the custom document properties part. The fmtid is
+// the one Word writes for user-defined properties; pids are assigned by
+// position and start at 2, which the format requires.
+func (d *Document) writeCustomProps() []byte {
+	w := &xw{}
+	w.header()
+	w.open("Properties",
+		a("xmlns", "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"),
+		a("xmlns:vt", "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"),
+	)
+	for i, p := range d.Custom {
+		w.open("property",
+			a("fmtid", "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"),
+			a("pid", strconv.Itoa(i+2)),
+			a("name", p.Name),
+		)
+		w.open("vt:lpwstr")
+		w.text(p.Value)
+		w.close("vt:lpwstr")
+		w.close("property")
+	}
+	w.close("Properties")
+	return w.bytes()
 }
 
 func writeRels(rels []relationship) []byte {

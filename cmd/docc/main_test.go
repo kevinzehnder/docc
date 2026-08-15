@@ -5,11 +5,91 @@ import (
 	"flag"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 )
+
+func TestProfileUseInstallsAndBindsAPack(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is required for profile packs")
+	}
+	store := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(store, "config"))
+	t.Setenv("XDG_DATA_HOME", filepath.Join(store, "data"))
+
+	repo := t.TempDir()
+	write(t, filepath.Join(repo, "docc-profile.yaml"), "format: 1\nid: firm\nschemas: schemas\nthemes: themes\n")
+	write(t, filepath.Join(repo, "schemas", "memo.yaml"), memoSchema)
+	write(t, filepath.Join(repo, "themes", "t.yaml"), minimalTheme)
+	gitCommand(t, repo, "init")
+	gitCommand(t, repo, "add", ".")
+	gitCommand(t, repo, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "profile")
+
+	root := filepath.Join(t.TempDir(), "documents")
+	if got := run([]string{"profile", "use", "--project", root, repo}); got != 0 {
+		t.Fatalf("run(profile use) = %d, want 0", got)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".docc", "profile.yaml")); err != nil {
+		t.Fatalf("profile binding: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".docc", "profile.lock")); err != nil {
+		t.Fatalf("profile lock: %v", err)
+	}
+
+	doc := filepath.Join(root, "memo.md")
+	write(t, doc, "---\ndocc: 1\ndocument_type: memo\ntitle: Q3\n---\n\n# Summary\n")
+	if got := run([]string{"check", doc}); got != 0 {
+		t.Errorf("run(check profile-backed document) = %d, want 0", got)
+	}
+
+	var code int
+	out := captureStdout(t, func() {
+		code = run([]string{"profile", "status", "--project", root, "--check-remote", "--json"})
+	})
+	if code != 0 {
+		t.Fatalf("run(profile status --check-remote) = %d", code)
+	}
+	var status struct {
+		RemoteCommit string `json:"remote_commit"`
+		Stale        bool   `json:"stale"`
+	}
+	if err := json.Unmarshal([]byte(out), &status); err != nil {
+		t.Fatalf("profile status JSON: %v\n%s", err, out)
+	}
+	if status.RemoteCommit == "" || status.Stale {
+		t.Errorf("profile status = %+v, want current remote commit", status)
+	}
+
+	write(t, filepath.Join(repo, "README.md"), "new profile revision\n")
+	gitCommand(t, repo, "add", ".")
+	gitCommand(t, repo, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "update")
+	out = captureStdout(t, func() {
+		code = run([]string{"profile", "status", "--project", root, "--check-remote", "--json"})
+	})
+	if code != 0 || json.Unmarshal([]byte(out), &status) != nil || !status.Stale {
+		t.Fatalf("status should identify the newer remote revision: code=%d status=%+v output=%s", code, status, out)
+	}
+	if got := run([]string{"profile", "update", "--project", root}); got != 0 {
+		t.Fatalf("run(profile update) = %d, want 0", got)
+	}
+	out = captureStdout(t, func() {
+		code = run([]string{"profile", "status", "--project", root, "--check-remote", "--json"})
+	})
+	if code != 0 || json.Unmarshal([]byte(out), &status) != nil || status.Stale {
+		t.Fatalf("updated profile should be current: code=%d status=%+v output=%s", code, status, out)
+	}
+}
+
+func gitCommand(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
 
 func TestInitCommand(t *testing.T) {
 	root := t.TempDir()

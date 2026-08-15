@@ -1,111 +1,113 @@
 ---
 name: docc
-description: Validate and render schema-backed Markdown to .docx with the bundled docc compiler. Build or check docc documents like legal briefs and letters. Bundles its binary and config; no install, no network.
+description: Validate and render schema-backed Markdown to .docx with the docc document profile. Document types: ch_legal, ch_letter. Bundles its compiler, types and layouts; no install, no network.
 ---
 
-# docc — schema-backed document compiler (bundled binary)
+# docc — schema-backed document compiler
 
-`docc` compiles a Markdown document with YAML frontmatter into a Word `.docx`.
-The schema is the contract; the theme is the layout. This skill bundles the
-compiler and a starter configuration, so everything runs locally inside the
-Cowork VM with **no install and no network**.
+`docc` compiles Markdown with YAML frontmatter into a Word `.docx`.
+The schema is the contract; the theme is the layout. This skill carries the
+document types and layouts, so the output matches the house style exactly.
 
 All paths below are relative to **this skill's directory**. Run commands from
-that directory (`cd` into it first), or prefix each path with the skill
-directory's absolute path.
+that directory, or prefix each path with the skill directory's absolute path.
 
-## First run — select and enable the binary
+## First run — enable the bundled binary
 
-The skill ships a static x86_64 Linux binary (the Cowork VM is x86_64). Make it
-executable (packaging may drop the exec bit) and confirm it runs:
+The compiler ships inside this skill; there is no install and no network.
+Packaging may drop the exec bit, so restore it once:
 
 ```sh
 DOCC=bin/docc-linux-amd64
 chmod +x "$DOCC"
-"./$DOCC" version      # confirms the VM will run the binary
+"./$DOCC" version
 ```
 
-If `version` prints (e.g. `docc 0.0.0-dev-cowork`), the compiler works here.
+A version line means the compiler runs here. `sh probe.sh` does the same
+check plus a real build, and prints `PROBE RESULT: PASS` when the skill is
+fully operational.
 
-There is also a one-shot self-test that does all of the above plus a real
-build; run it once to confirm the environment:
+## Document types
+
+The types below are the whole contract. There is no generic mode: a document
+declares one of these in its frontmatter as `document_type`.
+
+| Type | Purpose |
+|---|---|
+| `ch_legal` | Formal legal brief (Klageschrift, Klageantwort, Rechtsschrift). |
+| `ch_letter` | Business or legal correspondence on letterhead. |
+
+The schemas and themes live under `config/`:
+
+- `config/schemas/` — the document types, their fields and body rules
+- `config/themes/` — page geometry, styles and letterhead furniture
+
+Point docc at them explicitly, because this is not the usual hidden `.docc/`:
 
 ```sh
-sh probe.sh
+"./$DOCC" types    --schema-dir config/schemas
+"./$DOCC" themes   --theme-dir  config/themes
+"./$DOCC" describe --schema-dir config/schemas <type>
+"./$DOCC" example  --schema-dir config/schemas <type>
 ```
 
-A `PROBE RESULT: PASS` line means the skill is fully operational in this VM.
-
-## Configuration
-
-The document types and layouts live in this skill under `config/`:
-
-- `config/schemas/` — document types (`letter`, `legal`) and their field/body rules
-- `config/themes/`  — page geometry, styles, letterhead furniture
-
-Point `docc` at them with `--schema-dir config/schemas` and, for building,
-`--theme-dir config/themes`. (These are passed explicitly because the config
-directory is not the usual hidden `.docc/`.)
-
-Inspect what is available:
-
-```sh
-"./$DOCC" types  --schema-dir config/schemas
-"./$DOCC" themes --theme-dir  config/themes
-```
-
-The starter `letter` and `legal` types are Swiss-oriented and generic. Adapt
-the schema/theme before using them as a real house style or court filing.
+`describe` prints the resolved contract for a type — every required field,
+the body structure and the blocks it permits. Read it before writing a
+document of a type for the first time.
 
 ## Authoring workflow
 
-1. Read the target schema in `config/schemas/` (and its `extends:` base) to learn
-   the required frontmatter fields, the body structure, and which theme it uses.
+1. Run `describe` for the type to learn its required frontmatter, its body
+   structure, and the semantic blocks and spans it permits.
 2. Ask the user for any missing facts — names, addresses, dates, references,
-   attachments. **Do not invent them.**
-3. Write only the Markdown body and YAML frontmatter into a `.md` file in the
-   workspace. Do not hand-write letterhead, address block, subject line, closing
-   or footer that the theme renders automatically. Every document begins with
-   `docc: 1` in its frontmatter.
+   amounts. **Do not invent them.** A plausible invented reference number is
+   worse than an empty one, because nobody notices it.
+3. Write only the Markdown body and YAML frontmatter. Do not hand-write
+   letterhead, address block, subject line, signature or footer: the theme
+   renders those, and a hand-written copy will differ from it.
 4. Validate and fix every diagnostic. One run reports the complete list:
 
    ```sh
    "./$DOCC" check --json --schema-dir config/schemas document.md
    ```
 
-5. Build only after it validates cleanly. Write the output into the workspace so
-   the user receives it:
+5. Build only after it validates cleanly:
 
    ```sh
    "./$DOCC" build --schema-dir config/schemas --theme-dir config/themes \
        --output document.docx document.md
    ```
 
-`docc build` re-validates before rendering. Never pass `--force` for a
-deliverable. Exit code `0` is clean, `1` reports diagnostics or a build failure,
-`2` is a usage/configuration error. Legal or contractual output is a **draft
-that requires human review**.
+`build` re-validates before rendering. Never pass `--force` for a deliverable.
+Exit code `0` is clean, `1` reports diagnostics or a build failure, `2` is a
+usage or configuration error. Legal and contractual output is a **draft that
+requires human review**.
 
-DOCX is the supported compiler output. When the user requests a PDF, build the
-DOCX first, then use Cowork's document/PDF capability. The compiler's
-`--to pdf` option is compatibility-only and requires `soffice`.
-
-## Diagnostics quick reference
+## Diagnostics
 
 - `DOC004` required field missing · `DOC006` wrong scalar type · `DOC007` bad date
 - `DOC008` disallowed enum value · `DOC010` pattern failed · `DOC011` unknown key
 - `DOC020`–`DOC022` body-structure problems
 
-Explain any engine code: `"./$DOCC" explain DOC010`. Schema-defined codes carry
-their own hints inside the schema file.
+Explain any engine code with `"./$DOCC" explain DOC010`. Codes a schema defines
+carry their own hint inside the schema file.
 
 ## Try it
 
-A ready example is bundled:
+A complete example ships for each type:
 
 ```sh
 "./$DOCC" build --schema-dir config/schemas --theme-dir config/themes \
-    --output letter.docx examples/letter.md
+    --output out.docx examples/ch_legal.md
 ```
 
-This produces `letter.docx` in the current directory.
+## Cowork host notes
+
+The VM is x86_64, which is the architecture the bundled binary is built for.
+`probe.sh` checks it and reports the architecture it found.
+
+DOCX is the compiler's supported output. When the user asks for a PDF, build the
+DOCX first and then use Cowork's own document/PDF capability. The compiler's
+`--to pdf` needs `soffice`, which is not installed here.
+
+Write deliverables into the workspace so the user receives them.

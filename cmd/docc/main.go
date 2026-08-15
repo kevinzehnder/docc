@@ -17,7 +17,7 @@ import (
 	"github.com/kevinzehnder/docc/internal/ir"
 	"github.com/kevinzehnder/docc/internal/lsp"
 	"github.com/kevinzehnder/docc/internal/parse"
-	"github.com/kevinzehnder/docc/internal/project"
+	"github.com/kevinzehnder/docc/internal/profile"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/sema"
 	"github.com/kevinzehnder/docc/internal/starter"
@@ -32,7 +32,8 @@ const usage = `docc — a compiler for structured documents
 usage:
   docc check [flags] <file.md>...   validate documents against their schema
   docc build [flags] <file.md>      validate, then render to .docx (or compatibility PDF)
-  docc init [flags] [directory]     create a generic starter project
+  docc init [flags] [directory]     create a standalone generic starter project
+  docc profile <command>            install, select, inspect, or update profile packs
   docc doctor [flags] [path]        report the resolved configuration and check it
   docc lsp [flags]                  start a Language Server Protocol server
   docc types [flags]                list known document types
@@ -89,11 +90,26 @@ flags:
 `
 	initHelp = `docc init [flags] [directory]
 
-Create a starter project: .docc/ with a letter and a legal document type, sample
-documents, and an agent skill. Refuses to overwrite an existing configuration.
-The result is yours to edit — it is a starting point, not a managed install.
+Create a standalone starter project: .docc/ with a letter and a legal document
+type, sample documents, and an agent skill. Refuses to overwrite an existing
+configuration. The result is yours to edit — it is a starting point, not a
+managed install. For a Git-managed profile, use "docc profile use" instead.
 
 flags:
+`
+	profileHelp = `docc profile <command> [flags]
+
+Manage Git-backed profile packs. A profile pack supplies schemas, themes and
+assets without copying them into every document project.
+
+commands:
+  install [--ref REF] [--default] REPOSITORY
+  use [--ref REF] [--project DIR] REPOSITORY
+  update [--project DIR]
+  status [--project DIR]
+  package [--project DIR] [--out DIR] [--with-binary PATH]
+
+Run "docc profile <command> --help" for command-specific help.
 `
 	doctorHelp = `docc doctor [flags] [path]
 
@@ -161,6 +177,8 @@ func run(args []string) int {
 		return cmdBuild(rest)
 	case "init":
 		return cmdInit(rest)
+	case "profile":
+		return cmdProfile(rest)
 	case "doctor":
 		return cmdDoctor(rest)
 	case "lsp":
@@ -548,7 +566,7 @@ func cmdThemes(args []string) int {
 	if fs.NArg() > 0 {
 		start = fs.Arg(0)
 	}
-	set, _, err := loadThemes(cf.themeDir, start)
+	set, _, _, err := loadThemes(cf.themeDir, start)
 	if err != nil {
 		return fail(cf, exitConfig, err)
 	}
@@ -612,7 +630,7 @@ func cmdBuild(args []string) int {
 	if err != nil {
 		return fail(cf, exitConfig, err)
 	}
-	themes, themeDir, err := loadThemes(cf.themeDir, input)
+	themes, themeDir, resolvedProfile, err := loadThemes(cf.themeDir, input)
 	if err != nil {
 		return fail(cf, exitConfig, err)
 	}
@@ -686,7 +704,7 @@ func cmdBuild(args []string) int {
 	}
 
 	doc := ir.Build(f, res.DocType, res.Meta.Values)
-	built, err := emit.Build(doc, res.Schema, th, emit.Options{ThemeDir: themeDir})
+	built, err := emit.Build(doc, res.Schema, th, emit.Options{ThemeDir: themeDir, Provenance: resolvedProfile.Provenance()})
 	if err != nil {
 		return fail(cf, exitDiag, err)
 	}
@@ -955,45 +973,49 @@ func describeHeadings(rules []schema.BodyRule, indent string) []string {
 	return out
 }
 
-// loadSchemas resolves the schema directory: an explicit flag, else the nearest
-// .docc directory above the first input file.
+// resolveProfile returns the shared schema/theme source for one invocation.
+// It never contacts the network: managed packs are installed and updated only
+// by `docc profile` commands.
+func resolveProfile(start string) (*profile.Resolved, error) {
+	paths, err := profile.XDGPaths()
+	if err != nil {
+		return nil, err
+	}
+	return profile.Resolve(start, paths)
+}
+
+// loadSchemas resolves an explicit directory or the selected profile pack.
 func loadSchemas(schemaDir, start string) (*schema.Set, error) {
 	if schemaDir != "" {
 		return schema.Load(schemaDir)
 	}
-	proj, err := project.Resolve(start)
+	resolved, err := resolveProfile(start)
 	if err != nil {
-		if errors.Is(err, project.ErrNotFound) {
-			return nil, fmt.Errorf("%w\n  create %s/schemas/ in your project, or pass --schema-dir", err, project.DirName)
-		}
 		return nil, err
 	}
-	return schema.Load(proj.SchemaDir())
+	return schema.Load(resolved.SchemaDir)
 }
 
 // loadSchemasCached is loadSchemas memoised across the files of one `docc check`
-// run. The key is the schema directory each file resolves to — the flag when
-// given, otherwise the file's own project — so files sharing a project load its
-// schemas once, and files in different projects each get their own contract.
+// run. The key is the explicit directory or the fully resolved profile schema
+// directory, so documents sharing an immutable pack load it once.
 func loadSchemasCached(cache map[string]*schema.Set, schemaDir, start string) (*schema.Set, error) {
 	key := schemaDir
 	if key == "" {
-		if proj, err := project.Resolve(start); err == nil {
-			key = proj.Dir
+		resolved, err := resolveProfile(start)
+		if err != nil {
+			return nil, err
 		}
+		key = resolved.SchemaDir
 	}
-	if key != "" {
-		if set, ok := cache[key]; ok {
-			return set, nil
-		}
+	if set, ok := cache[key]; ok {
+		return set, nil
 	}
-	set, err := loadSchemas(schemaDir, start)
+	set, err := schema.Load(key)
 	if err != nil {
 		return nil, err
 	}
-	if key != "" {
-		cache[key] = set
-	}
+	cache[key] = set
 	return set, nil
 }
 
@@ -1027,23 +1049,21 @@ func writeAtomic(dest string, write func(path string) error) error {
 	return nil
 }
 
-// loadThemes resolves the theme directory the same way loadSchemas resolves the
-// schema directory, and returns it so theme-relative image paths can be found.
-func loadThemes(themeDir, start string) (*theme.Set, string, error) {
+// loadThemes resolves an explicit directory or the selected profile pack. It
+// returns the directory so theme-relative image paths can be found, and the
+// resolution itself so a build can record what produced the file. An explicit
+// --theme-dir has no profile to report, and the resolution is then nil.
+func loadThemes(themeDir, start string) (*theme.Set, string, *profile.Resolved, error) {
 	if themeDir != "" {
 		set, err := theme.Load(themeDir)
-		return set, themeDir, err
+		return set, themeDir, nil, err
 	}
-	proj, err := project.Resolve(start)
+	resolved, err := resolveProfile(start)
 	if err != nil {
-		if errors.Is(err, project.ErrNotFound) {
-			return nil, "", fmt.Errorf("%w\n  create %s/themes/ in your project, or pass --theme-dir", err, project.DirName)
-		}
-		return nil, "", err
+		return nil, "", nil, err
 	}
-	dir := proj.ThemeDir()
-	set, err := theme.Load(dir)
-	return set, dir, err
+	set, err := theme.Load(resolved.ThemeDir)
+	return set, resolved.ThemeDir, resolved, err
 }
 
 // displayPath shortens an absolute path to a working-directory-relative one so

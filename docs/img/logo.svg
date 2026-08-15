@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="docc">
+  <title>docc</title>
+  <rect width="128" height="128" rx="28" fill="#16233D"/>
+  <rect x="32" y="20" width="64" height="86" rx="8" fill="#FFFFFF"/>
+  <rect x="44" y="38" width="40" height="6" rx="3" fill="#A7B4CC"/>
+  <rect x="44" y="52" width="30" height="6" rx="3" fill="#A7B4CC"/>
+  <rect x="44" y="66" width="34" height="6" rx="3" fill="#F0A742"/>
+  <g fill="none" stroke="#F0A742" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M45 89 L49 83 L53 89"/>
+    <path d="M59 89 L63 83 L67 89"/>
+    <path d="M73 89 L77 83 L81 89"/>
+  </g>
+</svg>

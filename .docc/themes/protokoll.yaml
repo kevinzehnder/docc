@@ -4,29 +4,7 @@
 # Markdown body remains only the meeting record; do not repeat those blocks.
 name: protokoll
 description: Clear Swiss meeting minutes with a decimal agenda outline.
-
-page:
-  size: A4
-  margins:
-    top: 25mm
-    bottom: 22mm
-    left: 28mm
-    right: 28mm
-    header: 12mm
-    footer: 12mm
-
-defaults:
-  font: FreeSans
-  size: 11pt
-  lang: de-CH
-
-formats:
-  date: "2. January 2006"
-  bool: ["ja", "nein"]
-  list_separator: ", "
-  months: [Januar, Februar, März, April, Mai, Juni,
-           Juli, August, September, Oktober, November, Dezember]
-  weekdays: [Sonntag, Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag]
+extends: _house
 
 styles:
   Standard:

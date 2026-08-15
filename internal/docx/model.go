@@ -20,8 +20,19 @@ type Document struct {
 	Defaults Defaults
 	// Properties are the core document properties (title, author).
 	Properties Properties
+	// Custom are document properties Word shows under File > Info > Advanced.
+	// They are written in the order given, so output stays deterministic.
+	Custom []CustomProperty
 
 	media []mediaFile
+}
+
+// CustomProperty is one named value in the custom document properties part.
+// It is where provenance belongs: which profile, at which revision, produced
+// this file. Word displays it and leaves it alone.
+type CustomProperty struct {
+	Name  string
+	Value string
 }
 
 // Properties are the core document properties Word shows in its file dialog.

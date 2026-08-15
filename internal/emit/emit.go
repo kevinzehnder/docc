@@ -25,6 +25,14 @@ import (
 type Options struct {
 	// ThemeDir is where theme-relative image paths resolve from.
 	ThemeDir string
+	// Provenance records which configuration produced the document, written
+	// into the file's custom properties. It answers the question a compliance
+	// review actually asks of a filed document — which profile revision made
+	// this — without anyone having to keep a separate ledger.
+	//
+	// Values come from the caller's resolved configuration, never from the
+	// clock, so a rebuild stays byte-identical.
+	Provenance []docx.CustomProperty
 }
 
 // Build renders a document.
@@ -70,6 +78,7 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 		Subject: metaString(doc.Meta, "subject", "betreff"),
 		Creator: metaString(doc.Meta, "sender.name", "author"),
 	}
+	e.out.Custom = opts.Provenance
 
 	if err := e.buildHeadersFooters(); err != nil {
 		return nil, err

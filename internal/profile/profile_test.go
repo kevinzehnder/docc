@@ -1,0 +1,155 @@
+package profile
+
+import (
+	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestXDGPaths(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "/config")
+	t.Setenv("XDG_DATA_HOME", "relative-data")
+	t.Setenv("XDG_CACHE_HOME", "/cache")
+	got := xdgPaths("/home/alice", os.Getenv)
+	if got.Config != "/config" || got.Data != "/home/alice/.local/share" || got.Cache != "/cache" {
+		t.Fatalf("xdgPaths = %+v", got)
+	}
+}
+
+func TestLoadPackRejectsEscapingPaths(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, manifestName), "format: 1\nid: example\nschemas: ../schemas\nthemes: themes\n")
+	if _, err := LoadPack(root); err == nil || !strings.Contains(err.Error(), "relative path") {
+		t.Fatalf("LoadPack error = %v, want relative-path error", err)
+	}
+}
+
+func TestResolveProjectBinding(t *testing.T) {
+	paths := testPaths(t)
+	ref := installFixturePack(t, paths, "firm", "0123456789abcdef0123456789abcdef01234567")
+	root := t.TempDir()
+	if err := WriteProject(root, ref); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Resolve(filepath.Join(root, "docs", "letter.md"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != "project-profile" || got.Reference == nil || *got.Reference != ref {
+		t.Fatalf("Resolve = %+v, want project profile %v", got, ref)
+	}
+	if got.SchemaDir != filepath.Join(paths.Data, "docc", "profiles", ref.ID, ref.Commit, "schemas") {
+		t.Errorf("SchemaDir = %q", got.SchemaDir)
+	}
+}
+
+func TestResolveDefaultWithoutProject(t *testing.T) {
+	paths := testPaths(t)
+	ref := installFixturePack(t, paths, "default", "fedcba9876543210fedcba9876543210fedcba98")
+	if err := SetDefault(paths, ref); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Resolve(filepath.Join(t.TempDir(), "letter.md"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != "user-default" || got.Reference == nil || *got.Reference != ref {
+		t.Fatalf("Resolve = %+v, want user default %v", got, ref)
+	}
+}
+
+func TestWriteProjectRefusesLegacyDirectories(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, projectDirName(), "schemas"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ref := Reference{ID: "firm", Source: "https://example.test/profiles.git", Commit: "0123456789abcdef0123456789abcdef01234567"}
+	if err := WriteProject(root, ref); err == nil || !strings.Contains(err.Error(), "existing .docc/schemas") {
+		t.Fatalf("WriteProject error = %v, want legacy collision", err)
+	}
+}
+
+func TestInstallMakesValidatedImmutableRevision(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is required for profile installation")
+	}
+	repo := t.TempDir()
+	write(t, filepath.Join(repo, manifestName), "format: 1\nid: firm\nschemas: schemas\nthemes: themes\n")
+	write(t, filepath.Join(repo, "schemas", "memo.yaml"), "type: memo\ndescription: memo\ntheme: t\n")
+	write(t, filepath.Join(repo, "themes", "t.yaml"), "name: t\ndescription: theme\n")
+	gitTest(t, repo, "init")
+	gitTest(t, repo, "add", ".")
+	gitTest(t, repo, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "initial")
+
+	paths := testPaths(t)
+	ref, err := Install(context.Background(), paths, repo, "", Policy{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ref.ID != "firm" || len(ref.Commit) != 40 {
+		t.Fatalf("Install = %+v", ref)
+	}
+	dir, err := paths.PackDir(ref.ID, ref.Commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".git")); !os.IsNotExist(err) {
+		t.Fatalf("installed pack retains .git: %v", err)
+	}
+	if _, err := LoadPack(dir); err != nil {
+		t.Fatalf("installed pack is invalid: %v", err)
+	}
+	remote, err := RemoteCommit(context.Background(), repo, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if remote != ref.Commit {
+		t.Errorf("RemoteCommit = %s, want %s", remote, ref.Commit)
+	}
+}
+
+func testPaths(t *testing.T) Paths {
+	t.Helper()
+	root := t.TempDir()
+	return Paths{Config: filepath.Join(root, "config"), Data: filepath.Join(root, "data"), Cache: filepath.Join(root, "cache")}
+}
+
+func installFixturePack(t *testing.T, paths Paths, id, commit string) Reference {
+	t.Helper()
+	ref := Reference{ID: id, Source: "https://example.test/" + id + ".git", Commit: commit}
+	dir, err := paths.PackDir(id, commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(t, filepath.Join(dir, manifestName), "format: 1\nid: "+id+"\nschemas: schemas\nthemes: themes\n")
+	if err := os.MkdirAll(filepath.Join(dir, "schemas"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "themes"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return ref
+}
+
+func write(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func gitTest(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
+
+func projectDirName() string { return ".docc" }

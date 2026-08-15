@@ -1,8 +1,8 @@
 # Schema reference
 
 Every key a `.docc/schemas/*.yaml` file may set, what it accepts, and what
-happens when it is absent. The narrative introduction is in the README's
-[Schemas](../README.md#schemas) section; this is the exhaustive list.
+happens when it is absent. The narrative introduction is in the
+[Schemas](authoring.md#schemas) section; this is the exhaustive list.
 
 A schema is one document type. Adding a type is adding a YAML file — there is no
 Go to write unless you need a new *check*, which is the one extension point that
@@ -31,7 +31,7 @@ docc doctor                   # which schemas resolved, and whether they are sou
 | `blocks` | map | — | The `:::name` blocks this type permits. |
 | `spans` | map | — | The `[text]{.type}` span types this type permits. |
 | `fields` | map | — | Intentionally incomplete fields — blanks that are content. |
-| `styles` | map | — | Markdown construct → theme style id. See the README's [style map](../README.md#the-style-map); the key set is closed. |
+| `styles` | map | — | Markdown construct → theme style id. See the [style map](authoring.md#the-style-map); the key set is closed. |
 | `rules` | list | — | Named cross-cutting checks to run. |
 | `render` | map | — | Numbering the source markdown does not express. |
 
@@ -39,11 +39,12 @@ docc doctor                   # which schemas resolved, and whether they are sou
 
 Merging is per-key, not wholesale, and the two halves behave differently:
 
-- **Merged key-wise**: `frontmatter`, `types`, `blocks`, `spans`, `fields`. A
-  child redeclaring one entry replaces that entry and keeps its siblings.
-- **Replaced wholesale**: `body`, `rules`, `styles`. Declaring any means
-  declaring all of them — a child that sets one `styles:` entry does not inherit
-  the parent's others.
+- **Merged key-wise**: `frontmatter`, `types`, `blocks`, `spans`, `fields`,
+  `styles`. A child redeclaring one entry replaces that entry and keeps its
+  siblings.
+- **Replaced wholesale**: `body`, `rules`. Declaring any means declaring all of
+  them — partial override of an ordered structure is more confusing than
+  restating it.
 - **Inherited when blank**: `theme`, `example`.
 - **Inherited individually**: each `render` rule.
 
@@ -177,13 +178,13 @@ compiles and the output is simply not what was intended:
   belong between blocks, not inside them.
 - **A table inside a block is not restyled.** `div.<name>` reaches paragraphs
   only, so a table passes through with the compiler's own borders. See
-  [what a theme cannot change](../README.md#what-a-theme-cannot-change).
+  [what a theme cannot change](authoring.md#what-a-theme-cannot-change).
 
 A block with no `#id` is fine unless a span references it. Ids must be unique
 across the document (`DOC034`), because `ref=` resolves against them.
 
-**How a block renders** is decided by the style map, not here. See the README's
-[style map](../README.md#the-style-map) — mapping `div.<name>.amount`, `.line` or
+**How a block renders** is decided by the style map, not here. See the
+[style map](authoring.md#the-style-map) — mapping `div.<name>.amount`, `.line` or
 `.label` selects a rendering pattern, and `docc describe` reports which one a
 block ended up with.
 

@@ -1,13 +1,13 @@
 # Theme reference
 
 Every key a `.docc/themes/*.yaml` file may set, what it accepts, and what happens
-when it is absent. The narrative introduction is in the README's
-[Themes](../README.md#themes) section; this is the exhaustive list.
+when it is absent. The narrative introduction is in the
+[Themes](theming.md#themes) section; this is the exhaustive list.
 
 A theme is the visual definition a schema selects by name. It knows nothing about
 document types: it defines named styles, list definitions, page geometry and the
 fixed furniture around the body. The schema decides which style a markdown
-construct wears — see the README's [style map](../README.md#the-style-map).
+construct wears — see the [style map](authoring.md#the-style-map).
 
 The property vocabulary below is closed. There is no raw OOXML escape hatch, and
 that is deliberate: a closed vocabulary is what lets `emit.Validate`, and so
@@ -34,7 +34,8 @@ because a hand-edited theme full of twips is unreadable.
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `name` | string | — | The identifier a schema's `theme:` names. Two themes with the same name is a load error. |
+| `name` | string | file name | The identifier a schema's `theme:` names. Two themes with the same name is a load error. Never inherited. |
+| `extends` | string | — | Another theme in the same directory whose keys this one inherits. See [Inheritance](#inheritance). |
 | `description` | string | — | One line, shown by `docc themes`. |
 | `page` | map | A4 portrait | Page geometry. |
 | `defaults` | map | — | Document-wide font, size and language. |
@@ -210,6 +211,61 @@ on it.
 | `break` | bool | `false` | A line break before the text. |
 | `omit_if_empty` | bool | `true` | Drops just this run when its interpolation is empty, leaving the rest of the line intact. |
 
+## Inheritance
+
+A house style is one letterhead and one gallery across a dozen document types.
+`extends:` lets each type carry only what makes it different:
+
+```yaml
+# .docc/themes/_house.yaml — a fragment: it exists to be extended
+name: _house
+page: { size: A4, title_page: true, margins: { top: 20mm } }
+defaults: { font: Arial, size: "11pt" }
+formats: { date: "2. January 2006", months: [Januar, Februar, …] }
+styles:
+  body:  { size: "11pt" }
+  titel: { size: "14pt", bold: true }
+header:
+  first:
+    - { image: { path: logo.png, width: "45mm", height: "12mm" } }
+```
+
+```yaml
+# .docc/themes/protokoll.yaml
+extends: _house
+styles:
+  titel: { size: "16pt" }
+```
+
+A new address, a new logo or a new body font is then one edit, not a dozen.
+
+**A theme whose name begins with `_` is a fragment.** It is not listed by
+`docc themes` and a schema that selects it is an error: it exists to be
+extended. The name defaults to the file name, so `_house.yaml` needs no `name:`.
+
+Resolution is within one theme directory. There is no cross-pack parent —
+profile packs are still never merged, and a base pack silently changing header
+spacing in every firm that installed it is the failure a compiler exists to
+prevent. Naming an unknown parent is an error, and so is a cycle.
+
+### Merge rules
+
+Inheritance merges the YAML documents, then decodes once. That is what lets a
+child set a value back to zero — `title_page: false` under a parent that sets
+it true — which a merge over decoded structs cannot express, because it cannot
+tell a key left out from a key set to its zero value.
+
+| Kind | Rule |
+|---|---|
+| mappings (`styles`, `numbering`, `header`, `footer`, `page`, `formats`, …) | Merged key by key, at every depth. A child changing one style keeps the rest of the gallery. |
+| sequences (`prologue`, `epilogue`, each `[]` under a `header`/`footer` key) | Replaced wholesale when the child declares them. Half a letterhead is more confusing than a restated one. |
+| scalars | Replaced when the child declares them, including with a zero value. |
+| `name` | Never inherited. Two themes with one identity would make the second unreachable. |
+
+`extends:` is transitive — house style, then practice area, then document type —
+and matches how schema `extends:` already works. Two different inheritance
+semantics in one product would be a defect, not a feature.
+
 ## What a theme cannot do
 
 Two ceilings, both deliberate, both stated so they are not discovered:
@@ -223,7 +279,7 @@ Two ceilings, both deliberate, both stated so they are not discovered:
    column widths (a 0.5pt grid, columns split evenly). A schema that maps one of
    these is not overridden but ignored, which is why `docc doctor` reports it.
 
-See the README's [What a theme cannot change](../README.md#what-a-theme-cannot-change).
+See the [What a theme cannot change](authoring.md#what-a-theme-cannot-change).
 
 ## Validation
 

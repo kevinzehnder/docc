@@ -27,6 +27,254 @@ func TestLoadRejectsUnknownPageSize(t *testing.T) {
 	}
 }
 
+// write is a theme file in a directory built for one inheritance test.
+func write(t *testing.T, dir, name, body string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// loadOne builds a theme directory from name/body pairs and returns the set.
+func loadOne(t *testing.T, files ...string) *Set {
+	t.Helper()
+	dir := t.TempDir()
+	for i := 0; i < len(files); i += 2 {
+		write(t, dir, files[i], files[i+1])
+	}
+	set, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	return set
+}
+
+// loadErr builds a theme directory that is expected not to load.
+func loadErr(t *testing.T, files ...string) error {
+	t.Helper()
+	dir := t.TempDir()
+	for i := 0; i < len(files); i += 2 {
+		write(t, dir, files[i], files[i+1])
+	}
+	_, err := Load(dir)
+	if err == nil {
+		t.Fatal("expected Load to fail")
+	}
+	return err
+}
+
+const parentTheme = `name: _house
+description: house style
+page:
+  size: A4
+  title_page: true
+  margins: { top: 20mm, left: 25mm }
+defaults: { font: Arial, size: 11pt }
+formats:
+  date: "2. January 2006"
+  months: [Januar, Februar, März, April, Mai, Juni, Juli, August, September, Oktober, November, Dezember]
+styles:
+  body: { size: 11pt }
+  titel: { size: 14pt, bold: true }
+header:
+  first:
+    - { style: body, text: Kanzlei }
+    - { style: body, text: Bahnhofstrasse 1 }
+prologue:
+  - { style: body, text: parent-prologue }
+`
+
+// A child inherits everything it does not restate, and its own declarations
+// win key by key rather than replacing the whole gallery.
+func TestExtendsMergesMapsKeyWise(t *testing.T) {
+	set := loadOne(t,
+		"_house.yaml", parentTheme,
+		"protokoll.yaml", `name: protokoll
+extends: _house
+styles:
+  titel: { size: 16pt }
+`)
+	got, err := set.Get("protokoll")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Styles["titel"].Size.HalfPt(0) != docx.HalfPt(32) {
+		t.Errorf("titel size = %v, want the child's 16pt", got.Styles["titel"].Size)
+	}
+	// The sibling style survives: a child changing one style must not drop the
+	// rest of the gallery.
+	if _, ok := got.Styles["body"]; !ok {
+		t.Errorf("styles = %v, want the parent's body style to survive", got.Styles)
+	}
+	if got.Defaults.Font != "Arial" {
+		t.Errorf("defaults.font = %q, want the parent's Arial", got.Defaults.Font)
+	}
+	if !got.Page.TitlePage {
+		t.Error("page.title_page = false, want the parent's true")
+	}
+	if got.Page.Margins.Top.Twips(0) != docx.Mm(20) {
+		t.Errorf("page.margins.top = %v, want the parent's 20mm", got.Page.Margins.Top)
+	}
+}
+
+// The child is always itself. Inheriting a name would give two themes one
+// identity and make the second silently unreachable.
+func TestExtendsDoesNotInheritName(t *testing.T) {
+	set := loadOne(t,
+		"_house.yaml", parentTheme,
+		"protokoll.yaml", "extends: _house\n")
+	got, err := set.Get("protokoll")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Name != "protokoll" {
+		t.Errorf("name = %q, want protokoll", got.Name)
+	}
+}
+
+// This is the trap the whole design turns on: a child that says nothing about
+// formats must keep the parent's month names. A field-wise merge over a value
+// struct cannot tell "omitted" from "zero", and the failure is a document that
+// renders its dates in English.
+func TestExtendsKeepsParentFormatsWhenChildOmitsThem(t *testing.T) {
+	set := loadOne(t,
+		"_house.yaml", parentTheme,
+		"protokoll.yaml", `extends: _house
+styles:
+  body: { size: 10pt }
+`)
+	got, err := set.Get("protokoll")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Formats.Months) != 12 || got.Formats.Months[2] != "März" {
+		t.Errorf("formats.months = %v, want the parent's twelve German names", got.Formats.Months)
+	}
+	if got.Formats.Date != "2. January 2006" {
+		t.Errorf("formats.date = %q, want the parent's layout", got.Formats.Date)
+	}
+}
+
+// A child may override a parent's value with the zero value. Only a document
+// merge can express this; it is why inheritance works on the YAML rather than
+// on the decoded struct.
+func TestExtendsAllowsOverridingWithZero(t *testing.T) {
+	set := loadOne(t,
+		"_house.yaml", parentTheme,
+		"memo.yaml", `extends: _house
+page:
+  title_page: false
+`)
+	got, err := set.Get("memo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Page.TitlePage {
+		t.Error("page.title_page = true, want the child's explicit false")
+	}
+}
+
+// Furniture is ordered, so a child that declares a header replaces it rather
+// than interleaving lines into it.
+func TestExtendsReplacesSequencesWholesale(t *testing.T) {
+	set := loadOne(t,
+		"_house.yaml", parentTheme,
+		"brief.yaml", `extends: _house
+header:
+  first:
+    - { style: body, text: Zweigstelle }
+`)
+	got, err := set.Get("brief")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Header["first"]) != 1 || got.Header["first"][0].Text != "Zweigstelle" {
+		t.Errorf("header.first = %+v, want only the child's single line", got.Header["first"])
+	}
+	// A sequence the child never mentions is still inherited.
+	if len(got.Prologue) != 1 || got.Prologue[0].Text != "parent-prologue" {
+		t.Errorf("prologue = %+v, want the parent's", got.Prologue)
+	}
+}
+
+// Inheritance is transitive: house style, then practice area, then type.
+func TestExtendsIsTransitive(t *testing.T) {
+	set := loadOne(t,
+		"_house.yaml", parentTheme,
+		"_notariat.yaml", `name: _notariat
+extends: _house
+styles:
+  titel: { caps: true }
+`,
+		"kaufvertrag.yaml", `extends: _notariat
+styles:
+  titel: { size: 18pt }
+`)
+	got, err := set.Get("kaufvertrag")
+	if err != nil {
+		t.Fatal(err)
+	}
+	titel := got.Styles["titel"]
+	if titel.Size.HalfPt(0) != docx.HalfPt(36) {
+		t.Errorf("titel size = %v, want the grandchild's 18pt", titel.Size)
+	}
+	if !titel.Caps {
+		t.Error("titel caps = false, want the middle theme's true")
+	}
+	if !titel.Bold {
+		t.Error("titel bold = false, want the root's true")
+	}
+	if got.Defaults.Font != "Arial" {
+		t.Errorf("defaults.font = %q, want the root's Arial", got.Defaults.Font)
+	}
+}
+
+// A fragment exists to be extended. Selecting one is a schema mistake, and it
+// must say so rather than render a half-defined theme.
+func TestFragmentsAreNotSelectable(t *testing.T) {
+	set := loadOne(t,
+		"_house.yaml", parentTheme,
+		"protokoll.yaml", "extends: _house\n")
+	if _, err := set.Get("_house"); err == nil {
+		t.Fatal("expected selecting a fragment to fail")
+	} else if !strings.Contains(err.Error(), "fragment") {
+		t.Errorf("error = %q, want it to explain that the theme is a fragment", err)
+	}
+	if slices.Contains(set.Names(), "_house") {
+		t.Errorf("Names() = %v, want fragments omitted", set.Names())
+	}
+	if !slices.Contains(set.Names(), "protokoll") {
+		t.Errorf("Names() = %v, want the selectable theme listed", set.Names())
+	}
+}
+
+func TestExtendsUnknownThemeFails(t *testing.T) {
+	err := loadErr(t, "brief.yaml", "extends: _nothing\n")
+	if !strings.Contains(err.Error(), "unknown theme") {
+		t.Errorf("error = %q, want it to name the unknown parent", err)
+	}
+}
+
+func TestExtendsCycleFails(t *testing.T) {
+	err := loadErr(t,
+		"a.yaml", "extends: b\n",
+		"b.yaml", "extends: a\n")
+	if !strings.Contains(err.Error(), "cycle") {
+		t.Errorf("error = %q, want it to report the inheritance cycle", err)
+	}
+}
+
+// An unknown key must still be reported against the file that wrote it, not
+// against a merged document nobody can open.
+func TestExtendsStillRejectsUnknownKeysPerFile(t *testing.T) {
+	err := loadErr(t,
+		"_house.yaml", parentTheme,
+		"brief.yaml", "extends: _house\nnonsense: true\n")
+	if !strings.Contains(err.Error(), "brief.yaml") {
+		t.Errorf("error = %q, want it to name the offending file", err)
+	}
+}
+
 func TestParseLength(t *testing.T) {
 	tests := []struct {
 		in      string

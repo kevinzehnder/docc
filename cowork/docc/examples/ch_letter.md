@@ -1,6 +1,6 @@
 ---
 docc: 1
-document_type: letter
+document_type: ch_letter
 date: 2026-08-04
 sent: 2026-08-05
 title: Sample correspondence
