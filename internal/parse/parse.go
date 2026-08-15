@@ -83,6 +83,14 @@ func Parse(path string, src []byte) (*File, diag.List) {
 				"malformed attribute block on `::: %s`: %s", div.Name, div.Attr.Err)
 		}
 	}
+	for _, span := range f.Spans() {
+		if span.Attr.Err != "" {
+			ds.Errorf(path, f.BodyPos(span.Attr.ErrOffset), "DOC027",
+				"write a span as `[literal text]{.type key=value}`",
+				"malformed attribute block on span `[%s]`: %s",
+				span.LiteralText(f.BodySource), span.Attr.Err)
+		}
+	}
 	return f, ds
 }
 
@@ -216,6 +224,20 @@ func (f *File) Divs() []*Div {
 		if entering {
 			if d, isDiv := n.(*Div); isDiv {
 				out = append(out, d)
+			}
+		}
+		return ast.WalkContinue, nil
+	})
+	return out
+}
+
+// Spans returns every inline semantic span in document order.
+func (f *File) Spans() []*Span {
+	var out []*Span
+	_ = ast.Walk(f.Body, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering {
+			if s, isSpan := n.(*Span); isSpan {
+				out = append(out, s)
 			}
 		}
 		return ast.WalkContinue, nil

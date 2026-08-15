@@ -204,6 +204,98 @@ func TestUnclosedDivIsDiagnostic(t *testing.T) {
 	}
 }
 
+func TestSpans(t *testing.T) {
+	src := "---\n---\n\nDer Kaufpreis beträgt\n[CHF 1'250'000.00]{.preis key=kaufpreis}.\n"
+	f, ds := Parse("t.md", []byte(src))
+	if ds.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %+v", ds)
+	}
+	spans := f.Spans()
+	if len(spans) != 1 {
+		t.Fatalf("got %d spans, want 1", len(spans))
+	}
+	s := spans[0]
+	if got := s.LiteralText(f.BodySource); got != "CHF 1'250'000.00" {
+		t.Errorf("literal = %q", got)
+	}
+	if s.SpanType() != "preis" {
+		t.Errorf("type = %q, want preis", s.SpanType())
+	}
+	if key, ok := s.Attr.Get("key"); !ok || key != "kaufpreis" {
+		t.Errorf("key = %q (found %v), want kaufpreis", key, ok)
+	}
+	if pos := f.BodyPos(s.OpenOffset); pos.Line != 5 || pos.Col != 1 {
+		t.Errorf("span position = %d:%d, want 5:1", pos.Line, pos.Col)
+	}
+}
+
+// Byte offsets must stay correct after multi-byte characters — umlauts are
+// common in this corpus.
+func TestSpanOffsetsAfterUmlauts(t *testing.T) {
+	src := "---\n---\n\nÜbergabe erfolgt öffentlich am [1. Oktober 2026]{.datum key=antritt} in Zürich.\n"
+	f, ds := Parse("t.md", []byte(src))
+	if ds.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %+v", ds)
+	}
+	spans := f.Spans()
+	if len(spans) != 1 {
+		t.Fatalf("got %d spans, want 1", len(spans))
+	}
+	if got := spans[0].LiteralText(f.BodySource); got != "1. Oktober 2026" {
+		t.Errorf("literal = %q", got)
+	}
+}
+
+// Links and bracketed prose without an attribute block are not spans.
+func TestSpanLeavesLinksAlone(t *testing.T) {
+	src := "---\n---\n\nSee [the site](https://example.com) and [Beilage 1] here.\n\nNested [a [b]]{.x} stays prose.\n"
+	f, ds := Parse("t.md", []byte(src))
+	if ds.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %+v", ds)
+	}
+	if spans := f.Spans(); len(spans) != 0 {
+		t.Fatalf("got %d spans, want 0: %+v", len(spans), spans)
+	}
+}
+
+func TestSpanInsideDiv(t *testing.T) {
+	src := "---\n---\n\n::: beweis\n**Beweis:** Auszug vom [10. August 2026]{.datum key=auszug}\n:::\n"
+	f, ds := Parse("t.md", []byte(src))
+	if ds.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %+v", ds)
+	}
+	if spans := f.Spans(); len(spans) != 1 || spans[0].SpanType() != "datum" {
+		t.Fatalf("spans = %+v, want one datum span", spans)
+	}
+}
+
+func TestMalformedSpanAttributesAreDiagnostic(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+	}{
+		{"unterminated brace", "---\n---\n\nPreis [CHF 100]{.preis key=kaufpreis\n"},
+		{"bare word", "---\n---\n\nPreis [CHF 100]{.preis stray}\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, ds := Parse("t.md", []byte(tt.src))
+			found := false
+			for _, d := range ds {
+				if d.Code == "DOC027" {
+					found = true
+					if d.Pos.Line != 4 {
+						t.Errorf("diagnostic line = %d, want 4", d.Pos.Line)
+					}
+				}
+			}
+			if !found {
+				t.Errorf("no DOC027 diagnostic: %+v", ds)
+			}
+		})
+	}
+}
+
 func TestPosAt(t *testing.T) {
 	src := "abc\ndef\n\nghi"
 	f, _ := Parse("t.md", []byte(src))

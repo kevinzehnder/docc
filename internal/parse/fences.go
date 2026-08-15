@@ -173,11 +173,19 @@ func scanAttrEnd(line []byte, i int) int {
 	return -1
 }
 
-// divExtension registers the fenced-div block parser with goldmark.
+// divExtension registers the two docc syntax extensions with goldmark: the
+// fenced-div block parser and the inline span parser. The span parser sits
+// between the code-span parser (100) and the link parser (200): it must win
+// the `[` from the link parser, and backticks must keep winning over both.
 type divExtension struct{}
 
 func (divExtension) Extend(m goldmark.Markdown) {
-	m.Parser().AddOptions(parser.WithBlockParsers(
-		util.Prioritized(divParser{}, 100),
-	))
+	m.Parser().AddOptions(
+		parser.WithBlockParsers(
+			util.Prioritized(divParser{}, 100),
+		),
+		parser.WithInlineParsers(
+			util.Prioritized(spanParser{}, 150),
+		),
+	)
 }
