@@ -198,12 +198,59 @@ func (d *Document) buildParts() (map[string][]byte, error) {
 	}
 	for _, h := range d.Headers {
 		parts["word/"+h.partName] = d.writeHeaderFooter(h, "w:hdr")
+		if rels := d.mediaRels(h.Blocks); len(rels) > 0 {
+			parts["word/_rels/"+h.partName+".rels"] = writeRels(rels)
+		}
 	}
 	for _, f := range d.Footers {
 		parts["word/"+f.partName] = d.writeHeaderFooter(f, "w:ftr")
+		if rels := d.mediaRels(f.Blocks); len(rels) > 0 {
+			parts["word/_rels/"+f.partName+".rels"] = writeRels(rels)
+		}
 	}
 
 	return parts, nil
+}
+
+// mediaRels returns the image relationships a part needs for the drawings it
+// contains. Relationships are scoped to their part in OPC: a header that
+// embeds a picture resolves r:embed against its own .rels, not the
+// document's, so each part carrying a drawing gets its own file. Order
+// follows the media store so output stays deterministic.
+func (d *Document) mediaRels(blocks []Block) []relationship {
+	used := map[string]bool{}
+	var walk func([]Block)
+	walk = func(bs []Block) {
+		for _, b := range bs {
+			switch v := b.(type) {
+			case Paragraph:
+				for _, r := range v.Runs {
+					for _, item := range r.Items {
+						if dr, ok := item.(*Drawing); ok {
+							used[dr.relID] = true
+						}
+					}
+				}
+			case Table:
+				for _, row := range v.Rows {
+					for _, c := range row.Cells {
+						walk(c.Blocks)
+					}
+				}
+			}
+		}
+	}
+	walk(blocks)
+
+	var rels []relationship
+	for _, m := range d.media {
+		digest := strings.TrimSuffix(strings.TrimPrefix(m.name, "image_"), "."+m.ext)
+		if !used["rIdImg"+digest] {
+			continue
+		}
+		rels = append(rels, relationship{"rIdImg" + digest, relTypeImage, "media/" + m.name})
+	}
+	return rels
 }
 
 // assignDrawingIDs numbers every drawing in the document. Word requires the ids

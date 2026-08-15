@@ -353,6 +353,31 @@ func TestEmptyCellGetsParagraph(t *testing.T) {
 	}
 }
 
+// Relationships are scoped to their part in OPC: a header that embeds an
+// image must carry its own .rels resolving the r:embed id, or Word and
+// LibreOffice silently drop the picture.
+func TestHeaderImageGetsPartRels(t *testing.T) {
+	d := &Document{Section: Section{Page: A4}}
+	png := []byte("\x89PNG\r\n\x1a\nfake")
+	drawing := d.AddImage("crest", png, "png", MmEMU(30), MmEMU(10))
+	d.Headers = []HeaderFooter{{
+		Type:   HFFirst,
+		Blocks: []Block{Paragraph{Runs: []Run{{Items: []Inline{drawing}}}}},
+	}}
+
+	data, err := d.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rels := partOf(t, data, "word/_rels/header1.xml.rels")
+	if !strings.Contains(rels, `Id="`+drawing.relID+`"`) {
+		t.Errorf("header rels does not resolve %s:\n%s", drawing.relID, rels)
+	}
+	if !strings.Contains(rels, `Target="media/`) {
+		t.Errorf("header rels has no media target:\n%s", rels)
+	}
+}
+
 // The same image bytes used twice must be stored once.
 func TestImagesDeduplicate(t *testing.T) {
 	d := &Document{}
