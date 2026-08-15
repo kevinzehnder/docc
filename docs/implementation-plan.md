@@ -139,6 +139,11 @@ artifact.
 
 Goal: an LLM discovers the contract from the binary, not from prose docs.
 
+**Status:** items 1 and 2 shipped early (2026-08-15, pulled forward when
+Phase 2 was deferred): `docc describe <type> [--json]` generated from the
+resolved schema, and `docc example <type>` printing the schema's `example:`
+document, drift-guarded by `TestSchemaExamplesCompileClean`.
+
 1. **`docc describe <type> --format json`** generated from the resolved
    schema: blocks, attributes, required spans, span types + validators,
    fields, rules, one syntax example per construct. Single source of truth —
