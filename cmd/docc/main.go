@@ -62,7 +62,8 @@ build flags:
 exit codes:
   0  no errors
   1  diagnostics reported, or the build failed
-  2  usage or configuration error
+  2  usage error — the command line is wrong
+  3  configuration error — the project's schemas or themes are missing or unusable
 `
 
 // The per-subcommand help pages. They live beside the top-level usage string so
@@ -146,7 +147,7 @@ func main() {
 func run(args []string) int {
 	if len(args) == 0 {
 		fmt.Fprint(os.Stderr, usage)
-		return 2
+		return exitUsage
 	}
 
 	cmd, rest := args[0], args[1:]
@@ -179,7 +180,7 @@ func run(args []string) int {
 		return 0
 	default:
 		fmt.Fprintf(os.Stderr, "docc: unknown command %q\n\n%s", cmd, usage)
-		return 2
+		return exitUsage
 	}
 }
 
@@ -199,6 +200,54 @@ func (c *commonFlags) bind(fs *flag.FlagSet) {
 	fs.BoolVar(&c.jsonOut, "json", false, "machine-readable output")
 	fs.BoolVar(&c.strict, "strict", false, "treat warnings as errors")
 	fs.BoolVar(&c.noColor, "no-color", false, "disable coloured output")
+}
+
+// Exit codes. Usage and configuration are separated because a caller can do
+// something about the difference: a usage error means the command line is wrong
+// and retrying it differently may work, while a configuration error means the
+// project is wrong and no invocation will help. They shared code 2 for a long
+// time, which left an agent guessing.
+const (
+	exitOK     = 0 // no errors
+	exitDiag   = 1 // the command ran and reported diagnostics, or failed part-way
+	exitUsage  = 2 // the command line is wrong
+	exitConfig = 3 // the project's schemas or themes are missing or unusable
+)
+
+// fail reports a terminal error and returns the exit code to use. Under --json
+// it writes a failure object to stdout, so a consumer parsing that stream sees
+// the failure there rather than having to notice an empty result and go looking
+// on stderr.
+func fail(cf commonFlags, code int, err error) int {
+	if cf.jsonOut {
+		out := struct {
+			OK    bool   `json:"ok"`
+			Kind  string `json:"kind"`
+			Error string `json:"error"`
+		}{OK: false, Kind: failureKind(code), Error: err.Error()}
+		if err := json.NewEncoder(os.Stdout).Encode(out); err == nil {
+			return code
+		}
+		// Fall through to the human form rather than exiting silently.
+	}
+	fmt.Fprintln(os.Stderr, "docc:", err)
+	return code
+}
+
+// failf is fail with a formatted message.
+func failf(cf commonFlags, code int, format string, args ...any) int {
+	return fail(cf, code, fmt.Errorf(format, args...))
+}
+
+func failureKind(code int) string {
+	switch code {
+	case exitUsage:
+		return "usage"
+	case exitConfig:
+		return "config"
+	default:
+		return "error"
+	}
 }
 
 // permute reorders args so flags may follow the positional arguments. Go's flag
@@ -305,8 +354,7 @@ func cmdCheck(args []string) int {
 	}
 	files := fs.Args()
 	if len(files) == 0 {
-		fmt.Fprintln(os.Stderr, "docc check: no input files")
-		return 2
+		return failf(cf, exitUsage, "docc check: no input files")
 	}
 
 	// Schemas are resolved per file, not once from the first argument. Files
@@ -320,16 +368,14 @@ func cmdCheck(args []string) int {
 	for _, path := range files {
 		src, err := os.ReadFile(path) //nolint:gosec // paths are the user's own arguments
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitUsage, err)
 		}
 		name := displayPath(path)
 		sources[name] = src
 
 		set, err := loadSchemasCached(cache, cf.schemaDir, path)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitConfig, err)
 		}
 
 		f, parseDiags := parse.Parse(name, src)
@@ -348,20 +394,18 @@ func report(ds diag.List, sources map[string][]byte, cf commonFlags) int {
 	}
 	if cf.jsonOut {
 		if err := ds.RenderJSON(os.Stdout); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitDiag, err)
 		}
 	} else {
 		src := func(name string) string { return string(sources[name]) }
 		if err := ds.Render(os.Stdout, src, cf.color()); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitDiag, err)
 		}
 	}
 	if ds.HasErrors() {
-		return 1
+		return exitDiag
 	}
-	return 0
+	return exitOK
 }
 
 // cmdLSP serves editor diagnostics over stdio. Protocol messages must use
@@ -374,15 +418,17 @@ func cmdLSP(args []string) int {
 		return code
 	}
 	if fs.NArg() != 0 {
-		fmt.Fprintln(os.Stderr, "usage: docc lsp [--schema-dir <dir>] [--type <type>]")
-		return 2
+		// The lsp failure paths stay human: stdout carries the protocol, so a
+		// JSON failure object there would corrupt the stream.
+		fmt.Fprintln(os.Stderr, "docc lsp: takes no positional arguments")
+		return exitUsage
 	}
 	if err := lsp.Serve(os.Stdin, os.Stdout, lsp.Options{
 		SchemaDir: cf.schemaDir,
 		DocType:   cf.docType,
 	}); err != nil {
 		fmt.Fprintln(os.Stderr, "docc lsp:", err)
-		return 1
+		return exitDiag
 	}
 	return 0
 }
@@ -398,7 +444,7 @@ func cmdInit(args []string) int {
 	}
 	if fs.NArg() > 1 {
 		fmt.Fprintln(os.Stderr, "docc init: expects at most one directory")
-		return 2
+		return exitUsage
 	}
 	dir := "."
 	if fs.NArg() == 1 {
@@ -409,7 +455,7 @@ func cmdInit(args []string) int {
 		planned, err := starter.Plan(dir)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 1
+			return exitConfig
 		}
 		for _, path := range planned {
 			fmt.Println(path)
@@ -419,8 +465,10 @@ func cmdInit(args []string) int {
 	}
 
 	if err := starter.Init(dir); err != nil {
+		// Refusing to overwrite an existing starter is a fact about the project,
+		// not about the command line.
 		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 1
+		return exitConfig
 	}
 	fmt.Printf("created docc starter in %s\n", dir)
 	return 0
@@ -440,8 +488,7 @@ func cmdTypes(args []string) int {
 	}
 	set, err := loadSchemas(cf.schemaDir, start)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 2
+		return fail(cf, exitConfig, err)
 	}
 	if cf.jsonOut {
 		type item struct {
@@ -457,8 +504,7 @@ func cmdTypes(args []string) int {
 		if err := json.NewEncoder(os.Stdout).Encode(struct {
 			Types []item `json:"types"`
 		}{Types: items}); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitDiag, err)
 		}
 		return 0
 	}
@@ -482,8 +528,7 @@ func cmdThemes(args []string) int {
 	}
 	set, _, err := loadThemes(cf.themeDir, start)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 2
+		return fail(cf, exitConfig, err)
 	}
 	if cf.jsonOut {
 		type item struct {
@@ -499,8 +544,7 @@ func cmdThemes(args []string) int {
 		if err := json.NewEncoder(os.Stdout).Encode(struct {
 			Themes []item `json:"themes"`
 		}{Themes: items}); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitDiag, err)
 		}
 		return 0
 	}
@@ -526,35 +570,29 @@ func cmdBuild(args []string) int {
 	}
 	if fs.NArg() != 1 {
 		if fs.NArg() == 0 {
-			fmt.Fprintln(os.Stderr, "docc build: no input file")
-		} else {
-			fmt.Fprintf(os.Stderr, "docc build: expects exactly one input file, got %d: %s\n",
-				fs.NArg(), strings.Join(fs.Args(), " "))
+			return failf(cf, exitUsage, "docc build: no input file")
 		}
-		return 2
+		return failf(cf, exitUsage, "docc build: expects exactly one input file, got %d: %s",
+			fs.NArg(), strings.Join(fs.Args(), " "))
 	}
 	if *to != "docx" && *to != "pdf" {
-		fmt.Fprintf(os.Stderr, "docc build: unknown format %q — use docx or pdf\n", *to)
-		return 2
+		return failf(cf, exitUsage, "docc build: unknown format %q — use docx or pdf", *to)
 	}
 
 	input := fs.Arg(0)
 	src, err := os.ReadFile(input) //nolint:gosec // the user's own argument
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 2
+		return fail(cf, exitUsage, err)
 	}
 	name := displayPath(input)
 
 	schemas, err := loadSchemas(cf.schemaDir, input)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 2
+		return fail(cf, exitConfig, err)
 	}
 	themes, themeDir, err := loadThemes(cf.themeDir, input)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 2
+		return fail(cf, exitConfig, err)
 	}
 
 	f, parseDiags := parse.Parse(name, src)
@@ -595,16 +633,15 @@ func cmdBuild(args []string) int {
 	if diags.HasErrors() && !*force {
 		emitDiags()
 		if cf.jsonOut {
-			fmt.Printf("{\"ok\":false,\"error\":\"validation failed\",\"type\":%q}\n", res.DocType)
+			fmt.Printf("{\"ok\":false,\"kind\":\"diagnostics\",\"error\":\"validation failed\",\"type\":%q}\n", res.DocType)
 		} else {
 			fmt.Fprintln(os.Stderr, "\nrefusing to build — fix the errors above, or pass --force")
 		}
-		return 1
+		return exitDiag
 	}
 	emitDiags()
 	if res.Schema == nil {
-		fmt.Fprintln(os.Stderr, "docc: no schema resolved; cannot build")
-		return 1
+		return failf(cf, exitDiag, "no schema resolved; cannot build")
 	}
 
 	wanted := *themeName
@@ -612,20 +649,24 @@ func cmdBuild(args []string) int {
 		wanted = res.Schema.Theme
 	}
 	if wanted == "" {
-		fmt.Fprintf(os.Stderr, "docc: schema %q declares no theme and none was given (--theme)\n", res.Schema.Type)
-		return 2
+		return failf(cf, exitConfig, "schema %q declares no theme and none was given (--theme)", res.Schema.Type)
 	}
 	th, err := themes.Get(wanted)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 2
+		return fail(cf, exitConfig, err)
+	}
+
+	// The schema-and-theme agreement check runs here rather than inside
+	// emit.Build so its failure is reported as the configuration error it is,
+	// instead of sharing an exit code with a genuine render failure.
+	if err := emit.Validate(res.Schema, th); err != nil {
+		return fail(cf, exitConfig, err)
 	}
 
 	doc := ir.Build(f, res.DocType, res.Meta.Values)
 	built, err := emit.Build(doc, res.Schema, th, emit.Options{ThemeDir: themeDir})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 1
+		return fail(cf, exitDiag, err)
 	}
 
 	outPath := *output
@@ -636,8 +677,7 @@ func cmdBuild(args []string) int {
 	switch *to {
 	case "docx":
 		if err := writeAtomic(outPath, built.Write); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 1
+			return fail(cf, exitDiag, err)
 		}
 	case "pdf":
 		// The intermediate .docx is built in a private temp directory, never
@@ -646,21 +686,18 @@ func cmdBuild(args []string) int {
 		// cleanup step then deletes the file that was just produced.
 		tmpDir, err := os.MkdirTemp("", "docc-build-")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 1
+			return fail(cf, exitDiag, err)
 		}
 		defer func() { _ = os.RemoveAll(tmpDir) }()
 
 		tmpDocx := filepath.Join(tmpDir, "doc.docx")
 		if err := built.Write(tmpDocx); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 1
+			return fail(cf, exitDiag, err)
 		}
 		if err := writeAtomic(outPath, func(dst string) error {
 			return emit.ToPDF(tmpDocx, dst, emit.PDFOptions{Retries: 1})
 		}); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 1
+			return fail(cf, exitDiag, err)
 		}
 	}
 
@@ -681,8 +718,7 @@ func cmdExplain(args []string) int {
 		return code
 	}
 	if fs.NArg() > 1 {
-		fmt.Fprintln(os.Stderr, "docc explain: expects at most one code")
-		return 2
+		return failf(cf, exitUsage, "docc explain: expects at most one code")
 	}
 
 	// No code lists the catalogue. It used to be a usage error, which left the
@@ -694,8 +730,8 @@ func cmdExplain(args []string) int {
 	code := strings.ToUpper(fs.Arg(0))
 	text, ok := explanations[code]
 	if !ok {
-		fmt.Fprintf(os.Stderr, "docc: no explanation for %q\n  run `docc explain` for the full list\n", code)
-		return 2
+		return failf(cf, exitUsage,
+			"no explanation for %q\n  run `docc explain` for the full list", code)
 	}
 
 	// --type turns the generic prose into the concrete contract: which fields
@@ -720,8 +756,7 @@ func cmdExplain(args []string) int {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(out); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitDiag, err)
 		}
 		return 0
 	}
@@ -759,8 +794,7 @@ func explainAll(cf commonFlags) int {
 		if err := enc.Encode(struct {
 			Codes []item `json:"codes"`
 		}{Codes: items}); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitDiag, err)
 		}
 		return 0
 	}

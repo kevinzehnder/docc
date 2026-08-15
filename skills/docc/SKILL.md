@@ -55,8 +55,11 @@ docc explain DOC010 --type <type>  # …plus the constraints that schema declare
 Flags may precede or follow the file name.
 
 `docc build` validates before rendering. Do not use `--force` for a
-deliverable. Exit code `0` is clean, `1` reports diagnostics or a build
-failure, and `2` is a usage/configuration error.
+deliverable. Exit codes: `0` clean, `1` diagnostics or a build failure, `2` the
+command line is wrong, `3` the project's schemas or themes are missing or
+unusable. Under `--json` every failure is an object on stdout with `ok: false`
+and a `kind` of `usage`, `config`, `diagnostics` or `error` — do not fall back
+to scraping stderr.
 
 DOCX is the supported compiler output. When a user requests PDF, build the
 DOCX first, then use the host's document/PDF capability. `docc build --to pdf`

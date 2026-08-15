@@ -156,8 +156,7 @@ func cmdDescribe(args []string) int {
 		return code
 	}
 	if fs.NArg() != 1 {
-		fmt.Fprintln(os.Stderr, "usage: docc describe [flags] <type>")
-		return 2
+		return failf(cf, exitUsage, "usage: docc describe [flags] <type>")
 	}
 	sc, code := schemaForType(cf, fs.Arg(0))
 	if sc == nil {
@@ -169,8 +168,7 @@ func cmdDescribe(args []string) int {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(d); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitDiag, err)
 		}
 		return 0
 	}
@@ -186,16 +184,15 @@ func cmdExample(args []string) int {
 		return code
 	}
 	if fs.NArg() != 1 {
-		fmt.Fprintln(os.Stderr, "usage: docc example [flags] <type>")
-		return 2
+		return failf(cf, exitUsage, "usage: docc example [flags] <type>")
 	}
 	sc, code := schemaForType(cf, fs.Arg(0))
 	if sc == nil {
 		return code
 	}
 	if sc.Example == "" {
-		fmt.Fprintf(os.Stderr, "docc: schema %q declares no example\n  add an `example: |` document to the schema file\n", sc.Type)
-		return 1
+		return failf(cf, exitConfig,
+			"schema %q declares no example\n  add an `example: |` document to the schema file", sc.Type)
 	}
 	fmt.Print(sc.Example)
 	if !strings.HasSuffix(sc.Example, "\n") {
@@ -209,13 +206,11 @@ func cmdExample(args []string) int {
 func schemaForType(cf commonFlags, docType string) (*schema.Schema, int) {
 	set, err := loadSchemas(cf.schemaDir, ".")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return nil, 2
+		return nil, fail(cf, exitConfig, err)
 	}
 	sc, err := set.Get(docType)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return nil, 2
+		return nil, fail(cf, exitConfig, err)
 	}
 	return sc, 0
 }

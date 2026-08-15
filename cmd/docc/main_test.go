@@ -222,6 +222,87 @@ func TestBuildJSONErrorEmitsJSON(t *testing.T) {
 	}
 }
 
+// Usage and configuration failures used to share exit code 2, so a caller could
+// not tell "you typed it wrong" — retry differently — from "your project is
+// wrong" — no invocation will help.
+func TestExitCodesSeparateUsageFromConfiguration(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	themeDir := filepath.Join(dir, "themes")
+	write(t, filepath.Join(schemaDir, "memo.yaml"), memoSchema)
+	write(t, filepath.Join(themeDir, "t.yaml"), minimalTheme)
+	doc := filepath.Join(dir, "memo.md")
+	write(t, doc, "---\ndocc: 1\ndocument_type: memo\ntitle: Q3\n---\n\n# Summary\n")
+
+	cases := []struct {
+		name string
+		args []string
+		want int
+	}{
+		{"no input file", []string{"build"}, exitUsage},
+		{"two input files", []string{"build", doc, doc}, exitUsage},
+		{"unknown output format", []string{"build", "--to", "rtf", doc}, exitUsage},
+		{"unreadable input", []string{"build", filepath.Join(dir, "absent.md")}, exitUsage},
+		{"unknown diagnostic code", []string{"explain", "DOC999"}, exitUsage},
+		{"too many codes", []string{"explain", "DOC001", "DOC002"}, exitUsage},
+
+		{"no project", []string{"check", "--schema-dir", filepath.Join(dir, "absent"), doc}, exitConfig},
+		{"unknown document type", []string{"describe", "--schema-dir", schemaDir, "nosuch"}, exitConfig},
+		{"unknown theme", []string{"build", "--schema-dir", schemaDir, "--theme-dir", themeDir, "--theme", "nosuch", doc}, exitConfig},
+		{"schema declares no example", []string{"example", "--schema-dir", schemaDir, "memo"}, exitConfig},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var code int
+			captureStdout(t, func() { code = run(tc.args) })
+			if code != tc.want {
+				t.Errorf("run(%v) = %d, want %d", tc.args, code, tc.want)
+			}
+		})
+	}
+}
+
+// Every failure path must stay on the JSON stream when --json is given.
+// Previously only build had a failure object; everything else printed human text
+// to stderr and left stdout empty, so a consumer saw success-shaped silence.
+func TestJSONFailureObjects(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	write(t, filepath.Join(schemaDir, "memo.yaml"), memoSchema)
+
+	cases := []struct {
+		name string
+		args []string
+		kind string
+	}{
+		{"config", []string{"describe", "--json", "--schema-dir", schemaDir, "nosuch"}, "config"},
+		{"usage", []string{"explain", "--json", "DOC999"}, "usage"},
+		{"types with no project", []string{"types", "--json", "--schema-dir", filepath.Join(dir, "absent")}, "config"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := captureStdout(t, func() { run(tc.args) })
+			var got struct {
+				OK    bool   `json:"ok"`
+				Kind  string `json:"kind"`
+				Error string `json:"error"`
+			}
+			if err := json.Unmarshal([]byte(out), &got); err != nil {
+				t.Fatalf("stdout is not a JSON failure object: %v\n%s", err, out)
+			}
+			if got.OK {
+				t.Error(`"ok" should be false`)
+			}
+			if got.Kind != tc.kind {
+				t.Errorf("kind = %q, want %q", got.Kind, tc.kind)
+			}
+			if got.Error == "" {
+				t.Error("the failure object carries no message")
+			}
+		})
+	}
+}
+
 // TestFlagsMayFollowTheInput covers the report's first friction point:
 // `docc build file.md --output x.docx` used to fail with "expects exactly one
 // input file", because Go's flag package stops at the first non-flag.
@@ -261,8 +342,8 @@ func TestDoctorReportsSchemaThemeMismatch(t *testing.T) {
 	out := captureStdout(t, func() {
 		code = run([]string{"doctor", "--json", "--schema-dir", schemaDir, "--theme-dir", themeDir})
 	})
-	if code != 1 {
-		t.Fatalf("run(doctor) = %d, want 1 for a broken pair", code)
+	if code != exitConfig {
+		t.Fatalf("run(doctor) = %d, want %d — a profile that cannot render is a configuration error", code, exitConfig)
 	}
 	var got struct {
 		SchemaDir string `json:"schema_dir"`
@@ -328,8 +409,8 @@ func TestDoctorWarnsOnUnreadStyleKeys(t *testing.T) {
 	captureStdout(t, func() {
 		code = run([]string{"doctor", "--strict", "--schema-dir", schemaDir, "--theme-dir", themeDir})
 	})
-	if code != 1 {
-		t.Errorf("run(doctor --strict) = %d, want 1", code)
+	if code != exitConfig {
+		t.Errorf("run(doctor --strict) = %d, want %d", code, exitConfig)
 	}
 }
 

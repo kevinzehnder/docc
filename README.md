@@ -68,7 +68,17 @@ Flags may appear before or after the positional arguments, so
 file name begins with a dash. `--help` on any subcommand prints its usage and
 exits `0`.
 
-Exit codes: `0` clean, `1` diagnostics reported, `2` usage or configuration error.
+Exit codes:
+
+| Code | Meaning |
+|---|---|
+| `0` | clean |
+| `1` | the command ran and reported diagnostics, or failed part-way through |
+| `2` | usage error — the command line is wrong; a different invocation may work |
+| `3` | configuration error — the project's schemas or themes are missing or unusable |
+
+`2` and `3` are separated because a caller can act on the difference. A wrong
+flag is worth retrying; a missing `.docc` directory is not.
 
 ### Which configuration am I using?
 
@@ -127,9 +137,19 @@ consulted at all; when it is `false`, an empty `rendered` means nothing.
 Body headings report `required`, `required_when` (the frontmatter condition that
 makes an otherwise optional section mandatory) and `ordered`.
 
-Usage and configuration failures exit `2` and currently use human-readable
-stderr, even when `--json` is present. Consumers should treat a non-zero exit
-as failure and only parse stdout when the command reached its normal result.
+Failures stay on the JSON stream. Under `--json`, a command that cannot produce
+its result writes a failure object to stdout instead:
+
+```json
+{ "ok": false, "kind": "config", "error": "unknown document type \"nosuch\" (known types: ch_legal, ch_letter)" }
+```
+
+`kind` is `usage`, `config`, or `error`, matching the exit code. `build`'s
+validation failure adds `"kind": "diagnostics"` and the document `type`.
+
+Two paths stay human-readable, deliberately: a flag that fails to parse (the
+command line is malformed, so `--json` may not have been understood either), and
+everything in `docc lsp`, whose stdout carries the LSP protocol.
 
 ## NeoVim
 
@@ -467,9 +487,31 @@ schema rather than quietly doing nothing.
 | `div_items_match` | items in a fenced div that do not have the required form | `div` — the fence name, `pattern` — a regexp every item must match |
 | `cross_reference` | keys cited in the body but missing from a frontmatter list, and entries listed but never cited | `div`, `pattern` — capture group 1 is the cited key, `list_field` — the frontmatter list, `label` — what one entry is called in messages |
 | `no_empty_sections` | a heading with no content beneath it | — |
+| `amounts_balance` | money in a block that does not add up: parts that miss their declared total, or payments that leave part of it unsettled | `div` — the fence name |
 
 `cross_reference` numbers a list positionally: the Nth entry of `list_field` is
 key N.
+
+`amounts_balance` reads the bracketed amount that opens each item of a money
+block. One item may be marked as the block's total with a leading `=`, and the
+rest must add up to it; a block that settles another block's total names it
+with `total-of=<id>` and must add up to that:
+
+```markdown
+::: betraege {#kaufpreis}
+- [Fr. 820'000.00] für die Wohnung
+- [Fr. 45'000.00] für den Autoeinstellplatz
+- [= Fr. 865'000.00] Ausmachend den Kaufpreis von
+:::
+
+::: betraege {#tilgung total-of=kaufpreis}
+- [Fr. 86'500.00] Anzahlung
+- [Fr. 778'500.00] Restkaufpreis
+:::
+```
+
+Sums are exact — the amounts are read as hundredths, never as floating point,
+so a rounding artefact cannot be reported as a drafting error.
 
 Where a `pattern` locates a diagnostic, capture group 1 is what the caret
 underlines, so a pattern can match more context than it points at.

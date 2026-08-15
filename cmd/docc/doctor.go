@@ -73,8 +73,7 @@ func cmdDoctor(args []string) int {
 		return code
 	}
 	if fs.NArg() > 1 {
-		fmt.Fprintln(os.Stderr, "docc doctor: expects at most one path")
-		return 2
+		return failf(cf, exitUsage, "docc doctor: expects at most one path")
 	}
 	start := "."
 	if fs.NArg() == 1 {
@@ -83,24 +82,24 @@ func cmdDoctor(args []string) int {
 
 	rep, err := diagnose(cf, start)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "docc:", err)
-		return 2
+		return fail(cf, exitConfig, err)
 	}
 
 	if cf.jsonOut {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(rep); err != nil {
-			fmt.Fprintln(os.Stderr, "docc:", err)
-			return 2
+			return fail(cf, exitDiag, err)
 		}
 	} else {
 		printDoctor(rep)
 	}
+	// A profile that cannot render is a configuration error, which is the whole
+	// subject of this command.
 	if !rep.OK {
-		return 1
+		return exitConfig
 	}
-	return 0
+	return exitOK
 }
 
 // diagnose resolves the configuration and checks every schema against the theme
