@@ -158,6 +158,14 @@ render:
     definition: Randziffer
     start_after_heading: RECHTSBEGEHREN
 
+blocks:
+  beweis:
+    description: Beweismittelblock — one bracketed, labelled item per line.
+
+spans:
+  datum:
+    description: A calendar date, written as authored.
+
 rules:
   - id: LEG031
     check: no_placeholder_text

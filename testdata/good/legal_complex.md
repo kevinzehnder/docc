@@ -65,12 +65,12 @@ Der Streitwert übersteigt CHF 30'000.00, weshalb das ordentliche Verfahren zur 
 
 ## Vertragsschluss
 
-Die Parteien schlossen am 3. März 2024 einen schriftlichen Werkvertrag über den Innenausbau der Geschäftsräume der Beklagten an der Industrieweg 5 in Baden. Gegenstand des Vertrages waren Schreiner-, Maler- und Bodenlegerarbeiten zu einem Pauschalpreis von CHF 84'500.00.
+Die Parteien schlossen am [3. März 2024]{.datum key=vertragsdatum} einen schriftlichen Werkvertrag über den Innenausbau der Geschäftsräume der Beklagten an der Industrieweg 5 in Baden. Gegenstand des Vertrages waren Schreiner-, Maler- und Bodenlegerarbeiten zu einem Pauschalpreis von CHF 84'500.00.
 
 Grundlage des Vertrages bildete der Kostenvoranschlag der Klägerin vom 15. Februar 2024, den die Beklagte vorbehaltlos genehmigte. Als Fertigstellungstermin wurde der 31. Mai 2024 vereinbart.
 
 ::: beweis
-- [Beilage 1] Werkvertrag vom 3. März 2024
+- [Beilage 1] Werkvertrag vom [3. März 2024]{.datum key=vertragsdatum}
 - [Beilage 2] Kostenvoranschlag vom 15. Februar 2024
 :::
 

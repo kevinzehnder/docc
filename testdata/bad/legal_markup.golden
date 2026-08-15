@@ -1,0 +1,19 @@
+legal_markup.md:53:43: error[DOC031]: schema "ch_legal" does not declare a span type "datm"
+   | 
+53 | Die Parteien schlossen am [3. März 2024]{.datm key=vertragsdatum} einen Werkvertrag über den Innenausbau.
+   |                                          ^^^^^ declared span types: datum
+legal_markup.md:55:22: error[DOC035]: block "beweis" does not permit the attribute "seite"
+   | 
+55 | ::: beweis {#vertrag seite=4}
+   |                      ^^^^^ remove the attribute
+legal_markup.md:59:1: error[DOC030]: schema "ch_legal" does not declare a block "zeugen"
+   | 
+59 | ::: zeugen
+   | ^^^^^^^^^^ declared blocks: beweis
+legal_markup.md:69:13: error[DOC034]: block id "vertrag" is already used by `::: beweis`
+   | 
+69 | ::: beweis {#vertrag}
+   |             ^^^^^^^^ give every block a unique `#id`; references resolve against it
+  = related: legal_markup.md:55:13
+
+4 errors, 0 warnings
