@@ -124,6 +124,7 @@ var registry = map[string]CheckFunc{
 	"div_items_match":     checkDivItemsMatch,
 	"cross_reference":     checkCrossReference,
 	"no_empty_sections":   checkNoEmptySections,
+	"amounts_balance":     checkAmountsBalance,
 }
 
 // KnownChecks lists registered check names, for error messages and docs.

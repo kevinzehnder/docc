@@ -109,6 +109,15 @@ type CodeSpan struct{ Text string }
 // LineBreak is a hard line break within a paragraph.
 type LineBreak struct{}
 
+// Span is an inline semantic annotation: `[text]{.type key=... ref=...}`.
+// The type is carried through to the emitter so a schema can map it to a
+// character style — an annotation that means something should be allowed to
+// look like something.
+type Span struct {
+	Type    string
+	Inlines []Inline
+}
+
 // Link is a hyperlink.
 type Link struct {
 	Inlines []Inline
@@ -121,6 +130,7 @@ func (Strong) inline()    {}
 func (CodeSpan) inline()  {}
 func (LineBreak) inline() {}
 func (Link) inline()      {}
+func (Span) inline()      {}
 
 // Text flattens inlines to their plain text, for diagnostics and for cases
 // where formatting cannot be represented.
@@ -132,6 +142,8 @@ func Text(inlines []Inline) string {
 			switch v := item.(type) {
 			case Str:
 				b = append(b, v.Text...)
+			case Span:
+				walk(v.Inlines)
 			case CodeSpan:
 				b = append(b, v.Text...)
 			case Emph:

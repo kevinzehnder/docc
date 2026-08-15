@@ -562,7 +562,13 @@
 </w:numPr>
 </w:pPr>
 <w:r>
-<w:t xml:space="preserve">Die Parteien schlossen am 3. März 2024 einen schriftlichen Werkvertrag über den Innenausbau der Geschäftsräume der Beklagten an der Industrieweg 5 in Baden. Gegenstand des Vertrages waren Schreiner-, Maler- und Bodenlegerarbeiten zu einem Pauschalpreis von CHF 84'500.00.</w:t>
+<w:t xml:space="preserve">Die Parteien schlossen am </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">3. März 2024</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve"> einen schriftlichen Werkvertrag über den Innenausbau der Geschäftsräume der Beklagten an der Industrieweg 5 in Baden. Gegenstand des Vertrages waren Schreiner-, Maler- und Bodenlegerarbeiten zu einem Pauschalpreis von CHF 84'500.00.</w:t>
 </w:r>
 </w:p>
 <w:p>
@@ -586,7 +592,10 @@
 </w:numPr>
 </w:pPr>
 <w:r>
-<w:t xml:space="preserve">[Beilage 1] Werkvertrag vom 3. März 2024</w:t>
+<w:t xml:space="preserve">[Beilage 1] Werkvertrag vom </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">3. März 2024</w:t>
 </w:r>
 </w:p>
 <w:p>

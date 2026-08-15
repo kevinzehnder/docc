@@ -67,6 +67,12 @@ type Render struct {
 	// ParagraphNumbering numbers top-level paragraphs of prose at level 0,
 	// continuously, across the headings between them.
 	ParagraphNumbering *NumberingRule `yaml:"paragraph_numbering"`
+	// PageBreakBeforeHeadings names headings that must begin a new page. It is
+	// here for the same reason numbering is: where a document type breaks is a
+	// fact about the type, not something the markdown should carry. A deed's
+	// certification follows the signatures on a fresh sheet whatever the
+	// signatures happen to fill.
+	PageBreakBeforeHeadings []string `yaml:"page_break_before_headings"`
 }
 
 // NumberingRule selects a list definition from the theme and says where in the

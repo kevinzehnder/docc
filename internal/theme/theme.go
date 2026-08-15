@@ -93,6 +93,11 @@ type Formats struct {
 	Bool []string `yaml:"bool"`
 	// ListSeparator joins a list field into one line. Defaults to ", ".
 	ListSeparator string `yaml:"list_separator"`
+	// AmountWords is how a money block writes an amount in words, with %s for
+	// the spelled figure: "(Franken %s)". Empty means amounts are not spelled
+	// out. The speller is German, which is what this corpus needs; a theme in
+	// another language leaves this unset.
+	AmountWords string `yaml:"amount_words"`
 
 	// Months translates the twelve month names in calendar order. Short names
 	// are the first three characters unless MonthsShort gives them.

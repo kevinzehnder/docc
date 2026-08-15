@@ -162,6 +162,9 @@ func inline(f *parse.File, n ast.Node) []Inline {
 	case *ast.CodeSpan:
 		return []Inline{CodeSpan{Text: inlineText(f, v)}}
 
+	case *parse.Span:
+		return []Inline{Span{Type: v.SpanType(), Inlines: inlines(f, v)}}
+
 	case *ast.Link:
 		return []Inline{Link{Inlines: inlines(f, v), URL: string(v.Destination)}}
 

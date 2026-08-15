@@ -106,6 +106,9 @@ func Validate(sc *schema.Schema, th *theme.Theme) error {
 	if err := validateRender(sc, th); err != nil {
 		errs = append(errs, err)
 	}
+	if err := validateSpanStyles(sc); err != nil {
+		errs = append(errs, err)
+	}
 	if err := validateNumbering(th); err != nil {
 		errs = append(errs, err)
 	}
@@ -141,6 +144,27 @@ func validateRender(sc *schema.Schema, th *theme.Theme) error {
 				"schema %q: render.%s sets both start_at_heading and start_after_heading; keep one",
 				sc.Type, r.key,
 			))
+		}
+	}
+	// A page break keyed to a heading the type does not declare never fires,
+	// and nothing says so: the certification simply runs on from the
+	// signatures. Only checkable when the type declares a body structure.
+	if len(sc.Body) > 0 {
+		declared := map[string]bool{}
+		var walk func([]schema.BodyRule)
+		walk = func(rules []schema.BodyRule) {
+			for _, r := range rules {
+				declared[strings.TrimSpace(strings.ToLower(r.Heading))] = true
+				walk(r.Children)
+			}
+		}
+		walk(sc.Body)
+		for _, h := range sc.Render.PageBreakBeforeHeadings {
+			if !declared[strings.TrimSpace(strings.ToLower(h))] {
+				errs = append(errs, fmt.Errorf(
+					"schema %q: render.page_break_before_headings names %q, which the body does not declare",
+					sc.Type, h))
+			}
 		}
 	}
 	return errors.Join(errs...)
@@ -196,6 +220,33 @@ func validateNumbering(th *theme.Theme) error {
 	sort.Strings(bad)
 	return fmt.Errorf("theme %q defines numbering Word cannot render:\n  %s",
 		th.Name, strings.Join(bad, "\n  "))
+}
+
+// validateSpanStyles checks that every `span.<type>` style key names a span
+// type the schema declares. A style mapped to a type nobody can write is a
+// typo that would otherwise show up as text that is silently not styled.
+func validateSpanStyles(sc *schema.Schema) error {
+	if len(sc.Spans) == 0 {
+		return nil
+	}
+	var unknown []string
+	for key := range sc.Styles {
+		name, ok := strings.CutPrefix(key, "span.")
+		if !ok || strings.HasPrefix(name, "docc-") {
+			continue
+		}
+		if _, declared := sc.Spans[name]; !declared {
+			unknown = append(unknown, key)
+		}
+	}
+	if len(unknown) == 0 {
+		return nil
+	}
+	sort.Strings(unknown)
+	return fmt.Errorf(
+		"schema %q styles span types it does not declare:\n  %s\nschema declares: %s",
+		sc.Type, strings.Join(unknown, "\n  "), strings.Join(sortedKeys(sc.Spans), ", "),
+	)
 }
 
 func validateStyles(sc *schema.Schema, th *theme.Theme) error {
@@ -500,6 +551,22 @@ func normalizeHeading(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
 }
 
+// breaksPage reports whether the schema wants this heading to start a new
+// page. Matching follows the body rules: case-insensitive, whitespace
+// trimmed.
+func (e *emitter) breaksPage(heading string) bool {
+	want := strings.TrimSpace(strings.ToLower(heading))
+	if want == "" {
+		return false
+	}
+	for _, h := range e.schema.Render.PageBreakBeforeHeadings {
+		if strings.TrimSpace(strings.ToLower(h)) == want {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *emitter) blockTo(b ir.Block, out *[]docx.Block, depth int) {
 	switch v := b.(type) {
 	case ir.Heading:
@@ -515,6 +582,9 @@ func (e *emitter) blockTo(b ir.Block, out *[]docx.Block, depth int) {
 			for i := range p.Runs {
 				p.Runs[i].Props.Bold = true
 			}
+		}
+		if e.breaksPage(ir.Text(v.Inlines)) {
+			p.Props.PageBreak = true
 		}
 		*out = append(*out, p)
 
@@ -706,6 +776,14 @@ func (e *emitter) sharedNumID(defName string) (numID, levels int) {
 
 func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 	style := e.style("div."+d.Name, "paragraph")
+	if amountStyle := e.style("div." + d.Name + ".amount"); amountStyle != "" {
+		e.amountDiv(d, out, depth, style, amountStyle, e.style("div."+d.Name+".total"))
+		return
+	}
+	if lineStyle := e.style("div." + d.Name + ".line"); lineStyle != "" {
+		e.ruledDiv(d, out, depth, style, lineStyle)
+		return
+	}
 	if labelStyle := e.style("div." + d.Name + ".label"); labelStyle != "" {
 		e.labelledDiv(d, out, depth, style, labelStyle)
 		return
@@ -754,6 +832,245 @@ func (e *emitter) labelledDiv(d ir.Div, out *[]docx.Block, depth int, style, lab
 			*out = append(*out, blk)
 		}
 	}
+}
+
+// tabStops returns the tab stops a style declares, following based_on. A
+// ruled line emits one tab per stop, so a theme that wants a gap before the
+// rule declares two stops rather than the emitter guessing at one.
+func (e *emitter) tabStops(styleID string) []theme.Tab {
+	for i := 0; i < 16 && styleID != ""; i++ {
+		st, ok := e.theme.Styles[styleID]
+		if !ok {
+			return nil
+		}
+		if len(st.Tabs) > 0 {
+			return st.Tabs
+		}
+		styleID = st.BasedOn
+	}
+	return nil
+}
+
+// ruledDiv renders a block whose list items each need a rule to write on: a
+// signature block. The item is its own text followed by a tab, and the tab
+// leader declared by the line style draws the rule across to the tab stop.
+//
+// Nothing about the rule is in the source, which is the point: a signature
+// line is not content the author should be typing, and a document whose dots
+// are literal text cannot have its signatories checked or reordered.
+func (e *emitter) ruledDiv(d ir.Div, out *[]docx.Block, depth int, style, lineStyle string) {
+	for _, block := range d.Blocks {
+		list, isList := block.(ir.List)
+		if !isList {
+			var inner []docx.Block
+			e.blockTo(block, &inner, depth)
+			for _, blk := range inner {
+				if p, ok := blk.(docx.Paragraph); ok {
+					p.Props.Style = style
+					*out = append(*out, p)
+					continue
+				}
+				*out = append(*out, blk)
+			}
+			continue
+		}
+
+		for _, item := range list.Items {
+			for _, b := range item.Blocks {
+				para, isPara := b.(ir.Para)
+				if !isPara {
+					e.blockTo(b, out, depth)
+					continue
+				}
+				runs := e.runs(para.Inlines, docx.RunProps{})
+				for range e.tabStops(lineStyle) {
+					runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+				}
+				*out = append(*out, docx.Paragraph{
+					Props: docx.ParaProps{Style: lineStyle},
+					Runs:  runs,
+				})
+			}
+		}
+	}
+}
+
+// amountDiv renders a money block: each item is a description and an amount,
+// set in two columns so the figures align on their own tab stop.
+//
+// The source writes the amount first, in brackets — `- [Fr. 26'000.00] Der
+// Kaufpreis beträgt` — because that is what makes the amount findable by a
+// rule and by a reader scanning the markdown. The page wants the opposite
+// order, so the description comes first here, then the currency at the first
+// tab stop and the figure right-aligned at the second.
+//
+// An item whose amount begins with `=` is the block's total: it carries the
+// total style, which is where a rule above the figure belongs. The marker is
+// the one the paper form already used.
+func (e *emitter) amountDiv(d ir.Div, out *[]docx.Block, depth int, style, amountStyle, totalStyle string) {
+	for _, block := range d.Blocks {
+		list, isList := block.(ir.List)
+		if !isList {
+			var inner []docx.Block
+			e.blockTo(block, &inner, depth)
+			for _, blk := range inner {
+				if p, ok := blk.(docx.Paragraph); ok {
+					p.Props.Style = style
+					*out = append(*out, p)
+					continue
+				}
+				*out = append(*out, blk)
+			}
+			continue
+		}
+
+		// A block that declares a total is a sum: its other items are the
+		// parts, and parts read as a list. A block without a total states one
+		// amount — an instalment, a single price — and a bullet in front of it
+		// would be a list of one.
+		partMarker := 0
+		if hasTotal(list) {
+			partMarker = e.numID("bullet_list", list)
+		}
+
+		for _, item := range list.Items {
+			for _, b := range item.Blocks {
+				para, isPara := b.(ir.Para)
+				if !isPara {
+					e.blockTo(b, out, depth)
+					continue
+				}
+				label, description, labelled := splitEvidenceLabel(para.Inlines)
+				if !labelled {
+					var inner []docx.Block
+					e.blockTo(b, &inner, depth)
+					for _, blk := range inner {
+						p, isPara := blk.(docx.Paragraph)
+						if !isPara {
+							*out = append(*out, blk)
+							continue
+						}
+						p.Props.Style = style
+						*out = append(*out, p)
+					}
+					continue
+				}
+
+				amount, isTotal := strings.CutPrefix(label, "=")
+				amount = strings.TrimSpace(amount)
+				currency, figure := splitAmount(amount)
+
+				props := docx.RunProps{Style: amountStyle}
+				if isTotal {
+					if totalAmount := e.style("div." + d.Name + ".total.amount"); totalAmount != "" {
+						props.Style = totalAmount
+					}
+				}
+				runs := e.runs(description, docx.RunProps{})
+				runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+				runs = append(runs, docx.Run{Props: props, Items: []docx.Inline{docx.Text(currency)}})
+				runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+				runs = append(runs, docx.Run{Props: props, Items: []docx.Inline{docx.Text(figure)}})
+
+				paraStyle := style
+				if isTotal && totalStyle != "" {
+					paraStyle = totalStyle
+				}
+				props2 := docx.ParaProps{Style: paraStyle}
+				if partMarker != 0 && !isTotal {
+					props2.Numbering = &docx.NumRef{ID: partMarker, Level: depth}
+				}
+				*out = append(*out, docx.Paragraph{Props: props2, Runs: runs})
+
+				// The amount in words, when the theme asks for it. It is
+				// rendered from the figure rather than authored, so the two
+				// cannot disagree.
+				wordsStyle := e.style("div."+d.Name+".words", "div."+d.Name)
+				if e.theme.Formats.AmountWords == "" || wordsStyle == "" {
+					continue
+				}
+				value, parsed := parseMoney(figure)
+				if !parsed {
+					continue
+				}
+				*out = append(*out, docx.Paragraph{
+					Props: docx.ParaProps{Style: wordsStyle},
+					Runs: []docx.Run{{Items: []docx.Inline{
+						docx.Text(fmt.Sprintf(e.theme.Formats.AmountWords, germanAmountWords(value))),
+					}}},
+				})
+			}
+		}
+	}
+}
+
+// parseMoney reads a Swiss figure — "26'000.00" — as hundredths. It is the
+// emitter's own reader rather than a shared one because rendering must not
+// fail on something the checker has already reported.
+func parseMoney(figure string) (int64, bool) {
+	var whole, frac int64
+	var digits, fracDigits int
+	seenPoint := false
+	for _, r := range figure {
+		switch {
+		case r >= '0' && r <= '9':
+			if seenPoint {
+				if fracDigits == 2 {
+					return 0, false
+				}
+				frac = frac*10 + int64(r-'0')
+				fracDigits++
+				continue
+			}
+			whole = whole*10 + int64(r-'0')
+			digits++
+		case r == '.':
+			if seenPoint {
+				return 0, false
+			}
+			seenPoint = true
+		case r == '\'' || r == '\u2019' || r == ' ':
+			// thousands separators
+		default:
+			return 0, false
+		}
+	}
+	if digits == 0 {
+		return 0, false
+	}
+	if fracDigits == 1 {
+		frac *= 10
+	}
+	return whole*100 + frac, true
+}
+
+// hasTotal reports whether any item of a money block is marked `=`.
+func hasTotal(list ir.List) bool {
+	for _, item := range list.Items {
+		for _, b := range item.Blocks {
+			para, isPara := b.(ir.Para)
+			if !isPara {
+				continue
+			}
+			if label, _, ok := splitEvidenceLabel(para.Inlines); ok {
+				if strings.HasPrefix(label, "=") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// splitAmount separates a currency from its figure: "Fr. 26'000.00" becomes
+// "Fr." and "26'000.00". An amount written without a currency keeps the
+// figure column to itself.
+func splitAmount(amount string) (currency, figure string) {
+	i := strings.LastIndexByte(amount, ' ')
+	if i < 0 {
+		return "", amount
+	}
+	return strings.TrimSpace(amount[:i]), strings.TrimSpace(amount[i+1:])
 }
 
 func (e *emitter) labelledList(list ir.List, out *[]docx.Block, depth int, style, labelStyle string) {
@@ -934,6 +1251,16 @@ func (e *emitter) runs(inlines []ir.Inline, inherited docx.RunProps) []docx.Run 
 			props := inherited
 			props.Font = "Courier New"
 			out = append(out, docx.Run{Props: props, Items: []docx.Inline{docx.Text(v.Text)}})
+
+		case ir.Span:
+			// A span is styled only if the schema maps its type. Unmapped
+			// spans render as their content: the annotation is for the
+			// checker, and making it visible is the schema's choice.
+			props := inherited
+			if style := e.style("span." + v.Type); style != "" {
+				props.Style = style
+			}
+			out = append(out, e.runs(v.Inlines, props)...)
 
 		case ir.Link:
 			// Rendered as styled text rather than a real hyperlink: a legal
