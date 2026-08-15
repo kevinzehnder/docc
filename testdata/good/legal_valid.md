@@ -1,6 +1,6 @@
 ---
 docc: 1
-document_type: legal
+document_type: ch_legal
 legal_doc_type: Klageschrift
 case_ref: "ZG.2026.014"
 date: 2026-03-11

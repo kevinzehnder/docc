@@ -2,12 +2,12 @@
 #
 # The second document type in the corpus, and deliberately not a variation on
 # the first: a letter exercises an epilogue, a repeated list field, a boolean
-# and non-list defaults, none of which `legal` reaches. Between them the two
+# and non-list defaults, none of which `ch_legal` reaches. Between them the two
 # types cover the theme surface.
-type: letter
+type: ch_letter
 extends: base
 description: Business or legal correspondence on letterhead.
-theme: starter-letter
+theme: example-letter
 
 frontmatter:
   title:

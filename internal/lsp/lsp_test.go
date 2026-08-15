@@ -19,7 +19,7 @@ func TestServePublishesDiagnostics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := "---\ndocc: 1\ndocument_type: letter\ndate: 2026-08-04\n---\n"
+	source := "---\ndocc: 1\ndocument_type: ch_letter\ndate: 2026-08-04\n---\n"
 	uri := (&url.URL{Scheme: "file", Path: filepath.Join(t.TempDir(), "letter.md")}).String()
 
 	var in bytes.Buffer
@@ -97,7 +97,7 @@ func TestServeRechecksFullDocumentChanges(t *testing.T) {
 	})
 	writeFrame(t, &in, map[string]any{
 		"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": map[string]any{
-			"textDocument": map[string]any{"uri": uri, "text": "---\ndocc: 1\ndocument_type: letter\n---\n"},
+			"textDocument": map[string]any{"uri": uri, "text": "---\ndocc: 1\ndocument_type: ch_letter\n---\n"},
 		},
 	})
 	writeFrame(t, &in, map[string]any{

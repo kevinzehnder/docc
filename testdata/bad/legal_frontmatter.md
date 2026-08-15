@@ -1,6 +1,6 @@
 ---
 docc: 1
-document_type: legal
+document_type: ch_legal
 legal_doc_type: Klage
 case_ref: "ZG2026000"
 date: 01.01.2026

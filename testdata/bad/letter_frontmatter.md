@@ -1,6 +1,6 @@
 ---
 docc: 1
-document_type: letter
+document_type: ch_letter
 date: 2026-08-04
 sent: 05.08.2026
 title: Mahnung Rechnung 2026-114

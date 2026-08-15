@@ -12,7 +12,7 @@ A file becomes a docc document by declaring the marker in its frontmatter:
 ```yaml
 ---
 docc: 1          # the docc format version — this is what makes it a docc file
-document_type: legal
+document_type: ch_legal
 ---
 ```
 
@@ -121,8 +121,8 @@ myproject/
   .docc/
     schemas/
       _base.yaml        # shared field shapes, extended by the rest
-      legal.yaml
-      letter.yaml
+      ch_legal.yaml
+      ch_letter.yaml
     themes/
       legal.yaml         # page geometry, styles, and fixed furniture
   docs/
@@ -171,7 +171,7 @@ the compiler before any schema field is checked, so it never appears as an
 unknown-field warning even in projects whose schemas do not extend the base.
 
 ```yaml
-type: legal
+type: ch_legal
 extends: base
 description: Formal legal brief.
 frontmatter:
@@ -411,9 +411,9 @@ rendered diagnostics compared to a committed `.golden` file; every fixture in
 compared to `testdata/golden/<fixture>/`. A change to a message, a rule, a style
 or the writer shows up as a diff rather than as a surprise in a real document.
 
-Two document types are covered on purpose. `legal` exercises absolutely
+Two document types are covered on purpose. `ch_legal` exercises absolutely
 positioned frames and paragraphs whose formatting changes partway through;
-`letter` exercises an epilogue, a repeated list field, a footer and metadata
+`ch_letter` exercises an epilogue, a repeated list field, a footer and metadata
 formatting. Between them they reach most of the theme surface, which is what
 stops the engine quietly specialising in one document shape.
 

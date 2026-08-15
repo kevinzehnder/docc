@@ -1,4 +1,4 @@
-type: legal
+type: ch_legal
 extends: base
 description: Formal legal brief (Klageschrift, Klageantwort, Rechtsschrift).
 theme: example-legal

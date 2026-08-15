@@ -1,6 +1,6 @@
 ---
 docc: 1
-document_type: legal
+document_type: ch_legal
 legal_doc_type: Klageschrift
 case_ref: "EX.2026.001"
 date: 2026-03-11
