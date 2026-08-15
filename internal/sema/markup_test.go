@@ -156,6 +156,43 @@ func TestUnknownSpanType(t *testing.T) {
 	}
 }
 
+func TestRefResolves(t *testing.T) {
+	src := "---\n---\n\n::: beweis {#vertrag}\nx\n:::\n\nGemäss [Vertrag]{.datum ref=vertrag} gilt es.\n"
+	ds := checkMarkupOn(t, src, parteiSchema())
+	if len(ds) != 0 {
+		t.Fatalf("diagnostics on resolving ref:\n%s", messages(ds))
+	}
+}
+
+func TestDanglingRef(t *testing.T) {
+	src := "---\n---\n\n::: beweis {#vertrag}\nx\n:::\n\nGemäss [Vertrag]{.datum ref=vertrga} gilt es.\n"
+	ds := checkMarkupOn(t, src, parteiSchema())
+	if got := codes(ds); len(got) != 1 || got[0] != "DOC037" {
+		t.Fatalf("codes = %v, want [DOC037]\n%s", got, messages(ds))
+	}
+	d := ds[0]
+	if !strings.Contains(d.Hint, "#vertrag") {
+		t.Errorf("hint should list known ids: %q", d.Hint)
+	}
+	// Caret under the value `vertrga` on line 8.
+	if d.Pos.Line != 8 || d.Pos.Len != len("vertrga") {
+		t.Errorf("pos = %+v, want line 8 underlining the ref value", d.Pos)
+	}
+}
+
+// A dangling ref is an error even when the schema declares nothing: a
+// reference the author wrote is a reference the author wants resolved.
+func TestDanglingRefWithoutDeclarations(t *testing.T) {
+	src := "---\n---\n\n[Erwerberin]{.partei ref=erwerberin} kauft.\n"
+	ds := checkMarkupOn(t, src, &schema.Schema{Type: "test"})
+	if got := codes(ds); len(got) != 1 || got[0] != "DOC037" {
+		t.Fatalf("codes = %v, want [DOC037]\n%s", got, messages(ds))
+	}
+	if !strings.Contains(ds[0].Hint, "no block declares an id") {
+		t.Errorf("hint = %q", ds[0].Hint)
+	}
+}
+
 // A schema that declares neither blocks nor spans leaves markup unchecked:
 // the declarations are the opt-in.
 func TestUndeclaredSchemaIsPermissive(t *testing.T) {

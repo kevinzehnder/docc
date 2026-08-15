@@ -64,7 +64,7 @@ Max Muster, Musterstrasse 1, 8000 Zürich
 
 ## Werklohnforderung
 
-Die Klägerin hat das Werk vertragsgemäss abgeliefert; der Werklohn ist damit fällig.
+Gemäss [Werkvertrag]{.datum ref=vertrga} hat die Klägerin das Werk vertragsgemäss abgeliefert; der Werklohn ist damit fällig.
 
 ::: beweis {#vertrag}
 - [Beilage 2] Abnahmeprotokoll vom 12. Juni 2024

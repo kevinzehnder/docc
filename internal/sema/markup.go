@@ -19,6 +19,7 @@ import (
 // meaning until they adopt the contract.
 func checkMarkup(f *parse.File, sc *schema.Schema, ds *diag.List) {
 	checkUniqueIDs(f, ds)
+	checkRefs(f, ds)
 	if len(sc.Blocks) > 0 {
 		checkBlocks(f, sc, ds)
 	}
@@ -48,6 +49,38 @@ func checkUniqueIDs(f *parse.File, ds *diag.List) {
 			Hint:    "give every block a unique `#id`; references resolve against it",
 			Block:   id,
 			Related: []diag.Location{{File: f.Path, Pos: idPos(f, prev)}},
+		})
+	}
+}
+
+// checkRefs resolves every span `ref=` against the document's block ids. Like
+// id uniqueness this runs regardless of schema declarations: a reference the
+// author wrote is a reference the author wants resolved — checking it is
+// resolution, not type validation.
+func checkRefs(f *parse.File, ds *diag.List) {
+	ids := map[string]bool{}
+	for _, div := range f.Divs() {
+		if div.Attr.ID != "" {
+			ids[div.Attr.ID] = true
+		}
+	}
+	for _, span := range f.Spans() {
+		ref, ok := span.Attr.Get("ref")
+		if !ok || ids[ref] {
+			continue
+		}
+		hint := "no block declares an id; add `{#" + ref + "}` to the block this refers to"
+		expected := ""
+		if len(ids) > 0 {
+			known := sortedMapKeys(ids)
+			hint = "known ids: #" + strings.Join(known, ", #")
+			expected = fmt.Sprintf("[%s]{.%s ref=%s}", span.LiteralText(f.BodySource), span.SpanType(), known[0])
+		}
+		ds.Add(diag.Diagnostic{
+			File: f.Path, Pos: refPos(f, span), Severity: diag.Error, Code: "DOC037",
+			Message:  fmt.Sprintf("reference %q does not resolve to any block id", ref),
+			Hint:     hint,
+			Expected: expected,
 		})
 	}
 }
@@ -222,6 +255,18 @@ func spanPos(f *parse.File, s *parse.Span) diag.Position {
 	pos := f.BodyPos(s.OpenOffset)
 	pos.Len = s.Literal.Stop - s.Literal.Start + 2
 	return pos
+}
+
+// refPos underlines the ref value itself.
+func refPos(f *parse.File, s *parse.Span) diag.Position {
+	for _, a := range s.Attr.Attrs {
+		if a.Key == "ref" {
+			pos := f.BodyPos(a.ValueOffset)
+			pos.Len = len(a.Value)
+			return pos
+		}
+	}
+	return f.BodyPos(s.OpenOffset)
 }
 
 func classPos(f *parse.File, s *parse.Span) diag.Position {

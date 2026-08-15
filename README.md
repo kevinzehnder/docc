@@ -289,11 +289,15 @@ spans:
   uid: {}
 ```
 
+A span may reference a block by its id — `[Erwerberin]{.partei ref=erwerberin}`
+— and the displayed wording stays the author's; docc only resolves the
+reference.
+
 The checker reports undeclared blocks (`DOC030`), untyped or undeclared spans
 (`DOC031`), a missing discriminator or unknown variant (`DOC032`), missing
-required spans (`DOC033`), duplicate `#id`s (`DOC034`) and unpermitted
-attributes (`DOC035`). Malformed attribute syntax is caught at parse time
-(`DOC026`, `DOC027`).
+required spans (`DOC033`), duplicate `#id`s (`DOC034`), unpermitted
+attributes (`DOC035`) and unresolved `ref=`s (`DOC037`). Malformed attribute
+syntax is caught at parse time (`DOC026`, `DOC027`).
 
 ### Field types
 

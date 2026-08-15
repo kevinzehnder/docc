@@ -10,10 +10,15 @@ legal_markup.md:59:1: error[DOC030]: schema "ch_legal" does not declare a block 
    | 
 59 | ::: zeugen
    | ^^^^^^^^^^ declared blocks: beweis
+legal_markup.md:67:34: error[DOC037]: reference "vertrga" does not resolve to any block id
+   | 
+67 | Gemäss [Werkvertrag]{.datum ref=vertrga} hat die Klägerin das Werk vertragsgemäss abgeliefert; der Werklohn ist damit fällig.
+   |                                 ^^^^^^^ known ids: #vertrag
+  = expected: [Werkvertrag]{.datum ref=vertrag}
 legal_markup.md:69:13: error[DOC034]: block id "vertrag" is already used by `::: beweis`
    | 
 69 | ::: beweis {#vertrag}
    |             ^^^^^^^^ give every block a unique `#id`; references resolve against it
   = related: legal_markup.md:55:13
 
-4 errors, 0 warnings
+5 errors, 0 warnings

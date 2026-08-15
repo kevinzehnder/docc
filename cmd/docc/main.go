@@ -519,6 +519,7 @@ var explanations = map[string]string{
 	"DOC034": "a `#id` is used by more than one block. Ids must be unique in the document because references resolve against them; the diagnostic lists the other occurrence.",
 	"DOC035": "a block carries an attribute its schema declaration does not permit. Only `#id`, the discriminator and the keys in the block's `attributes:` list are allowed.",
 	"DOC036": "the schema declares `variants:` for a block but no `discriminator:`, so no document can satisfy it. This is a schema bug, not a document bug.",
+	"DOC037": "a span's `ref=` names a block id that does not exist in the document. References resolve against `{#id}` attributes on blocks; the hint lists the ids that do exist.",
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest
