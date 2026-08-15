@@ -1,0 +1,339 @@
+# Grundstückkaufvertrag mit öffentlicher Beurkundung.
+#
+# Rebuilt from the office's Word template (kaufvertrag_beispiel.docx). The
+# template's grey tab-blanks and ODER-alternatives do not survive the move:
+# alternatives are simply authored — the source contains the applicable wording
+# and nothing else — and blanks split three ways:
+#
+#   - facts the furniture renders (Urkundsperson, title)  -> frontmatter
+#   - facts of the individual deed (parties, object, price) -> authored body,
+#     validated through the declared blocks and spans below
+#   - blanks completed by hand at the Beurkundung           -> `fields:` with
+#     `completion: handwritten`, written [____]{.docc-field key=...}
+type: ch_urkunde_kaufvertrag
+extends: base
+description: Grundstückkaufvertrag (öffentliche Urkunde) mit Parteien-, Kaufobjekt- und Zahlungsblöcken.
+theme: ch_urkunde_kaufvertrag
+
+frontmatter:
+  title:
+    type: string
+    default: Kaufvertrag
+
+  urkundsperson:
+    type: urkundsperson
+    required: true
+
+  # Set once the deed has been executed; the title block then states where
+  # and when. A draft leaves it out and the line disappears with it.
+  beurkundet:
+    type: beurkundung
+    required: false
+
+types:
+  beurkundung:
+    ort: { type: string, required: true }
+    datum:
+      type: date
+      required: true
+      hint: 'ISO format, e.g. 2026-08-06 — the day the deed was read and signed'
+
+  urkundsperson:
+    name: { type: string, required: true }
+    amtstitel:
+      type: string
+      required: true
+      hint: 'e.g. "Urkundsperson des Kantons Aargau"'
+    ort: { type: string, required: true }
+
+body:
+  - heading: Vertragsparteien
+    level: 1
+    required: true
+    ordered: true
+    children:
+      - heading: Verkäuferschaft
+        level: 2
+        required: true
+      - heading: Käuferschaft
+        level: 2
+        required: true
+
+  - heading: Kaufobjekt
+    level: 1
+    required: true
+
+  - heading: Kaufpreis
+    level: 1
+    required: true
+
+  - heading: Schlussbestimmungen
+    level: 1
+    required: true
+
+  - heading: Bescheinigung
+    level: 1
+    required: true
+
+# Known gap, found by rebuilding three executed deeds: the office's deeds end
+# with an "Anmeldung an das Grundbuchamt" — a filing addressed to the registry,
+# after the Bescheinigung, whose title is deliberately *outside* the I./II./III.
+# outline. It cannot be expressed here yet: `render.heading_numbering` has a
+# start marker but no end marker, so any heading after Vertragsparteien is
+# numbered. Until it has one, the Anmeldung is authored as its own document.
+
+styles:
+  h1: Ueberschrift1
+  h2: Ueberschrift2
+  h3: Ueberschrift3
+  paragraph: Standard
+  quote: Zitat
+  code: Code
+  ordered_list: Nummerierung
+  bullet_list: Aufzaehlung
+  "div.partei": Vertragspartei
+  "div.grundstueck": Grundbuchbeschrieb
+
+  # Money blocks: the description sits left, the currency at the first tab
+  # stop and the figure right-aligned at the second. `.total` is the item
+  # marked `=`, which carries the rule above the figure.
+  "div.betraege": Betragszeile
+  "div.betraege.amount": Betrag
+  "div.betraege.total": BetragTotal
+  "div.betraege.total.amount": BetragTotalZahl
+  "div.betraege.words": BetragWorte
+
+  # Signature blocks: role lines in the block style, one ruled line per
+  # signatory. The rule is the style's tab leader, not typed dots.
+  "div.unterschriften": Unterschriftsrolle
+  "div.unterschriften.line": Unterschriftslinie
+
+  # A party's name is set apart wherever it appears — the house convention
+  # for a name that has to be transcribable into the Grundbuch.
+  "span.name": ParteiName
+
+# The headings carry the I. / 1. / 1.1. outline of the deed; nothing is typed
+# into the source. Unlike the firm's briefs, a deed has no Randziffern.
+render:
+  heading_numbering:
+    definition: KaufvertragHeadingNumbering
+    start_at_heading: Vertragsparteien
+  # The certification is a fresh sheet after the signatures, whatever the
+  # signatures happen to fill.
+  page_break_before_headings: [Bescheinigung]
+
+# Semantic markup. Declaring blocks makes undeclared `:::name` blocks an
+# error; declaring spans makes untyped or undeclared spans an error.
+blocks:
+  partei:
+    description: >-
+      Eine Vertragspartei. `kind` selects the shape the template used to keep
+      as parallel alternatives; the required spans are what the Grundbuchamt
+      needs to identify the party.
+    discriminator: kind
+    variants:
+      person:
+        required_spans: [name, geburtsdatum, heimatort]
+      eheleute:
+        required_spans: [name, geburtsdatum, heimatort]
+      erbengemeinschaft:
+        required_spans: [name]
+      gesellschaft:
+        required_spans: [name, uid, sitz]
+
+  grundstueck:
+    description: >-
+      Grundbuchbeschrieb des Kaufobjekts, as taken from the Grundbuchauszug.
+    required_spans: [grundbuch]
+
+  betraege:
+    description: >-
+      Betragsaufstellung — one item per line, the amount first in square
+      brackets: "- [Fr. 460'000.00] für die 4½-Zimmerwohnung Nr. 11". The
+      item whose amount begins with `=` is the block's total, and the others
+      must add up to it — and are then set as a list, because they are the
+      parts of a sum. A block stating a single amount carries no total marker
+      and no bullets. A block that settles another block's total names it
+      with `total-of=<id>`; its items must then add up to that total. Keep
+      descriptions to one line — one that wraps past the tab stop pushes the
+      figure out of its column.
+    attributes: [total-of]
+
+  unterschriften:
+    description: >-
+      Unterschriftenblock. Prose names the signing side ("Die
+      Verkäuferschaft:"); each list item is one signatory and comes out as a
+      ruled line to sign on. Do not type the dots — the theme draws the rule.
+
+spans:
+  name:
+    description: Name einer Vertragspartei, wie im Grundbuch einzutragen.
+  geburtsdatum:
+    description: Geburtsdatum einer natürlichen Person.
+  heimatort:
+    description: Heimatort (Bürgerort) einer natürlichen Person.
+  uid:
+    description: UID einer Gesellschaft, CHE-XXX.XXX.XXX.
+  sitz:
+    description: Sitz einer Gesellschaft.
+  datum:
+    description: Ein Kalenderdatum, wie geschrieben.
+  grundbuch:
+    description: Grundbuch- oder Parzellenbezeichnung, z.B. "GB Baden Nr. 1234".
+
+# Blanks that are content: they appear in the deed as a visible line and are
+# completed by hand at the Beurkundung. `required: true` means the blank must
+# at least be present; `completion: handwritten` lets it stay blank in the
+# rendered document.
+# Not `required`: a deed being drafted carries these as blanks, and a deed
+# already executed carries the real date and number as ordinary text. Making
+# the blank mandatory would force a signed deed to pretend it is unsigned.
+fields:
+  beurkundungsdatum:
+    description: Datum der Beurkundung — blank in a draft, written out once known.
+    completion: handwritten
+  protokoll_nr:
+    description: Protokoll-Nummer der Urkundsperson.
+    completion: handwritten
+
+rules:
+  - id: KFV031
+    check: no_placeholder_text
+    severity: error
+
+  - id: KFV012
+    check: div_items_match
+    severity: error
+    args:
+      div: betraege
+      pattern: '^\s*\[=?\s*(?:CHF|Fr\.)\s?[\d''’.]+(?:\.\d\d)?\]\s+\S'
+    message: "Betragszeile ohne Betrag in eckigen Klammern"
+    hint: 'write the amount first: "- [Fr. 460''000.00] für ..."; a leading `=` marks the block total'
+
+  # The parts of a price must add up to the price, and the payments arranged
+  # for it must add up to what is owed. Both are arithmetic over figures the
+  # document already carries.
+  - id: KFV013
+    check: amounts_balance
+    severity: error
+    args:
+      div: betraege
+
+  - id: KFV040
+    check: no_empty_sections
+    severity: warning
+
+# A compact valid deed, shown by `docc example ch_urkunde_kaufvertrag`.
+example: |
+  ---
+  docc: 1
+  document_type: ch_urkunde_kaufvertrag
+  date: 2026-08-15
+  urkundsperson:
+    name: Dr. iur. Hans Zehnder
+    amtstitel: Urkundsperson des Kantons Aargau
+    ort: Baden
+  ---
+
+  # Vertragsparteien
+
+  ## Verkäuferschaft
+
+  ::: partei {#verkaeuferschaft kind=eheleute}
+  Die Eheleute
+
+  - Frau [Anna Muster]{.name}, geb. [12. März 1965]{.geburtsdatum}, von [Baden AG]{.heimatort},
+  - Herr [Peter Muster]{.name}, geb. [3. Juli 1962]{.geburtsdatum}, von [Baden AG]{.heimatort},
+
+  beide in 5400 Baden, Musterstrasse 1, als Gesamteigentümer infolge Gütergemeinschaft.
+  :::
+
+  ## Käuferschaft
+
+  ::: partei {#kaeuferschaft kind=person}
+  Herr [Beat Beispiel]{.name}, geb. [1. Mai 1990]{.geburtsdatum}, von [Aarau AG]{.heimatort},
+  in 5000 Aarau, Beispielweg 5, als Alleineigentümer.
+  :::
+
+  # Kaufobjekt
+
+  Die Verkäuferschaft verkauft an die Käuferschaft, und diese übernimmt als
+  Alleineigentümer, das nachstehend beschriebene Grundstück:
+
+  ::: grundstueck {#kaufobjekt}
+  [GB Baden Nr. 1234]{.grundbuch}, Plan 7, Musterstrasse 1,
+  Wohnhaus mit 542 m² Gebäude und Umschwung.
+  :::
+
+  Es gelten die Grenzen laut den öffentlichen Grundbuchplänen.
+
+  # Kaufpreis
+
+  ::: betraege {#kaufpreis}
+  - [Fr. 820'000.00] für die 4½-Zimmerwohnung Nr. 11
+  - [Fr. 45'000.00] für den Autoeinstellplatz Nr. 11
+  - [= Fr. 865'000.00] Ausmachend den Kaufpreis von
+  :::
+
+  ## Tilgung des Kaufpreises
+
+  Der Kaufpreis wird wie folgt getilgt:
+
+  ### Anzahlung
+
+  ::: betraege {#tilgung-1 total-of=kaufpreis}
+  - [Fr. 86'500.00] zahlbar bei Vertragsunterzeichnung
+
+    Konto IBAN CH00 0000 0000 0000 0000 0, lautend auf die Verkäuferschaft.
+  :::
+
+  ### Restkaufpreis
+
+  ::: betraege {#tilgung-2 total-of=kaufpreis}
+  - [Fr. 778'500.00] zahlbar Valuta [15. Dezember 2026]{.datum}
+
+    Konto IBAN CH00 0000 0000 0000 0000 0, lautend auf die Verkäuferschaft.
+  :::
+
+  # Schlussbestimmungen
+
+  ## Nutzen und Gefahr
+
+  Nutzen und Gefahr gehen mit der Eigentumsübertragung auf die Käuferschaft über.
+
+  ## Vertragskosten
+
+  Die Kosten dieses Vertrags werden von den Parteien je zur Hälfte getragen.
+
+  Baden, den [______________]{.docc-field key=beurkundungsdatum}
+
+  ::: unterschriften
+  Die Verkäuferschaft:
+
+  - Frau [Anna Muster]{.name}:
+  - Herr [Peter Muster]{.name}:
+
+  Die Käuferschaft:
+
+  - Herr [Beat Beispiel]{.name}:
+  :::
+
+  Es folgt die Beurkundung.
+
+  # Bescheinigung
+
+  Dr. iur. Hans Zehnder, Urkundsperson des Kantons Aargau, mit Büro in Baden,
+  bescheinigt:
+
+  1. Die Urkundsparteien haben diese Urkunde in meiner Gegenwart gelesen.
+  2. Die Urkundsparteien haben mir erklärt, diese Urkunde enthalte ihren
+     mitgeteilten Willen.
+  3. Die Urkundsparteien haben diese Urkunde in meiner Gegenwart unterzeichnet.
+
+  ::: unterschriften
+  Baden, den [______________]{.docc-field key=beurkundungsdatum}
+
+  - Die Urkundsperson:
+  :::
+
+  Protokoll-Nr. [________]{.docc-field key=protokoll_nr}

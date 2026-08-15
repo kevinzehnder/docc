@@ -111,3 +111,53 @@ rules:
   - id: GUT040
     check: no_empty_sections
     severity: warning
+
+# A compact valid document, shown by `docc example gutachten`.
+example: |
+  ---
+  docc: 1
+  document_type: gutachten
+  date: 2026-08-15
+  title: Gutachten
+  subject: Verjährung von Werklohnforderungen
+  client: Muster Bau AG
+  reference: "2026-017"
+  place: Baden
+  author: lic. iur. Kevin Zehnder
+  ---
+
+  # Zusammenfassung
+
+  Die Werklohnforderung ist noch nicht verjährt; die Verjährung wurde durch
+  Schuldanerkennung unterbrochen.
+
+  # Auftrag und Fragestellung
+
+  ## Auftrag
+
+  Die Auftraggeberin ersucht um Beurteilung der Verjährungslage ihrer
+  Werklohnforderung gegen die Bestellerin.
+
+  ## Rechtsfragen
+
+  Zu prüfen ist, ob die Forderung verjährt ist und ob
+  verjährungsunterbrechende Handlungen vorliegen.
+
+  # Sachverhalt
+
+  Die Auftraggeberin vollendete das Werk im Juni 2019. Die Bestellerin
+  anerkannte die Forderung schriftlich im März 2024.
+
+  # Rechtliche Beurteilung
+
+  Werklohnforderungen verjähren nach Art. 127 OR mit Ablauf von zehn Jahren.
+  Die schriftliche Anerkennung unterbrach die Verjährung nach Art. 135 Ziff. 1
+  OR und setzte eine neue Frist in Gang.
+
+  # Gesamtergebnis
+
+  Die Forderung ist durchsetzbar; die neue Verjährungsfrist läuft bis März 2034.
+
+  # Empfehlungen
+
+  Die Forderung ist zeitnah in Betreibung zu setzen oder einzuklagen.

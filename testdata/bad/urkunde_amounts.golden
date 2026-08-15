@@ -1,0 +1,22 @@
+urkunde_amounts.md:43:3: error[KFV013]: declared total 865'000.00 does not match the sum of the items, 830'000.00
+   | 
+43 | - [= Fr. 865'000.00] Ausmachend den Kaufpreis von
+   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the items above add up to 830'000.00
+urkunde_amounts.md:58:1: error[KFV013]: the amounts do not settle "kaufpreis": 78'500.00 is unaccounted for
+   | 
+58 | ::: betraege {#tilgung-2 total-of=kaufpreis}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ these items add up to 786'500.00 across 2 blocks, and "kaufpreis" totals 865'000.00
+urkunde_amounts.md:67:1: error[KFV013]: total-of names "kaufobjekt", which is not a money block in this document
+   | 
+67 | ::: betraege {#nebenkosten total-of=kaufobjekt}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ known money blocks: kaufpreis, nebenkosten, tilgung-1, tilgung-2
+urkunde_amounts.md:68:3: error[KFV012]: Betragszeile ohne Betrag in eckigen Klammern
+   | 
+68 | - [Fr. rund zehntausend] Nebenkosten
+   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ write the amount first: "- [Fr. 460'000.00] für ..."; a leading `=` marks the block total
+urkunde_amounts.md:68:3: error[KFV013]: amount "Fr. rund zehntausend" is not a number this check can add up
+   | 
+68 | - [Fr. rund zehntausend] Nebenkosten
+   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ write the amount as a currency and a figure, e.g. "[Fr. 26'000.00]"
+
+5 errors, 0 warnings

@@ -58,10 +58,14 @@ testdata/            golden corpus: schemas/, good/, bad/
   (`TestBuildGolden`), discovered from the archive so a theme that grows a
   header or footer adds a file here
 
-Two document types, `ch_legal` and `ch_letter`, cover complementary halves of the
-theme surface: frames and mixed-formatting runs on one side, epilogue, repeat,
-footer and metadata formatting on the other. A change that only one of them
-catches is the reason both exist — do not fold them together.
+Three document types cover complementary parts of the theme surface, and none
+of them is a variation on another. `ch_legal` has the frames and the
+mixed-formatting runs; `ch_letter` has the epilogue, the repeat, the footer and
+the metadata formatting; `ch_urkunde_kaufvertrag` has a first-page header
+carrying an image, span character styles, the amount and ruled block patterns,
+a page break keyed to a heading, and amounts spelled out from their figures. A
+change that only one of them catches is the reason all three exist — do not
+fold them together.
 
 Changing a message is expected to fail `TestGolden`; changing a style or the
 writer is expected to fail `TestBuildGolden`. Review the diff, then

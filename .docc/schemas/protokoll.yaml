@@ -95,3 +95,43 @@ rules:
   - id: PRO040
     check: no_empty_sections
     severity: warning
+
+# A compact valid document, shown by `docc example protokoll`.
+example: |
+  ---
+  docc: 1
+  document_type: protokoll
+  date: 2026-08-15
+  title: Protokoll
+  meeting_type: Ordentliche Generalversammlung
+  company_name: Muster Holding AG
+  company_seat: Baden
+  meeting_date: 2026-08-14
+  meeting_start: "09:00"
+  meeting_end: "10:30"
+  meeting_location: Sitzungszimmer, Musterstrasse 1, Baden
+  chair: Anna Muster
+  recorder: Kevin Zehnder
+  ---
+
+  # Teilnehmer
+
+  ## Anwesend
+
+  - Anna Muster, Präsidentin des Verwaltungsrats
+  - Beat Beispiel, Aktionär
+
+  # Feststellungen des Vorsitzes
+
+  Die Vorsitzende stellt fest, dass die Generalversammlung ordnungsgemäss
+  einberufen wurde und das gesamte Aktienkapital vertreten ist.
+
+  # Traktanden und Beschlüsse
+
+  ## Genehmigung der Jahresrechnung
+
+  Die Generalversammlung genehmigt die Jahresrechnung 2025 einstimmig.
+
+  ## Entlastung des Verwaltungsrats
+
+  Die Generalversammlung erteilt dem Verwaltungsrat einstimmig Entlastung.

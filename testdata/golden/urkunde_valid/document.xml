@@ -1,0 +1,1002 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<w:body>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="UrkErrichtet"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">errichtet von</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="UrkPerson"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Dr. iur. David Muster</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="UrkPerson"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Urkundsperson des Kantons Aargau, in Baden</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="UrkRule"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Titel"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Kaufvertrag</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="UrkBeurkundet"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">beurkundet in Baden am 4. September 2026</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TitelRule"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Vertragsparteien</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Verkäuferschaft</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Vertragspartei"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Eheleute</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Vertragspartei"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="2"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Frau </w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="ParteiName"/>
+</w:rPr>
+<w:t xml:space="preserve">Anna Muster-Berger</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, geb. </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">12. März 1965</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, von </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">Baden AG</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">,</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Vertragspartei"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="2"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Herr </w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="ParteiName"/>
+</w:rPr>
+<w:t xml:space="preserve">Peter Muster</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, geb. </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">3. Juli 1962</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, von </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">Wettingen AG</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">,</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Vertragspartei"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">beide wohnhaft in 5400 Baden, Musterstrasse 1, als Gesamteigentümer infolge Gütergemeinschaft.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Käuferschaft</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Vertragspartei"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die </w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="ParteiName"/>
+</w:rPr>
+<w:t xml:space="preserve">Beispiel Immobilien AG</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, UID-Nr. </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">CHE-123.456.789</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, mit Sitz in </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">Aarau</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, 5000 Aarau, Beispielweg 5, als Alleineigentümerin.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Kaufobjekt</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Verkäuferschaft verkauft an die Käuferschaft, und diese übernimmt als Alleineigentümerin, das nachstehend beschriebene Grundstück:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Grundbuchbeschrieb"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">GB Baden Nr. 4711</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, Stockwerkeigentum, 112/1000 Miteigentumsanteil an der Liegenschaft GB Baden Nr. 4700, Plan 12, Musterstrasse 1, 5400 Baden, mit Sonderrecht an der 4½-Zimmerwohnung Nr. 11 im 2. Obergeschoss, 104 m² Nettowohnfläche, samt Kellerabteil Nr. 11.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Grundbuchbeschrieb"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">GB Baden Nr. 4725</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">, 8/1000 Miteigentumsanteil an der Liegenschaft GB Baden Nr. 4700, mit ausschliesslichem Benützungsrecht am Autoeinstellplatz Nr. 11 in der Tiefgarage gemäss angemerkter Nutzungsordnung.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Es gelten die Grenzen laut den öffentlichen Grundbuchplänen. Der Wortlaut der im Grundbuch eingetragenen Vormerkungen, Anmerkungen und Dienstbarkeiten ist den Parteien aufgrund der Begründungsbelege bekannt; sie verzichten auf deren Verlesung.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Kaufpreis</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Der Kaufpreis setzt sich wie folgt zusammen:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">für die 4½-Zimmerwohnung Nr. 11, GB Baden Nr. 4711</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">Fr.</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">820'000.00</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragWorte"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">(Franken achthundertzwanzigtausend)</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="3"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">für den Autoeinstellplatz Nr. 11, GB Baden Nr. 4725</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">Fr.</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">45'000.00</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragWorte"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">(Franken fünfundvierzigtausend)</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragTotal"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Ausmachend den Kaufpreis von</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="BetragTotalZahl"/>
+</w:rPr>
+<w:t xml:space="preserve">Fr.</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="BetragTotalZahl"/>
+</w:rPr>
+<w:t xml:space="preserve">865'000.00</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragWorte"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">(Franken achthundertfünfundsechzigtausend)</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Tilgung des Kaufpreises</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Der Kaufpreis wird wie folgt getilgt:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift3"/>
+<w:numPr>
+<w:ilvl w:val="2"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Anzahlung</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">zahlbar Valuta </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">30. September 2026</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">Fr.</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">86'500.00</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragWorte"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">(Franken sechsundachtzigtausendfünfhundert)</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Aargauische Kantonalbank, IBAN CH00 0000 0000 0000 0000 0, lautend auf die Verkäuferschaft.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift3"/>
+<w:numPr>
+<w:ilvl w:val="2"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Sicherstellung der Grundstückgewinnsteuer</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">zahlbar bei Vertragsunterzeichnung</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">Fr.</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">25'950.00</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragWorte"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">(Franken fünfundzwanzigtausendneunhundertfünfzig)</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Steueramt des Kantons Aargau, 5001 Aarau.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift3"/>
+<w:numPr>
+<w:ilvl w:val="2"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Restkaufpreis</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">zahlbar Valuta </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">15. Dezember 2026</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">Fr.</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="Betrag"/>
+</w:rPr>
+<w:t xml:space="preserve">752'550.00</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragWorte"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">(Franken siebenhundertzweiundfünfzigtausendfünfhundertfünfzig)</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Aargauische Kantonalbank, IBAN CH00 0000 0000 0000 0000 0, lautend auf die Verkäuferschaft, spätestens innert zehn Tagen nach Eintrag dieses Vertrages im Tagebuch des Grundbuchamtes.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Zahlungsversprechen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Käuferschaft hat anlässlich der Vertragsunterzeichnung ein unwiderrufliches Zahlungsversprechen eines schweizerischen Bankinstitutes über den Restkaufpreis vorzulegen. Die Urkundsperson ist ermächtigt, diesen Vertrag dem Grundbuchamt zur Eintragung anzumelden, sobald das Zahlungsversprechen vorliegt.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Schlussbestimmungen</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Nutzen und Gefahr</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Nutzen und Gefahr gehen am </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">15. Dezember 2026</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve"> (Antrittstermin) auf die Käuferschaft über. An diesem Termin ist das Vertragsobjekt geräumt und gereinigt zu übergeben.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Gewährleistung</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Vertragsparteien sind von der Urkundsperson auf die Art. 192–196 sowie 197–210 OR über die Rechts- und Sachgewährleistung hingewiesen worden.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Jede Gewährspflicht der Verkäuferschaft für Rechts- und Sachmängel wird wegbedungen, soweit die Mängel nicht arglistig verschwiegen wurden. Die Käuferschaft übernimmt das Vertragsobjekt im ihr bekannten, gegenwärtigen Zustand.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Gebäudeversicherung</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die obligatorische Brandversicherung bei der Aargauischen Gebäudeversicherung bleibt bestehen und geht auf die Käuferschaft über.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Unterhalts- und Erneuerungsfonds</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die für das Vertragsobjekt geleisteten Beiträge in den Unterhalts- und Erneuerungsfonds der Stockwerkeigentümergemeinschaft sind im Kaufpreis inbegriffen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Mietverhältnisse</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Verkäuferschaft bestätigt, dass für das Vertragsobjekt per Übergang von Nutzen und Gefahr weder Miet- noch Pachtverträge bestehen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Grundstückgewinnsteuer</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Parteien bestätigen, § 234a des kantonalen Steuergesetzes zu kennen. Zur Sicherstellung der Grundstückgewinnsteuer überweist die Käuferschaft unter Anrechnung an den Kaufpreis den unter Ziff. III.1 aufgeführten Betrag an das Steueramt des Kantons Aargau.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Vertragskosten</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Kosten dieses Vertrages (Beurkundung, Grundbuchamt) werden von den Parteien in solidarischer Haftung je zur Hälfte getragen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift2"/>
+<w:numPr>
+<w:ilvl w:val="1"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Grundbuchanmeldung</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Urkundsperson ist ermächtigt und beauftragt, alle mit dieser Urkunde zusammenhängenden Belege zu unterzeichnen und die Anmeldung beim Grundbuchamt Baden vorzunehmen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Baden, den </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">______________</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Unterschriftsrolle"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Verkäuferschaft:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Unterschriftslinie"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Frau </w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="ParteiName"/>
+</w:rPr>
+<w:t xml:space="preserve">Anna Muster-Berger</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">:</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Unterschriftslinie"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Herr </w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="ParteiName"/>
+</w:rPr>
+<w:t xml:space="preserve">Peter Muster</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">:</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Unterschriftsrolle"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Käuferschaft:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Unterschriftslinie"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rStyle w:val="ParteiName"/>
+</w:rPr>
+<w:t xml:space="preserve">Beispiel Immobilien AG</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">:</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Es folgt die Beurkundung.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Ueberschrift1"/>
+<w:pageBreakBefore/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Bescheinigung</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Dr. iur. David Muster, Urkundsperson des Kantons Aargau, mit Büro in Baden, bescheinigt:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Nummerierung"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="4"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Beispiel Immobilien AG ist eine im Handelsregister des Kantons Aargau eingetragene Aktiengesellschaft mit Sitz in Aarau und wird rechtsgültig durch ihren einzelzeichnungsberechtigten Verwaltungsratspräsidenten vertreten.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Nummerierung"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="4"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Urkundsparteien haben diese Urkunde in meiner Gegenwart gelesen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Nummerierung"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="4"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Urkundsparteien haben mir erklärt, diese Urkunde enthalte ihren mitgeteilten Willen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Nummerierung"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="4"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Urkundsparteien haben diese Urkunde in meiner Gegenwart unterzeichnet.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Nummerierung"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="4"/>
+</w:numPr>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Beim Vertragsobjekt handelt es sich nicht um die Familienwohnung der Verkäuferschaft; die Zustimmung nach Art. 169 ZGB ist nicht erforderlich.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Unterschriftsrolle"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Baden, den </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">______________</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Unterschriftslinie"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Die Urkundsperson:</w:t>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+<w:r>
+<w:tab/>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Standard"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Protokoll-Nr. </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">________</w:t>
+</w:r>
+</w:p>
+<w:sectPr>
+<w:headerReference w:type="first" r:id="rId4"/>
+<w:pgSz w:w="11906" w:h="16838"/>
+<w:pgMar w:top="1984" w:right="1247" w:bottom="1984" w:left="1701" w:header="680" w:footer="680" w:gutter="0"/>
+<w:cols w:space="708"/>
+<w:titlePg/>
+<w:docGrid w:linePitch="360"/>
+</w:sectPr>
+</w:body>
+</w:document>

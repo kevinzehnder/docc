@@ -166,6 +166,19 @@ render:
     definition: Randziffer
     start_after_heading: RECHTSBEGEHREN
 
+# Semantic markup this type permits. Declaring blocks makes undeclared
+# `:::name` blocks an error; declaring spans makes untyped or undeclared
+# `[text]{.type}` spans an error.
+blocks:
+  beweis:
+    description: >-
+      Beweismittelblock — one item per line, each prefixed with its bracketed
+      source label, e.g. "[Beilage 3]".
+
+spans:
+  datum:
+    description: A calendar date, written as authored.
+
 rules:
   - id: LEG031
     check: no_placeholder_text
@@ -192,3 +205,73 @@ rules:
   - id: LEG040
     check: no_empty_sections
     severity: warning
+
+# A compact valid document, shown by `docc example legal`.
+example: |
+  ---
+  docc: 1
+  document_type: legal
+  legal_doc_type: Klageschrift
+  case_ref: "ZSU.2026.58"
+  date: 2026-08-15
+  gericht:
+    versand: EINSCHREIBEN
+    name: Bezirksgericht Baden
+    abteilung: Zivilabteilung
+    street: Mellingerstrasse 2a
+    postal_code: "5400"
+    city: Baden
+  klaeger:
+    name: "Muster Bau AG"
+    role: "Klägerin"
+    street: "Musterstrasse 1"
+    postal_code: "5400"
+    city: "Baden"
+  klaeger_vertreter: "lic. iur. Kevin Zehnder, Baden"
+  beklagter:
+    name: "Beispiel Immobilien AG"
+    role: "Beklagte"
+    street: "Beispielweg 5"
+    postal_code: "5000"
+    city: "Aarau"
+  beklagter_vertreter: ~
+  betreff: "Forderung aus Werkvertrag"
+  beilagen:
+    - Werkvertrag vom 3. März 2024
+    - Abnahmeprotokoll vom 12. Juni 2024
+  unterzeichner: "lic. iur. Kevin Zehnder"
+  tags:
+    - Klageschrift
+  ---
+
+  # RECHTSBEGEHREN
+
+  1. Die Beklagte sei zu verpflichten, der Klägerin CHF 42'000.00 nebst Zins zu 5 % seit 1. Juli 2024 zu bezahlen;
+  2. unter Kosten- und Entschädigungsfolgen zulasten der Beklagten.
+
+  # BEGRÜNDUNG
+
+  ## Zuständigkeit
+
+  Das angerufene Gericht ist örtlich und sachlich zuständig, da die Beklagte ihren Sitz in Aarau hat.
+
+  # Sachverhalt
+
+  ## Vertragsschluss
+
+  Die Parteien schlossen am [3. März 2024]{.datum} einen Werkvertrag.
+
+  ::: beweis
+  - [Beilage 1] Werkvertrag vom 3. März 2024
+  - [Beilage 2] Abnahmeprotokoll vom 12. Juni 2024
+  :::
+
+  # Rechtliches
+
+  ## Werklohnforderung
+
+  Die Klägerin hat die vereinbarten Arbeiten erbracht; der Werklohn ist fällig.
+
+  # Fazit
+
+  Die Klage ist gutzuheissen.

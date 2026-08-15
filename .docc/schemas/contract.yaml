@@ -105,3 +105,54 @@ rules:
   - id: CTR040
     check: no_empty_sections
     severity: warning
+
+# A compact valid document, shown by `docc example contract`.
+example: |
+  ---
+  docc: 1
+  document_type: contract
+  date: 2026-08-15
+  title: Dienstleistungsvertrag
+  place: Baden
+  party1:
+    name: Muster Consulting AG
+    role: Auftragnehmerin
+    street: Musterstrasse 1
+    postal_code: "5400"
+    city: Baden
+  party2:
+    name: Beispiel GmbH
+    role: Auftraggeberin
+    street: Beispielweg 5
+    postal_code: "5000"
+    city: Aarau
+  ---
+
+  # Vertragsgegenstand
+
+  Die Auftragnehmerin erbringt für die Auftraggeberin Beratungsleistungen im
+  Bereich der Unternehmensorganisation.
+
+  # Vergütung
+
+  ## Honorar
+
+  Das Honorar beträgt CHF 250.00 pro Stunde zuzüglich Mehrwertsteuer.
+
+  ## Zahlungsmodalitäten
+
+  Die Auftragnehmerin stellt monatlich Rechnung; Rechnungen sind innert 30 Tagen
+  zur Zahlung fällig.
+
+  # Laufzeit und Beendigung
+
+  Dieser Vertrag tritt mit Unterzeichnung in Kraft und kann von beiden Parteien
+  mit einer Frist von drei Monaten auf ein Monatsende gekündigt werden.
+
+  # Schlussbestimmungen
+
+  Änderungen und Ergänzungen dieses Vertrags bedürfen der Schriftform.
+
+  ## Anwendbares Recht und Gerichtsstand
+
+  Dieser Vertrag untersteht schweizerischem Recht. Gerichtsstand ist Baden.

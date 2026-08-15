@@ -33,3 +33,32 @@ rules:
   - id: SHA040
     check: no_empty_sections
     severity: warning
+
+# A compact valid document, shown by `docc example shareholder-agreement`.
+example: |
+  ---
+  docc: 1
+  document_type: shareholder-agreement
+  date: 2026-08-15
+  title: Aktionärbindungsvertrag
+  place: Baden
+  ---
+
+  # Parteien
+
+  Parteien dieses Vertrags sind Anna Muster, Baden, und Beat Beispiel, Aarau,
+  als sämtliche Aktionäre der Muster Holding AG.
+
+  # Vertragsgegenstand
+
+  Die Parteien regeln die Ausübung ihrer Aktionärsrechte und die Übertragung
+  ihrer Aktien an der Gesellschaft.
+
+  # Vorkaufsrecht
+
+  Will eine Partei ihre Aktien veräussern, stehen sie zunächst den übrigen
+  Parteien im Verhältnis ihrer Beteiligung zum Kauf zu.
+
+  # Schlussbestimmungen
+
+  Dieser Vertrag untersteht schweizerischem Recht. Gerichtsstand ist Baden.

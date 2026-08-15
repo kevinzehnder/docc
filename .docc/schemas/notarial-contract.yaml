@@ -33,3 +33,32 @@ rules:
   - id: NTR040
     check: no_empty_sections
     severity: warning
+
+# A compact valid document, shown by `docc example notarial-contract`.
+example: |
+  ---
+  docc: 1
+  document_type: notarial-contract
+  date: 2026-08-15
+  title: Kaufvertrag
+  place: Baden
+  ---
+
+  # Parteien
+
+  Verkäuferin ist die Muster Immobilien AG, Baden. Käufer ist Beat Beispiel,
+  wohnhaft in Aarau.
+
+  # Kaufgegenstand
+
+  Die Verkäuferin verkauft dem Käufer das Grundstück GB Baden Nr. 1234.
+
+  # Kaufpreis
+
+  Der Kaufpreis beträgt CHF 850'000.00 und ist bei Eigentumsübertragung zur
+  Zahlung fällig.
+
+  # Beurkundung
+
+  Die Urkundsperson bescheinigt, dass die Parteien den Vertrag gelesen und
+  unterzeichnet haben.
