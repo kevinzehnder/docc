@@ -139,6 +139,9 @@ func merge(parent, child *Schema) *Schema {
 	if child.Theme == "" {
 		out.Theme = parent.Theme
 	}
+	if child.Example == "" {
+		out.Example = parent.Example
+	}
 
 	// Each render rule is inherited on its own. A base that numbers paragraphs
 	// and a child that adds a heading outline is the useful case; making the

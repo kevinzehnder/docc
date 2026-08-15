@@ -21,6 +21,11 @@ type Schema struct {
 	// type. Empty means the type is check-only and cannot be built.
 	Theme string `yaml:"theme"`
 
+	// Example is a compact, complete document of this type, shown by
+	// `docc example`. It lives in the schema so the contract and its
+	// demonstration cannot drift apart; a test checks it compiles clean.
+	Example string `yaml:"example"`
+
 	// Types declares reusable object shapes referenced by Field.Type.
 	Types map[string]Fields `yaml:"types"`
 	// Frontmatter declares the top-level metadata fields.

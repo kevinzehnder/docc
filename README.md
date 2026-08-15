@@ -54,6 +54,8 @@ docc build docs/klage.md          # validate, then emit a .docx
 docc build --to pdf docs/klage.md # optional compatibility export; needs soffice
 docc lsp                          # serve editor diagnostics over stdio
 docc types                        # list known document types
+docc describe ch_legal            # report a document type's full contract
+docc example ch_legal             # print a compact valid document to start from
 docc explain DOC010               # describe a diagnostic code
 ```
 
@@ -74,6 +76,7 @@ It never mixes human-readable status text into that stream.
 | `check --json` | `{ "ok", "errors", "warnings", "diagnostics" }` |
 | `build --json` | `{ "ok", "type", "theme", "format", "output" }`; validation diagnostics are a separate JSON object on stderr |
 | `types --json` | `{ "types": [{ "type", "description", "theme" }] }` |
+| `describe --json` | `{ "type", "frontmatter", "body", "blocks", "spans", "rules", "has_example" }` — the full contract, with a `syntax` example per block and span |
 | `themes --json` | `{ "themes": [{ "name", "description", "styles" }] }` |
 
 Usage and configuration failures exit `2` and currently use human-readable

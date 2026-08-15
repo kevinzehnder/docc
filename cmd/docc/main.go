@@ -34,6 +34,8 @@ usage:
   docc init [directory]             create a generic starter project
   docc lsp [flags]                  start a Language Server Protocol server
   docc types [flags]                list known document types
+  docc describe [flags] <type>      report a document type's full contract
+  docc example [flags] <type>       print a compact valid document of a type
   docc themes [flags]               list available themes
   docc explain <CODE>               describe a diagnostic code
   docc version
@@ -80,6 +82,10 @@ func run(args []string) int {
 		return cmdLSP(rest)
 	case "types":
 		return cmdTypes(rest)
+	case "describe":
+		return cmdDescribe(rest)
+	case "example":
+		return cmdExample(rest)
 	case "themes":
 		return cmdThemes(rest)
 	case "explain":

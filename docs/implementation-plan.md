@@ -61,7 +61,12 @@ special case.
 Exit criterion: `legal` fixtures pass with `beweis` declared, not hard-coded;
 a fixture with a bad span/block produces a §12-shaped JSON diagnostic.
 
-## Phase 2 — typed values and consistency
+## Phase 2 — typed values and consistency (deferred)
+
+**Deferred 2026-08-15 (user decision):** value-level verification — money,
+UID, date normalisation, consistency-by-key — is not important yet. The
+sequence continues with agent ergonomics (`describe`/`example`) and the
+structural work; revisit this phase when a real document needs it.
 
 Goal: repeated annotated values are grouped by key, parsed, normalised, and
 compared; disagreement is one error listing every location.
