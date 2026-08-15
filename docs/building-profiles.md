@@ -193,7 +193,22 @@ prologue/epilogue. Notes that bite:
     and one right for the figure, so a column of prices aligns on the
     decimal. `.total` styles the row marked `=`; a character style under
     `.total.amount` is where a rule under the figure belongs, which is what
-    the old templates drew as `=================` by hand.
+    the old templates drew as `=================` by hand. When a block
+    declares a total its other items are rendered as a list, using the
+    schema's `bullet_list` mapping: parts that add up to something read as
+    parts, while a block stating one amount stays unmarked, because a bullet
+    in front of a single figure is a list of one. `.words` is worth setting
+    as a gloss — smaller and italic — because the spelled sum is the
+    same amount said twice and the reader should see at a glance which line
+    is the figure and which is the safeguard.
+
+    Give a long payment schedule one sub-section per instalment — a numbered
+    heading, then a one-item money block, then the bank details — rather than
+    one block of many items. The figures still land in a single right-aligned
+    column and stay summable by eye, but each instalment gets a name instead
+    of a bare `2.1.`, and the section it belongs to is obvious. Blocks that
+    name the same `total-of` are summed together, so splitting them up costs
+    nothing in checking.
   - **ruled** (`div.<name>.line`): the emitter writes one tab per stop the
     style declares, so a stop with no leader followed by one with
     `leader: dot` gives a gap and then a rule — a signature line whose shape

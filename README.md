@@ -501,7 +501,9 @@ key N.
 `amounts_balance` reads the bracketed amount that opens each item of a money
 block. One item may be marked as the block's total with a leading `=`, and the
 rest must add up to it; a block that settles another block's total names it
-with `total-of=<id>` and must add up to that:
+with `total-of=<id>`. Every block naming the same total is summed **together**,
+so a payment schedule split into a sub-section per instalment is checked as one
+schedule rather than instalment by instalment:
 
 ```markdown
 ::: betraege {#kaufpreis}
@@ -510,8 +512,11 @@ with `total-of=<id>` and must add up to that:
 - [= Fr. 865'000.00] Ausmachend den Kaufpreis von
 :::
 
-::: betraege {#tilgung total-of=kaufpreis}
+::: betraege {#tilgung-1 total-of=kaufpreis}
 - [Fr. 86'500.00] Anzahlung
+:::
+
+::: betraege {#tilgung-2 total-of=kaufpreis}
 - [Fr. 778'500.00] Restkaufpreis
 :::
 ```

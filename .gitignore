@@ -34,3 +34,6 @@ go.work.sum
 
 # ── docc build output ─────────────────────────────────────────────────────────
 output/
+
+# ── Reference material (real client documents, never committed) ──────────────
+assets/
