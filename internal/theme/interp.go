@@ -239,8 +239,17 @@ func collapse(s string) string {
 	return strings.Trim(s, " ,")
 }
 
-// Fields lists every field path a theme references, for validation against a
-// schema before anything is rendered.
+// FieldRef is one place a theme interpolates a field: the dotted path, and the
+// region of furniture it appears in — "prologue", "epilogue", "header:<key>" or
+// "footer:<key>". The region is what lets a contract say where a field ends up,
+// and, by its absence, that a field is metadata the theme never prints.
+type FieldRef struct {
+	Path   string
+	Region string
+}
+
+// FieldRefs lists every field reference a theme makes, with the region it
+// occurs in. A path referenced from two regions appears once per region.
 //
 // A line built from Runs keeps its placeholders in the runs and ignores Text,
 // so both are walked. A repeat line contributes the list field it names rather
@@ -249,19 +258,19 @@ func collapse(s string) string {
 //
 // The order is deterministic — prologue, epilogue, then headers and footers by
 // key — because it ends up in a diagnostic.
-func (t *Theme) Fields() []string {
-	seen := map[string]bool{}
-	var out []string
+func (t *Theme) FieldRefs() []FieldRef {
+	seen := map[FieldRef]bool{}
+	var out []FieldRef
 
-	add := func(path string) {
-		if path == "" || seen[path] {
-			return
+	collect := func(region string, lines []Line) {
+		add := func(path string) {
+			ref := FieldRef{Path: path, Region: region}
+			if path == "" || seen[ref] {
+				return
+			}
+			seen[ref] = true
+			out = append(out, ref)
 		}
-		seen[path] = true
-		out = append(out, path)
-	}
-
-	collect := func(lines []Line) {
 		for _, l := range lines {
 			add(l.Repeat)
 			add(l.IfNonempty)
@@ -277,13 +286,29 @@ func (t *Theme) Fields() []string {
 		}
 	}
 
-	collect(t.Prologue)
-	collect(t.Epilogue)
+	collect("prologue", t.Prologue)
+	collect("epilogue", t.Epilogue)
 	for _, key := range sortedKeys(t.Header) {
-		collect(t.Header[key])
+		collect("header:"+key, t.Header[key])
 	}
 	for _, key := range sortedKeys(t.Footer) {
-		collect(t.Footer[key])
+		collect("footer:"+key, t.Footer[key])
+	}
+	return out
+}
+
+// Fields lists every field path a theme references, once each, for validation
+// against a schema before anything is rendered. It is FieldRefs with the
+// regions dropped and the order preserved.
+func (t *Theme) Fields() []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, ref := range t.FieldRefs() {
+		if seen[ref.Path] {
+			continue
+		}
+		seen[ref.Path] = true
+		out = append(out, ref.Path)
 	}
 	return out
 }

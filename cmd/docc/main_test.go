@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -16,6 +18,93 @@ func TestInitCommand(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, ".docc", "schemas", "ch_letter.yaml")); err != nil {
 		t.Fatalf("starter letter schema: %v", err)
+	}
+}
+
+// TestInitHelpWritesNothing guards the bug a user actually hit: init had no flag
+// set, so `docc init --help` took --help for the target directory and installed
+// a starter project into a folder of that name.
+func TestInitHelpWritesNothing(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+
+	if got := run([]string{"init", "--help"}); got != 0 {
+		t.Errorf("run(init --help) = %d, want 0", got)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("init --help wrote %d entries, want none: %v", len(entries), entries)
+	}
+}
+
+func TestInitDryRun(t *testing.T) {
+	root := t.TempDir()
+	var code int
+	out := captureStdout(t, func() {
+		code = run([]string{"init", "--dry-run", root})
+	})
+	if code != 0 {
+		t.Fatalf("run(init --dry-run) = %d, want 0", code)
+	}
+	if !strings.Contains(out, filepath.Join(root, ".docc", "schemas", "ch_letter.yaml")) {
+		t.Errorf("dry run does not list the letter schema:\n%s", out)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("--dry-run wrote %d entries, want none", len(entries))
+	}
+}
+
+// TestHelpExitsZero: a help request is a successful request. Every subcommand
+// used to collapse flag.ErrHelp into exit 2, which surprises scripts.
+func TestHelpExitsZero(t *testing.T) {
+	for _, cmd := range []string{"check", "build", "init", "doctor", "types", "themes", "describe", "example", "explain", "lsp"} {
+		t.Run(cmd, func(t *testing.T) {
+			var code int
+			out := captureStdout(t, func() { code = run([]string{cmd, "--help"}) })
+			if code != 0 {
+				t.Errorf("run(%s --help) = %d, want 0", cmd, code)
+			}
+			if !strings.Contains(out, "docc "+cmd) {
+				t.Errorf("%s --help does not print its synopsis on stdout:\n%s", cmd, out)
+			}
+		})
+	}
+}
+
+func TestPermute(t *testing.T) {
+	newSet := func() *flag.FlagSet {
+		fs := flag.NewFlagSet("t", flag.ContinueOnError)
+		fs.String("output", "", "")
+		fs.Bool("force", false, "")
+		return fs
+	}
+	cases := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{"value flag after positional", []string{"a.md", "--output", "x"}, []string{"--output", "x", "a.md"}},
+		{"bool flag after positional", []string{"a.md", "--force"}, []string{"--force", "a.md"}},
+		{"equals form", []string{"a.md", "--output=x"}, []string{"--output=x", "a.md"}},
+		{"already ordered", []string{"--force", "a.md"}, []string{"--force", "a.md"}},
+		{"double dash protects a dashed name", []string{"--force", "--", "-a.md"}, []string{"--force", "-a.md"}},
+		{"unknown flag stays put for Parse to report", []string{"a.md", "--nope"}, []string{"a.md", "--nope"}},
+		{"several positionals keep their order", []string{"a.md", "--force", "b.md"}, []string{"--force", "a.md", "b.md"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := permute(newSet(), tc.in)
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("permute(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -131,6 +220,180 @@ func TestBuildJSONErrorEmitsJSON(t *testing.T) {
 	if !strings.HasPrefix(stdout, "{") || !strings.Contains(stdout, `"ok":false`) {
 		t.Errorf("stdout is not the JSON failure object:\n%s", stdout)
 	}
+}
+
+// TestFlagsMayFollowTheInput covers the report's first friction point:
+// `docc build file.md --output x.docx` used to fail with "expects exactly one
+// input file", because Go's flag package stops at the first non-flag.
+func TestFlagsMayFollowTheInput(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	themeDir := filepath.Join(dir, "themes")
+	write(t, filepath.Join(schemaDir, "memo.yaml"), memoSchema)
+	write(t, filepath.Join(themeDir, "t.yaml"), minimalTheme)
+
+	doc := filepath.Join(dir, "memo.md")
+	write(t, doc, "---\ndocc: 1\ndocument_type: memo\ntitle: Q3\n---\n\n# Summary\n")
+	out := filepath.Join(dir, "memo.docx")
+
+	captureStdout(t, func() {
+		if got := run([]string{"build", doc, "--schema-dir", schemaDir, "--theme-dir", themeDir, "--output", out}); got != 0 {
+			t.Errorf("run(build <file> --output ...) = %d, want 0", got)
+		}
+	})
+	if _, err := os.Stat(out); err != nil {
+		t.Errorf("no output written: %v", err)
+	}
+}
+
+// TestDoctorReportsSchemaThemeMismatch: emit.Validate used to be reachable only
+// by building a valid document, so a profile that could never render looked fine
+// until someone authored one.
+func TestDoctorReportsSchemaThemeMismatch(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	themeDir := filepath.Join(dir, "themes")
+	// The schema maps h1 onto a style the theme does not define.
+	write(t, filepath.Join(schemaDir, "memo.yaml"), memoSchema+"styles:\n  h1: NoSuchStyle\n")
+	write(t, filepath.Join(themeDir, "t.yaml"), minimalTheme)
+
+	var code int
+	out := captureStdout(t, func() {
+		code = run([]string{"doctor", "--json", "--schema-dir", schemaDir, "--theme-dir", themeDir})
+	})
+	if code != 1 {
+		t.Fatalf("run(doctor) = %d, want 1 for a broken pair", code)
+	}
+	var got struct {
+		SchemaDir string `json:"schema_dir"`
+		OK        bool   `json:"ok"`
+		Problems  []struct {
+			Type    string `json:"type"`
+			Message string `json:"message"`
+		} `json:"problems"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("doctor JSON: %v\n%s", err, out)
+	}
+	if got.SchemaDir != schemaDir {
+		t.Errorf("schema_dir = %q, want %q", got.SchemaDir, schemaDir)
+	}
+	if got.OK || len(got.Problems) != 1 {
+		t.Fatalf("want exactly one problem, got ok=%v %+v", got.OK, got.Problems)
+	}
+	if !strings.Contains(got.Problems[0].Message, "NoSuchStyle") {
+		t.Errorf("problem does not name the missing style: %s", got.Problems[0].Message)
+	}
+}
+
+func TestDoctorCleanProject(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	themeDir := filepath.Join(dir, "themes")
+	write(t, filepath.Join(schemaDir, "memo.yaml"), memoSchema)
+	write(t, filepath.Join(themeDir, "t.yaml"), minimalTheme)
+
+	captureStdout(t, func() {
+		if got := run([]string{"doctor", "--schema-dir", schemaDir, "--theme-dir", themeDir}); got != 0 {
+			t.Errorf("run(doctor) = %d, want 0", got)
+		}
+	})
+}
+
+// objectSchema exercises the parts of a contract describe used to drop: a named
+// object type, a conditional heading, and a `.docc-field` blank.
+const objectSchema = `type: memo
+description: A memo.
+theme: t
+types:
+  party:
+    name: { type: string, required: true }
+    uid: { type: string, pattern: '^CHE-\d{3}$', hint: 'Swiss UID' }
+frontmatter:
+  title:
+    type: string
+    required: true
+  sender:
+    type: party
+    required: true
+  witness:
+    type: party
+    required: true
+    nullable: true
+body:
+  - heading: Summary
+    level: 1
+    required: true
+    ordered: true
+    children:
+      - heading: Detail
+        level: 2
+        required_when: 'title == "Q3"'
+fields:
+  signed_on:
+    description: signed by hand on the day of execution
+    required: true
+    completion: handwritten
+`
+
+func TestDescribeReportsTheWholeContract(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	write(t, filepath.Join(schemaDir, "memo.yaml"), objectSchema)
+
+	t.Run("json", func(t *testing.T) {
+		var code int
+		out := captureStdout(t, func() {
+			code = run([]string{"describe", "--json", "--schema-dir", schemaDir, "memo"})
+		})
+		if code != 0 {
+			t.Fatalf("run(describe --json) = %d, want 0", code)
+		}
+		var got describedType
+		if err := json.Unmarshal([]byte(out), &got); err != nil {
+			t.Fatalf("describe JSON: %v\n%s", err, out)
+		}
+
+		var sender describedField
+		for _, f := range got.Frontmatter {
+			if f.Name == "sender" {
+				sender = f
+			}
+		}
+		if len(sender.Members) != 2 {
+			t.Errorf("sender members = %+v, want name and uid expanded", sender.Members)
+		}
+		if len(got.Blanks) != 1 || got.Blanks[0].Completion != "handwritten" {
+			t.Errorf("blanks = %+v, want the handwritten signed_on field", got.Blanks)
+		}
+		if len(got.Body) != 1 || len(got.Body[0].Children) != 1 ||
+			got.Body[0].Children[0].RequiredWhen != `title == "Q3"` {
+			t.Errorf("body does not carry required_when: %+v", got.Body)
+		}
+	})
+
+	t.Run("human", func(t *testing.T) {
+		var code int
+		out := captureStdout(t, func() {
+			code = run([]string{"describe", "--schema-dir", schemaDir, "memo"})
+		})
+		if code != 0 {
+			t.Fatalf("run(describe) = %d, want 0", code)
+		}
+		for _, want := range []string{
+			// The report's two confusions, both now answered in words.
+			"nullable: an explicit ~ satisfies the requirement",
+			`(required if title == "Q3")`,
+			// And the detail the human path silently discarded.
+			`pattern: ^CHE-\d{3}$`,
+			"Swiss UID",
+			"docc-field key=signed_on",
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("describe output is missing %q:\n%s", want, out)
+			}
+		}
+	})
 }
 
 func TestCatalogJSONIsOneObject(t *testing.T) {

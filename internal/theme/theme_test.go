@@ -3,6 +3,7 @@ package theme
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -200,6 +201,39 @@ func TestThemeFields(t *testing.T) {
 		if !want[f] {
 			t.Errorf("unexpected field %q", f)
 		}
+	}
+}
+
+// FieldRefs carries the region each reference occurs in, which is what lets a
+// contract say where a field ends up — and, by its absence, that a field is
+// metadata the theme never prints.
+func TestThemeFieldRefs(t *testing.T) {
+	th := &Theme{
+		Prologue: []Line{{Text: "{{ sender.name }}"}},
+		Epilogue: []Line{{Text: "{{ signee.name }}"}},
+		Header:   map[string][]Line{"first": {{Text: "{{ sender.name }}"}}},
+		Footer:   map[string][]Line{"default": {{Text: "{{ date }}"}}},
+	}
+
+	got := map[string][]string{}
+	for _, ref := range th.FieldRefs() {
+		got[ref.Path] = append(got[ref.Path], ref.Region)
+	}
+
+	// sender.name appears twice, in two different regions.
+	if want := []string{"prologue", "header:first"}; !slices.Equal(got["sender.name"], want) {
+		t.Errorf("sender.name regions = %v, want %v", got["sender.name"], want)
+	}
+	if want := []string{"epilogue"}; !slices.Equal(got["signee.name"], want) {
+		t.Errorf("signee.name regions = %v, want %v", got["signee.name"], want)
+	}
+	if want := []string{"footer:default"}; !slices.Equal(got["date"], want) {
+		t.Errorf("date regions = %v, want %v", got["date"], want)
+	}
+
+	// Fields stays deduplicated on top of it.
+	if n := len(th.Fields()); n != 3 {
+		t.Errorf("Fields() = %d paths, want 3 deduplicated", n)
 	}
 }
 

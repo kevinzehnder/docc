@@ -38,15 +38,21 @@ outside that tree, pass `--schema-dir` and, when building, `--theme-dir`.
 ## Commands
 
 ```sh
+docc doctor --json                 # which schemas/themes resolved, and are they sound
 docc types                         # inspect document types
 docc themes                        # inspect themes
+docc describe --json <type>        # the type's whole contract, as data
+docc example <type>                # a compact valid document to start from
 docc check document.md             # validate
 docc check --json document.md      # use in an agent correction loop
 docc check --strict document.md    # warnings are errors
 docc build document.md             # validate, then emit document.docx
-docc build --output out.docx document.md
+docc build document.md --output out.docx
 docc explain DOC010                # explain an engine diagnostic
+docc explain DOC010 --type <type>  # …plus the constraints that schema declares
 ```
+
+Flags may precede or follow the file name.
 
 `docc build` validates before rendering. Do not use `--force` for a
 deliverable. Exit code `0` is clean, `1` reports diagnostics or a build
@@ -58,7 +64,10 @@ is compatibility-only and requires `soffice`.
 
 ## Agent workflow
 
-1. Discover the project configuration with `docc types` and `docc themes`.
+1. Discover the project configuration with `docc doctor`, `docc types` and
+   `docc themes`. `docc describe --json <type>` reports the whole contract —
+   field constraints, nested object members, required and conditional headings,
+   blocks, spans, blanks, and where the theme renders each field.
 2. Read the selected schema, its `extends:` ancestors, and its selected theme.
    The schema declares the facts and structure; the theme may add fixed
    furniture such as a letterhead, address block, subject line, closing, or

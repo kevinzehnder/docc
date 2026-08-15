@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -31,14 +32,18 @@ const usage = `docc — a compiler for structured documents
 usage:
   docc check [flags] <file.md>...   validate documents against their schema
   docc build [flags] <file.md>      validate, then render to .docx (or compatibility PDF)
-  docc init [directory]             create a generic starter project
+  docc init [flags] [directory]     create a generic starter project
+  docc doctor [flags] [path]        report the resolved configuration and check it
   docc lsp [flags]                  start a Language Server Protocol server
   docc types [flags]                list known document types
   docc describe [flags] <type>      report a document type's full contract
   docc example [flags] <type>       print a compact valid document of a type
   docc themes [flags]               list available themes
-  docc explain <CODE>               describe a diagnostic code
+  docc explain [flags] [CODE]       describe a diagnostic code, or list them all
   docc version
+
+Flags may appear before or after the positional arguments. Use "--" to end flag
+parsing when a file name begins with a dash.
 
 flags:
   --schema-dir <dir>   schema directory (default: nearest .docc/schemas)
@@ -60,6 +65,80 @@ exit codes:
   2  usage or configuration error
 `
 
+// The per-subcommand help pages. They live beside the top-level usage string so
+// a new command or flag is documented in one place, and `parseFlags` appends the
+// flag defaults from the set itself, which cannot drift.
+const (
+	checkHelp = `docc check [flags] <file.md>...
+
+Validate documents against their schema. Each file resolves its own project, so
+files from different projects may be named in one invocation.
+
+flags:
+`
+	buildHelp = `docc build [flags] <file.md>
+
+Validate one document and render it through its theme. Validation gates the
+build; --force renders anyway.
+
+flags:
+`
+	initHelp = `docc init [flags] [directory]
+
+Create a starter project: .docc/ with a letter and a legal document type, sample
+documents, and an agent skill. Refuses to overwrite an existing configuration.
+The result is yours to edit — it is a starting point, not a managed install.
+
+flags:
+`
+	doctorHelp = `docc doctor [flags] [path]
+
+Report which .docc directory, schemas and themes are in effect for path (default
+the working directory), then check every schema against the theme it names.
+
+flags:
+`
+	lspHelp = `docc lsp [flags]
+
+Serve diagnostics to an editor over stdio.
+
+flags:
+`
+	typesHelp = `docc types [flags] [path]
+
+List the document types the project supplies. path selects which project.
+
+flags:
+`
+	themesHelp = `docc themes [flags] [path]
+
+List the themes the project supplies. path selects which project.
+
+flags:
+`
+	describeHelp = `docc describe [flags] <type>
+
+Report a document type's whole contract: frontmatter fields with their
+constraints, the body outline, blocks, spans, blanks and rules. Use --json for
+the machine-readable form.
+
+flags:
+`
+	exampleHelp = `docc example [flags] <type>
+
+Print a compact, complete document of the type, ready to edit.
+
+flags:
+`
+	explainHelp = `docc explain [flags] [CODE]
+
+Describe a diagnostic code. Without a code, list every code docc emits. With
+--type, add the constraints that type's schema actually declares.
+
+flags:
+`
+)
+
 func main() {
 	os.Exit(run(os.Args[1:]))
 }
@@ -78,6 +157,8 @@ func run(args []string) int {
 		return cmdBuild(rest)
 	case "init":
 		return cmdInit(rest)
+	case "doctor":
+		return cmdDoctor(rest)
 	case "lsp":
 		return cmdLSP(rest)
 	case "types":
@@ -120,6 +201,91 @@ func (c *commonFlags) bind(fs *flag.FlagSet) {
 	fs.BoolVar(&c.noColor, "no-color", false, "disable coloured output")
 }
 
+// permute reorders args so flags may follow the positional arguments. Go's flag
+// package stops at the first non-flag, which turns the natural
+// `docc build file.md --output x.docx` into "expects exactly one input file" —
+// an error about the wrong thing entirely.
+//
+// A `--` terminates flag scanning: everything after it is positional, so a file
+// whose name begins with a dash stays reachable. A flag name the set does not
+// know is left where it is, so fs.Parse still reports it.
+func permute(fs *flag.FlagSet, args []string) []string {
+	var flags, positional []string
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			positional = append(positional, args[i+1:]...)
+			break
+		}
+		if len(arg) < 2 || arg[0] != '-' {
+			positional = append(positional, arg)
+			continue
+		}
+
+		name := strings.TrimLeft(arg, "-")
+		hasValue := false
+		if eq := strings.IndexByte(name, '='); eq >= 0 {
+			name, hasValue = name[:eq], true
+		}
+		f := fs.Lookup(name)
+		if f == nil {
+			// Unknown: leave it in place and let fs.Parse produce the error it
+			// would have produced anyway.
+			positional = append(positional, arg)
+			continue
+		}
+		flags = append(flags, arg)
+		if hasValue || isBoolFlag(f) {
+			continue
+		}
+		// A value flag consumes the next token, wherever it sits.
+		if i+1 < len(args) {
+			i++
+			flags = append(flags, args[i])
+		}
+	}
+	return append(flags, positional...)
+}
+
+// isBoolFlag reports whether a flag is satisfied without a following value.
+// The stdlib marks these with an unexported interface, which is the only way to
+// tell `--json file.md` from `--output file.md`.
+func isBoolFlag(f *flag.Flag) bool {
+	b, ok := f.Value.(interface{ IsBoolFlag() bool })
+	return ok && b.IsBoolFlag()
+}
+
+// parseFlags parses one subcommand's arguments, permuting flags that follow the
+// positionals, and turns a help request into a complete usage page on stdout
+// with a successful exit. stop reports whether the caller should return code.
+func parseFlags(fs *flag.FlagSet, help string, args []string) (code int, stop bool) {
+	// The flag package prints the error and the usage itself, on the way to
+	// returning. Buffering that keeps the choice of stream ours: a help request
+	// belongs on stdout, a malformed one on stderr.
+	var buf bytes.Buffer
+	fs.SetOutput(&buf)
+	fs.Usage = func() {
+		fmt.Fprint(&buf, help)
+		fs.PrintDefaults()
+	}
+
+	err := fs.Parse(permute(fs, args))
+	switch {
+	case err == nil:
+		return 0, false
+	case errors.Is(err, flag.ErrHelp):
+		// A help request is a successful request. Exiting 2 surprises scripts
+		// and readers alike.
+		fmt.Print(help)
+		fs.SetOutput(os.Stdout)
+		fs.PrintDefaults()
+		return 0, true
+	default:
+		_, _ = os.Stderr.Write(buf.Bytes())
+		return 2, true
+	}
+}
+
 // color reports whether to emit ANSI colour. Redirected output and NO_COLOR
 // both disable it, so piping diagnostics into a file or an agent stays clean.
 func (c *commonFlags) color() bool {
@@ -134,8 +300,8 @@ func cmdCheck(args []string) int {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
 	var cf commonFlags
 	cf.bind(fs)
-	if err := fs.Parse(args); err != nil {
-		return 2
+	if code, stop := parseFlags(fs, checkHelp, args); stop {
+		return code
 	}
 	files := fs.Args()
 	if len(files) == 0 {
@@ -204,8 +370,8 @@ func cmdLSP(args []string) int {
 	fs := flag.NewFlagSet("lsp", flag.ContinueOnError)
 	var cf commonFlags
 	cf.bind(fs)
-	if err := fs.Parse(args); err != nil {
-		return 2
+	if code, stop := parseFlags(fs, lspHelp, args); stop {
+		return code
 	}
 	if fs.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "usage: docc lsp [--schema-dir <dir>] [--type <type>]")
@@ -222,14 +388,36 @@ func cmdLSP(args []string) int {
 }
 
 func cmdInit(args []string) int {
-	if len(args) > 1 {
-		fmt.Fprintln(os.Stderr, "usage: docc init [directory]")
+	// init has a flag set of its own for one reason above all: without one,
+	// `docc init --help` took --help for the target directory and wrote a
+	// starter project into a folder named "--help".
+	fs := flag.NewFlagSet("init", flag.ContinueOnError)
+	dryRun := fs.Bool("dry-run", false, "list the files that would be created, without writing any")
+	if code, stop := parseFlags(fs, initHelp, args); stop {
+		return code
+	}
+	if fs.NArg() > 1 {
+		fmt.Fprintln(os.Stderr, "docc init: expects at most one directory")
 		return 2
 	}
 	dir := "."
-	if len(args) == 1 {
-		dir = args[0]
+	if fs.NArg() == 1 {
+		dir = fs.Arg(0)
 	}
+
+	if *dryRun {
+		planned, err := starter.Plan(dir)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 1
+		}
+		for _, path := range planned {
+			fmt.Println(path)
+		}
+		fmt.Printf("\n%d files would be created in %s\n", len(planned), dir)
+		return 0
+	}
+
 	if err := starter.Init(dir); err != nil {
 		fmt.Fprintln(os.Stderr, "docc:", err)
 		return 1
@@ -242,8 +430,8 @@ func cmdTypes(args []string) int {
 	fs := flag.NewFlagSet("types", flag.ContinueOnError)
 	var cf commonFlags
 	cf.bind(fs)
-	if err := fs.Parse(args); err != nil {
-		return 2
+	if code, stop := parseFlags(fs, typesHelp, args); stop {
+		return code
 	}
 
 	start := "."
@@ -285,8 +473,8 @@ func cmdThemes(args []string) int {
 	fs := flag.NewFlagSet("themes", flag.ContinueOnError)
 	var cf commonFlags
 	cf.bind(fs)
-	if err := fs.Parse(args); err != nil {
-		return 2
+	if code, stop := parseFlags(fs, themesHelp, args); stop {
+		return code
 	}
 	start := "."
 	if fs.NArg() > 0 {
@@ -333,11 +521,16 @@ func cmdBuild(args []string) int {
 		themeName = fs.String("theme", "", "theme to render with")
 		force     = fs.Bool("force", false, "render despite validation errors")
 	)
-	if err := fs.Parse(args); err != nil {
-		return 2
+	if code, stop := parseFlags(fs, buildHelp, args); stop {
+		return code
 	}
 	if fs.NArg() != 1 {
-		fmt.Fprintln(os.Stderr, "docc build: expects exactly one input file")
+		if fs.NArg() == 0 {
+			fmt.Fprintln(os.Stderr, "docc build: no input file")
+		} else {
+			fmt.Fprintf(os.Stderr, "docc build: expects exactly one input file, got %d: %s\n",
+				fs.NArg(), strings.Join(fs.Args(), " "))
+		}
 		return 2
 	}
 	if *to != "docx" && *to != "pdf" {
@@ -481,17 +674,109 @@ func cmdBuild(args []string) int {
 }
 
 func cmdExplain(args []string) int {
-	if len(args) != 1 {
-		fmt.Fprintln(os.Stderr, "usage: docc explain <CODE>")
+	fs := flag.NewFlagSet("explain", flag.ContinueOnError)
+	var cf commonFlags
+	cf.bind(fs)
+	if code, stop := parseFlags(fs, explainHelp, args); stop {
+		return code
+	}
+	if fs.NArg() > 1 {
+		fmt.Fprintln(os.Stderr, "docc explain: expects at most one code")
 		return 2
 	}
-	code := strings.ToUpper(args[0])
-	if text, ok := explanations[code]; ok {
-		fmt.Printf("%s — %s\n", code, text)
+
+	// No code lists the catalogue. It used to be a usage error, which left the
+	// codes discoverable only by provoking them.
+	if fs.NArg() == 0 {
+		return explainAll(cf)
+	}
+
+	code := strings.ToUpper(fs.Arg(0))
+	text, ok := explanations[code]
+	if !ok {
+		fmt.Fprintf(os.Stderr, "docc: no explanation for %q\n  run `docc explain` for the full list\n", code)
+		return 2
+	}
+
+	// --type turns the generic prose into the concrete contract: which fields
+	// carry the pattern that failed, which values the enum permits. Without it
+	// the explanation cannot say more than the schema-independent half.
+	var detail []string
+	if cf.docType != "" {
+		sc, exit := schemaForType(cf, cf.docType)
+		if sc == nil {
+			return exit
+		}
+		detail = explainForSchema(code, sc)
+	}
+
+	if cf.jsonOut {
+		out := struct {
+			Code        string   `json:"code"`
+			Explanation string   `json:"explanation"`
+			Type        string   `json:"type,omitempty"`
+			Detail      []string `json:"detail,omitempty"`
+		}{Code: code, Explanation: text, Type: cf.docType, Detail: detail}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(out); err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 2
+		}
 		return 0
 	}
-	fmt.Fprintf(os.Stderr, "docc: no explanation for %q\n", code)
-	return 2
+
+	fmt.Printf("%s — %s\n", code, text)
+	if cf.docType == "" {
+		fmt.Printf("\nrun `docc explain %s --type <type>` for the constraints a schema declares\n", code)
+		return 0
+	}
+	fmt.Printf("\nin %s:\n", cf.docType)
+	if len(detail) == 0 {
+		fmt.Printf("  nothing specific to report — run `docc describe %s` for the whole contract\n", cf.docType)
+		return 0
+	}
+	for _, line := range detail {
+		fmt.Printf("  %s\n", line)
+	}
+	return 0
+}
+
+// explainAll lists every code docc emits.
+func explainAll(cf commonFlags) int {
+	codes := sortedKeys(explanations)
+	if cf.jsonOut {
+		type item struct {
+			Code        string `json:"code"`
+			Explanation string `json:"explanation"`
+		}
+		items := make([]item, 0, len(codes))
+		for _, c := range codes {
+			items = append(items, item{Code: c, Explanation: explanations[c]})
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(struct {
+			Codes []item `json:"codes"`
+		}{Codes: items}); err != nil {
+			fmt.Fprintln(os.Stderr, "docc:", err)
+			return 2
+		}
+		return 0
+	}
+	for _, c := range codes {
+		fmt.Printf("%-8s %s\n", c, firstSentence(explanations[c]))
+	}
+	fmt.Printf("\n%d codes. Run `docc explain <CODE>` for one in full.\n", len(codes))
+	return 0
+}
+
+// firstSentence shortens an explanation for the catalogue listing.
+func firstSentence(s string) string {
+	if i := strings.Index(s, ". "); i >= 0 {
+		return s[:i+1]
+	}
+	return s
 }
 
 // explanations backs `docc explain`. Codes the schema author defines for named
@@ -530,6 +815,87 @@ var explanations = map[string]string{
 	"DOC039": "a field is still blank at build time but its completion is not `handwritten`. Fill in the value before building, or declare `completion: handwritten` in the schema if a human completes it on paper.",
 	"DOC040": "a `.docc-field` span is missing its `key=`, or names a field the schema does not declare. The key ties the blank to its `fields:` entry.",
 	"DOC041": "the schema declares a field with a completion stage the compiler does not know. Use `handwritten` or `before-execution`.",
+	"DOC099": "a check the schema selected reported a problem but the schema gave the rule no `id:`. Add one to `rules:` so the diagnostic has a stable code.",
+}
+
+// explainForSchema answers the second half of an explanation: not what the code
+// means, but what this document type actually requires. A pattern diagnostic is
+// only useful next to the pattern.
+//
+// Codes with nothing type-specific to say return nil, and the caller points at
+// `docc describe` instead of inventing detail.
+func explainForSchema(code string, sc *schema.Schema) []string {
+	var out []string
+	switch code {
+	case "DOC004", "DOC005", "DOC006", "DOC007":
+		for _, name := range sortedFieldNames(sc.Frontmatter) {
+			f := sc.Frontmatter[name]
+			if !f.Required {
+				continue
+			}
+			line := fmt.Sprintf("%s is a required %s", name, f.Type)
+			if f.Nullable {
+				line += ", nullable (an explicit ~ satisfies it)"
+			}
+			out = append(out, line)
+		}
+	case "DOC008":
+		for _, name := range sortedFieldNames(sc.Frontmatter) {
+			if f := sc.Frontmatter[name]; f.Type == "enum" {
+				out = append(out, fmt.Sprintf("%s permits: %s", name, strings.Join(f.Values, ", ")))
+			}
+		}
+	case "DOC010":
+		for _, name := range sortedFieldNames(sc.Frontmatter) {
+			f := sc.Frontmatter[name]
+			if f.Pattern == "" {
+				continue
+			}
+			line := fmt.Sprintf("%s must match %s", name, f.Pattern)
+			if f.Hint != "" {
+				line += " — " + f.Hint
+			}
+			out = append(out, line)
+		}
+	case "DOC011":
+		out = append(out, "declared fields: "+strings.Join(sortedFieldNames(sc.Frontmatter), ", "))
+	case "DOC020", "DOC021", "DOC022":
+		out = describeHeadings(sc.Body, "")
+	case "DOC030", "DOC032", "DOC033", "DOC035", "DOC036":
+		for _, name := range sortedKeys(sc.Blocks) {
+			b := describeBlock(name, sc.Blocks[name])
+			out = append(out, b.Syntax)
+		}
+	case "DOC031", "DOC037":
+		for _, name := range sortedKeys(sc.Spans) {
+			out = append(out, fmt.Sprintf("[text]{.%s}  %s", name, sc.Spans[name].Description))
+		}
+	case "DOC038", "DOC039", "DOC040", "DOC041":
+		for _, name := range sortedKeys(sc.Fields) {
+			f := sc.Fields[name]
+			completion := f.Completion
+			if completion == "" {
+				completion = "before-execution"
+			}
+			req := "optional"
+			if f.Required {
+				req = "required"
+			}
+			out = append(out, fmt.Sprintf("key=%s  %s, %s", name, req, completion))
+		}
+	}
+	return out
+}
+
+// describeHeadings flattens the body outline into one line per heading, with the
+// requirement that applies to it.
+func describeHeadings(rules []schema.BodyRule, indent string) []string {
+	var out []string
+	for _, r := range rules {
+		out = append(out, indent+strings.Repeat("#", r.Level)+" "+r.Heading+"  "+requirement(r.Required, r.RequiredWhen))
+		out = append(out, describeHeadings(r.Children, indent+"  ")...)
+	}
+	return out
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest

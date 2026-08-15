@@ -3,6 +3,7 @@ package starter_test
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -87,5 +88,62 @@ func TestInitDoesNotOverwriteExistingExamples(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, ".docc")); !os.IsNotExist(err) {
 		t.Fatalf(".docc exists after rejected init: %v", err)
+	}
+}
+
+// Plan backs `docc init --dry-run`: the same file list Init would write, without
+// writing any of it, so discovery is safe.
+func TestPlanListsWithoutWriting(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "new")
+
+	planned, err := starter.Plan(root)
+	if err != nil {
+		t.Fatalf("Plan: %v", err)
+	}
+	if len(planned) == 0 {
+		t.Fatal("Plan listed no files")
+	}
+	if !slices.Contains(planned, filepath.Join(root, ".docc", "schemas", "ch_letter.yaml")) {
+		t.Errorf("Plan does not list the letter schema: %v", planned)
+	}
+	// Nothing may exist yet — not even the target directory.
+	if _, err := os.Stat(root); !os.IsNotExist(err) {
+		t.Errorf("Plan created %s: %v", root, err)
+	}
+
+	if err := starter.Init(root); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	for _, path := range planned {
+		if _, err := os.Stat(path); err != nil {
+			t.Errorf("Plan listed %s but Init did not write it: %v", path, err)
+		}
+	}
+}
+
+// A refused Init must leave nothing behind. It used to create the target
+// directory before checking whether it was allowed to.
+func TestInitRefusalLeavesNoDirectory(t *testing.T) {
+	root := t.TempDir()
+	target := filepath.Join(root, "project")
+	if err := os.MkdirAll(filepath.Join(target, ".docc"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	inner := filepath.Join(target, "nested")
+	if err := starter.Init(inner); err != nil {
+		t.Fatalf("Init into a fresh subdirectory: %v", err)
+	}
+
+	// And the refusal path itself creates nothing new.
+	fresh := filepath.Join(root, "fresh")
+	if err := os.MkdirAll(filepath.Join(fresh, "examples", "docc"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := starter.Init(fresh); err == nil {
+		t.Fatal("Init succeeded over an existing examples/docc")
+	}
+	if _, err := os.Stat(filepath.Join(fresh, ".docc")); !os.IsNotExist(err) {
+		t.Errorf(".docc created despite the refusal: %v", err)
 	}
 }
