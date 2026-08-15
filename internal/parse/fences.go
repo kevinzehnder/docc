@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -22,6 +23,11 @@ type Div struct {
 	// Name is the identifier after the opening colons, lowercased. A div opened
 	// without a name has Name "".
 	Name string
+	// Attr is the parsed `{...}` attribute block on the opening fence, zero
+	// when the fence has none. Attr.Err carries lexical problems — an
+	// unterminated brace, a token that is not `#id`/`.class`/`key=value` — for
+	// Parse to report; the div still opens so the region is not silently prose.
+	Attr AttrBlock
 	// OpenLine is the 1-indexed source line of the opening fence, resolved by
 	// the caller against the full file.
 	OpenOffset int
@@ -49,14 +55,23 @@ func (divParser) Open(parent ast.Node, reader text.Reader, pc parser.Context) (a
 	if pos < 0 {
 		return nil, parser.NoChildren
 	}
-	colons, name, ok := splitFence(line[pos:])
-	if !ok || colons < 3 || name == "" {
+	fl, ok := splitFence(line[pos:])
+	if !ok || fl.colons < 3 || fl.name == "" {
 		// A bare `:::` at this point closes a div rather than opening one; the
 		// Continue path handles that, so refuse to open here.
 		return nil, parser.NoChildren
 	}
+	div := &Div{Name: fl.name, OpenOffset: seg.Start}
+	if fl.hasAttr {
+		base := seg.Start + pos + fl.attrOff
+		div.Attr = parseAttrBlock(fl.attrSrc, base)
+		if !fl.attrClosed && div.Attr.Err == "" {
+			div.Attr.Err = "attribute block `{` is never closed"
+			div.Attr.ErrOffset = base - 1
+		}
+	}
 	reader.Advance(seg.Len() - 1)
-	return &Div{Name: name, OpenOffset: seg.Start}, parser.HasChildren
+	return div, parser.HasChildren
 }
 
 func (divParser) Continue(node ast.Node, reader text.Reader, pc parser.Context) parser.State {
@@ -66,7 +81,7 @@ func (divParser) Continue(node ast.Node, reader text.Reader, pc parser.Context) 
 		pos = 0
 	}
 	if pos < len(line) {
-		if colons, name, ok := splitFence(line[pos:]); ok && colons >= 3 && name == "" {
+		if fl, ok := splitFence(line[pos:]); ok && fl.colons >= 3 && fl.name == "" && !fl.hasAttr {
 			if div, isDiv := node.(*Div); isDiv {
 				div.Closed = true
 			}
@@ -83,25 +98,79 @@ func (divParser) CanInterruptParagraph() bool { return true }
 
 func (divParser) CanAcceptIndentedLine() bool { return false }
 
+// fenceLine is one recognised fence line: `::: name`, optionally followed by
+// an attribute block and trailing colon decoration.
+type fenceLine struct {
+	colons int
+	name   string
+	// attrSrc is the content between the braces; attrOff is its byte offset
+	// within the line slice splitFence was given.
+	attrSrc    []byte
+	attrOff    int
+	hasAttr    bool
+	attrClosed bool
+}
+
 // splitFence reports whether line begins with a colon fence, returning the
-// number of leading colons and the trimmed name that follows.
-func splitFence(line []byte) (colons int, name string, ok bool) {
+// number of leading colons, the trimmed name, and any attribute block.
+func splitFence(line []byte) (fenceLine, bool) {
 	i := 0
 	for i < len(line) && line[i] == ':' {
 		i++
 	}
 	if i == 0 {
-		return 0, "", false
+		return fenceLine{}, false
 	}
-	rest := strings.TrimSpace(string(line[i:]))
+	rest := line[i:]
+	if k := bytes.IndexByte(rest, '{'); k >= 0 {
+		name := strings.TrimSpace(string(rest[:k]))
+		if name == "" || strings.ContainsAny(name, " \t") {
+			// `{` with no single-word name in front is prose, not a fence.
+			return fenceLine{}, false
+		}
+		fl := fenceLine{colons: i, name: strings.ToLower(name), hasAttr: true}
+		end := scanAttrEnd(rest, k+1)
+		if end < 0 {
+			// Unterminated attribute block: still a fence, so the author gets
+			// a diagnostic instead of the region silently becoming prose.
+			fl.attrSrc = bytes.TrimRight(rest[k+1:], "\r\n")
+			fl.attrOff = i + k + 1
+			return fl, true
+		}
+		// Beyond the attributes only decoration (`::: name {..} :::`) may follow.
+		if strings.TrimRight(string(rest[end+1:]), ": \t\r\n") != "" {
+			return fenceLine{}, false
+		}
+		fl.attrSrc, fl.attrOff, fl.attrClosed = rest[k+1:end], i+k+1, true
+		return fl, true
+	}
+	trimmed := strings.TrimSpace(string(rest))
 	// A trailing run of colons (`::: name :::`) is decoration, not content.
-	rest = strings.TrimRight(rest, ": \t")
-	if strings.ContainsAny(rest, " \t") {
+	trimmed = strings.TrimRight(trimmed, ": \t")
+	if strings.ContainsAny(trimmed, " \t") {
 		// Only single-word names are meaningful; anything else is prose that
 		// happens to start with colons and should stay a paragraph.
-		return 0, "", false
+		return fenceLine{}, false
 	}
-	return i, strings.ToLower(rest), true
+	return fenceLine{colons: i, name: strings.ToLower(trimmed)}, true
+}
+
+// scanAttrEnd returns the index of the `}` closing an attribute block whose
+// content starts at i, skipping quoted values, or -1 when the line ends first.
+func scanAttrEnd(line []byte, i int) int {
+	for ; i < len(line); i++ {
+		switch line[i] {
+		case '}':
+			return i
+		case '"':
+			for i++; i < len(line) && line[i] != '"'; i++ {
+			}
+			if i >= len(line) {
+				return -1
+			}
+		}
+	}
+	return -1
 }
 
 // divExtension registers the fenced-div block parser with goldmark.

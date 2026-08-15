@@ -108,6 +108,91 @@ func TestDivs(t *testing.T) {
 	}
 }
 
+func TestDivAttributes(t *testing.T) {
+	src := "---\ntitle: x\n---\n\n::: partei {#verkaeufer kind=person role=veraeusserer note=\"mit Umlaut ä\"}\ntext\n:::\n"
+	f, ds := Parse("t.md", []byte(src))
+	if ds.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %+v", ds)
+	}
+	divs := f.Divs()
+	if len(divs) != 1 {
+		t.Fatalf("got %d divs, want 1", len(divs))
+	}
+	d := divs[0]
+	if d.Name != "partei" {
+		t.Errorf("name = %q, want partei", d.Name)
+	}
+	if d.Attr.ID != "verkaeufer" {
+		t.Errorf("id = %q, want verkaeufer", d.Attr.ID)
+	}
+	for _, want := range []struct{ k, v string }{
+		{"kind", "person"}, {"role", "veraeusserer"}, {"note", "mit Umlaut ä"},
+	} {
+		got, ok := d.Attr.Get(want.k)
+		if !ok || got != want.v {
+			t.Errorf("attr %s = %q (found %v), want %q", want.k, got, ok, want.v)
+		}
+	}
+	// The id offset must point at the `#` so a caret lands under it.
+	if pos := f.BodyPos(d.Attr.IDOffset); pos.Line != 5 || pos.Col != 13 {
+		t.Errorf("id position = %d:%d, want 5:13", pos.Line, pos.Col)
+	}
+}
+
+func TestDivAttributesWithDecoration(t *testing.T) {
+	src := "---\n---\n\n::: partei {#p kind=person} :::\ntext\n:::\n"
+	f, ds := Parse("t.md", []byte(src))
+	if ds.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %+v", ds)
+	}
+	divs := f.Divs()
+	if len(divs) != 1 || divs[0].Attr.ID != "p" {
+		t.Fatalf("divs = %+v, want one with id p", divs)
+	}
+}
+
+func TestMalformedDivAttributesAreDiagnostic(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+	}{
+		{"unterminated brace", "---\n---\n\n::: partei {#p kind=person\ntext\n:::\n"},
+		{"bare word", "---\n---\n\n::: partei {#p stray}\ntext\n:::\n"},
+		{"unclosed quote", "---\n---\n\n::: partei {note=\"open}\ntext\n:::\n"},
+		{"double id", "---\n---\n\n::: partei {#a #b}\ntext\n:::\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, ds := Parse("t.md", []byte(tt.src))
+			found := false
+			for _, d := range ds {
+				if d.Code == "DOC026" {
+					found = true
+					if d.Pos.Line != 4 {
+						t.Errorf("diagnostic line = %d, want 4", d.Pos.Line)
+					}
+				}
+			}
+			if !found {
+				t.Errorf("no DOC026 diagnostic: %+v", ds)
+			}
+		})
+	}
+}
+
+// Prose that merely starts with colons must not become a div, with or without
+// braces further along the line.
+func TestFenceRejectsProse(t *testing.T) {
+	src := "---\n---\n\n::: this is prose {not=attrs}\n\n::: also prose here\n"
+	f, ds := Parse("t.md", []byte(src))
+	if len(f.Divs()) != 0 {
+		t.Fatalf("prose parsed as divs: %+v", f.Divs())
+	}
+	if ds.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %+v", ds)
+	}
+}
+
 func TestUnclosedDivIsDiagnostic(t *testing.T) {
 	src := "---\n---\n\n::: evidence\n- [Beilage 1] Contract :::\n"
 	_, ds := Parse("t.md", []byte(src))

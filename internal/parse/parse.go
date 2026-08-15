@@ -72,12 +72,16 @@ func Parse(path string, src []byte) (*File, diag.List) {
 	)
 	f.Body = md.Parser().Parse(text.NewReader(body))
 	for _, div := range f.Divs() {
-		if div.Closed {
-			continue
+		if !div.Closed {
+			ds.Errorf(path, f.BodyPos(div.OpenOffset), "DOC023",
+				"add a closing `:::` on its own line",
+				"fenced div `::: %s` was never closed", div.Name)
 		}
-		ds.Errorf(path, f.BodyPos(div.OpenOffset), "DOC023",
-			"add a closing `:::` on its own line",
-			"fenced div `::: %s` was never closed", div.Name)
+		if div.Attr.Err != "" {
+			ds.Errorf(path, f.BodyPos(div.Attr.ErrOffset), "DOC026",
+				"write attributes as `{#id key=value key=\"quoted value\"}`",
+				"malformed attribute block on `::: %s`: %s", div.Name, div.Attr.Err)
+		}
 	}
 	return f, ds
 }

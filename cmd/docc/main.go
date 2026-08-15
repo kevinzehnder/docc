@@ -504,6 +504,7 @@ var explanations = map[string]string{
 	"DOC023": "a fenced div was opened but not closed. Put the closing `:::` on a line of its own.",
 	"DOC024": "the frontmatter does not declare the `docc` marker. A file only becomes a docc document by writing `docc: 1` in its frontmatter; unrelated YAML frontmatter (Hugo, Obsidian, …) is ignored.",
 	"DOC025": "the frontmatter declares a docc format version this compiler does not support. Use the version listed in the diagnostic's hint.",
+	"DOC026": "the `{...}` attribute block on a fenced div did not parse. Attributes are written `{#id key=value key=\"quoted value\"}`, separated by spaces; the diagnostic names the first token that did not lex.",
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest
