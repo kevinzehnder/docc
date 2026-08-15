@@ -149,6 +149,22 @@ Goal: an LLM discovers the contract from the binary, not from prose docs.
 Exit criterion: strategy §17 — an agent completes the loop on a fresh schema
 without reading the repository.
 
+## Rendering patterns
+
+Specialised block rendering is a fixed vocabulary of **patterns implemented in
+Go, selected by schemas** — never bespoke code per block name. The existing
+labelled-evidence rendering is the template: `emit.labelledDiv` knows no legal
+concept, and a schema opts in by mapping `div.<name>.label` to a style. Every
+future pattern (party block, field-with-blank, signature lines) lands the same
+way: generic, opinionated, opt-in via a style key or schema knob.
+
+The division of labour: users declare blocks, validation and styling in
+schema + theme YAML; developers add a pattern once when a layout genuinely
+cannot be expressed with paragraph styles. Docc is modular in what a schema
+selects, opinionated in what each pattern does — a pattern's layout is not
+configurable beyond its styles, because a configurable pattern is a template
+language wearing a disguise (§15: no second templating syntax).
+
 ## Cross-cutting rules
 
 - Diagnostic codes are stable once released; new checks get new codes and
