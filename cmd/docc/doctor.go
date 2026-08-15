@@ -39,7 +39,10 @@ type doctorReport struct {
 	Types        []doctorType    `json:"types"`
 	Themes       []doctorTheme   `json:"themes,omitempty"`
 	Problems     []doctorProblem `json:"problems,omitempty"`
-	OK           bool            `json:"ok"`
+	// Warnings are findings that do not stop a build: a style mapping nothing
+	// reads renders exactly as if it were absent. --strict promotes them.
+	Warnings []doctorProblem `json:"warnings,omitempty"`
+	OK       bool            `json:"ok"`
 }
 
 type doctorType struct {
@@ -143,6 +146,15 @@ func diagnose(cf commonFlags, start string) (*doctorReport, error) {
 			continue
 		}
 		entry := doctorType{Type: sc.Type, Description: sc.Description, Theme: sc.Theme, Status: "ok"}
+
+		// A mapping the emitter never reads is silent in every other way: it
+		// passes Validate, it renders, and it changes nothing.
+		for _, unread := range emit.UnreadStyleKeys(sc) {
+			rep.Warnings = append(rep.Warnings, doctorProblem{
+				Type: sc.Type, Message: "styles: " + unread,
+			})
+		}
+
 		switch {
 		case sc.Theme == "":
 			// Not a defect. A base or check-only type deliberately has no theme.
@@ -164,6 +176,12 @@ func diagnose(cf commonFlags, start string) (*doctorReport, error) {
 		rep.Types = append(rep.Types, entry)
 	}
 
+	// --strict is the caller asking for the warnings to bind, the same bargain
+	// `check` and `build` offer.
+	if cf.strict {
+		rep.Problems = append(rep.Problems, rep.Warnings...)
+		rep.Warnings = nil
+	}
 	rep.OK = len(rep.Problems) == 0
 	return rep, nil
 }
@@ -217,13 +235,24 @@ func printDoctor(rep *doctorReport) {
 		}
 	}
 
+	if len(rep.Warnings) > 0 {
+		fmt.Printf("\n%d warning(s) — these render as if the mapping were absent:\n", len(rep.Warnings))
+		for _, w := range rep.Warnings {
+			fmt.Printf("  %s: %s\n", w.Type, w.Message)
+		}
+	}
+
 	if len(rep.Problems) == 0 {
 		fmt.Println("\nno problems found")
 		return
 	}
 	fmt.Printf("\n%d problem(s):\n", len(rep.Problems))
 	for _, p := range rep.Problems {
-		fmt.Printf("\n  %s → theme %s\n", p.Type, p.Theme)
+		if p.Theme == "" {
+			fmt.Printf("\n  %s\n", p.Type)
+		} else {
+			fmt.Printf("\n  %s → theme %s\n", p.Type, p.Theme)
+		}
 		// emit.Validate joins its findings with newlines; keep them under the
 		// indent rather than printing one very long line.
 		for line := range strings.SplitSeq(p.Message, "\n") {

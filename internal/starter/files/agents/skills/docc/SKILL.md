@@ -104,3 +104,10 @@ Schemas and themes are project configuration, not values to guess around. When
 a requested document cannot fit the current schema, explain the mismatch and
 ask whether the project owner wants to change the schema/theme. Do not weaken
 required checks or remove rules merely to make a draft pass.
+
+`styles:` keys are a closed set: `paragraph`, `h1`-`h6`, `heading`, `quote`,
+`code`, `table`, `ordered_list`, `bullet_list`, `div.<block>`, `span.<type>`,
+and the block suffixes `.amount`, `.total`, `.total.amount`, `.words`, `.line`,
+`.label` — which select the block's rendering pattern. Anything else is ignored
+silently; `docc doctor` reports it. Bold, italic, inline code, links and table
+borders are formatted by the compiler and cannot be themed at all.

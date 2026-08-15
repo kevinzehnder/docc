@@ -286,6 +286,53 @@ func TestDoctorReportsSchemaThemeMismatch(t *testing.T) {
 	}
 }
 
+// A style mapping nothing reads is silent in every other way — it validates, it
+// renders, and it changes nothing — so doctor is the only place it can surface.
+func TestDoctorWarnsOnUnreadStyleKeys(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	themeDir := filepath.Join(dir, "themes")
+	write(t, filepath.Join(schemaDir, "memo.yaml"), memoSchema+
+		"blocks:\n  beweis: {}\nstyles:\n  code_span: Mono\n  div.bewies: Typo\n")
+	write(t, filepath.Join(themeDir, "t.yaml"), minimalTheme+
+		"styles:\n  Mono: { font: Courier New }\n  Typo: {}\n")
+
+	var code int
+	out := captureStdout(t, func() {
+		code = run([]string{"doctor", "--json", "--schema-dir", schemaDir, "--theme-dir", themeDir})
+	})
+	// Warnings alone do not fail the report.
+	if code != 0 {
+		t.Fatalf("run(doctor) = %d, want 0 — unread keys are warnings", code)
+	}
+	var got struct {
+		Warnings []struct {
+			Message string `json:"message"`
+		} `json:"warnings"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("doctor JSON: %v\n%s", err, out)
+	}
+	if len(got.Warnings) != 2 {
+		t.Fatalf("want 2 warnings, got %+v", got.Warnings)
+	}
+	joined := out
+	if !strings.Contains(joined, "Courier New") {
+		t.Error("the code_span warning does not say what the fixed formatting is")
+	}
+	if !strings.Contains(joined, `declares no block \"bewies\"`) {
+		t.Error("the typo'd block name is not reported")
+	}
+
+	// --strict is the caller asking for the warnings to bind.
+	captureStdout(t, func() {
+		code = run([]string{"doctor", "--strict", "--schema-dir", schemaDir, "--theme-dir", themeDir})
+	})
+	if code != 1 {
+		t.Errorf("run(doctor --strict) = %d, want 1", code)
+	}
+}
+
 func TestDoctorCleanProject(t *testing.T) {
 	dir := t.TempDir()
 	schemaDir := filepath.Join(dir, "schemas")
@@ -329,11 +376,16 @@ body:
       - heading: Detail
         level: 2
         required_when: 'title == "Q3"'
+blocks:
+  betraege: {}
 fields:
   signed_on:
     description: signed by hand on the day of execution
     required: true
     completion: handwritten
+styles:
+  h1: Heading1
+  div.betraege.amount: Amount
 `
 
 func TestDescribeReportsTheWholeContract(t *testing.T) {
@@ -370,6 +422,18 @@ func TestDescribeReportsTheWholeContract(t *testing.T) {
 			got.Body[0].Children[0].RequiredWhen != `title == "Q3"` {
 			t.Errorf("body does not carry required_when: %+v", got.Body)
 		}
+
+		// Which rendering pattern a block uses is a consequence of the style map
+		// and is declared nowhere in the block itself.
+		if len(got.Blocks) != 1 || got.Blocks[0].Pattern != "amount" {
+			t.Errorf("blocks do not report the rendering pattern: %+v", got.Blocks)
+		}
+		if len(got.Styles.Mapped) != 2 {
+			t.Errorf("styles.mapped = %+v, want h1 and div.betraege.amount", got.Styles.Mapped)
+		}
+		if len(got.Styles.Fixed) == 0 {
+			t.Error("styles.fixed is empty; the unreachable constructs are the point")
+		}
 	})
 
 	t.Run("human", func(t *testing.T) {
@@ -388,6 +452,9 @@ func TestDescribeReportsTheWholeContract(t *testing.T) {
 			`pattern: ^CHE-\d{3}$`,
 			"Swiss UID",
 			"docc-field key=signed_on",
+			// The ceiling: constructs no theme can reach.
+			"fixed formatting (no theme can change these)",
+			"Courier New",
 		} {
 			if !strings.Contains(out, want) {
 				t.Errorf("describe output is missing %q:\n%s", want, out)

@@ -279,6 +279,67 @@ rules:
       label: Beilage
 ```
 
+### The style map
+
+`styles:` maps a markdown construct to a style id the theme defines. The set of
+constructs is closed — it is exactly the keys the emitter looks up, and a key
+outside it has no effect at all. `docc describe <type>` prints the keys this type
+maps, the keys it could map, and any that will never be read; `docc doctor`
+warns about the last kind.
+
+| Key | Applies to | Falls back to |
+|---|---|---|
+| `paragraph` | body prose | — |
+| `h1` … `h6` | a heading of that level | `heading` |
+| `heading` | any heading with no level-specific mapping | — |
+| `quote` | block quote | `paragraph` |
+| `code` | fenced code block | `paragraph` |
+| `table` | table | — |
+| `ordered_list` | numbered list | — |
+| `bullet_list` | bulleted list | — |
+| `div.<name>` | every paragraph of a `::: <name>` block | `paragraph` |
+| `span.<type>` | a `[text]{.<type>}` span | — |
+
+`ordered_list` and `bullet_list` may name an entry in the theme's `numbering:`
+rather than a style; the definition's own `style:` then supplies the paragraph
+style.
+
+A block takes further keys, and mapping one **selects a rendering pattern** —
+the pattern is a consequence of the style map, not something the block declares:
+
+| Key | Pattern |
+|---|---|
+| none of the below | plain — every paragraph in `div.<name>` |
+| `div.<name>.amount` | amount rendering; styles the amount column |
+| `div.<name>.total` | the total row of amount rendering |
+| `div.<name>.total.amount` | the amount cell of that total row |
+| `div.<name>.words` | the amount spelled out; needs the theme's `formats.amount_words` |
+| `div.<name>.line` | ruled rendering; styles the rule |
+| `div.<name>.label` | labelled rendering; styles the tabbed label |
+
+They are tried in the order `.amount`, `.line`, `.label`; mapping two silently
+takes the first. `docc describe` reports which pattern each block ended up with.
+
+### What a theme cannot change
+
+Some constructs are formatted by the compiler and reach no style key. A schema
+that maps one of these is not overridden — it is ignored, which is why `doctor`
+reports it:
+
+| Construct | Always renders as |
+|---|---|
+| `**bold**` | bold |
+| `*italic*` | italic |
+| `` `inline code` `` | Courier New, otherwise inherited |
+| `[a link](…)` | colour `0000EE`, single underline — text, not a live hyperlink |
+| table borders | 0.5pt single rule on every edge, inside and out |
+| table columns | the text width divided evenly; markdown carries no column sizing |
+
+Within a style, the properties a theme may set are likewise a closed set — the
+`Style` fields listed under [Themes](#themes). There is no raw OOXML escape
+hatch, and that is deliberate: a closed vocabulary is what lets `emit.Validate`
+and `docc doctor` check a profile at all.
+
 ### Evidence blocks
 
 An evidence item in a `::: beweis` block starts with a bracketed, free-form

@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/kevinzehnder/docc/internal/emit"
 	"github.com/kevinzehnder/docc/internal/schema"
 )
 
@@ -31,6 +32,9 @@ type describedType struct {
 	// Blanks are the intentionally incomplete fields — the `.docc-field` spans
 	// a document of this type writes as visible blanks.
 	Blanks []describedBlank `json:"blanks,omitempty"`
+	// Styles is the markdown-construct-to-theme-style map: what the schema sets,
+	// what it could set, and which constructs are formatted regardless.
+	Styles describedStyles  `json:"styles"`
 	Rules  []describedCheck `json:"rules,omitempty"`
 	// HasExample reports whether `docc example <type>` will print a document.
 	HasExample bool `json:"has_example"`
@@ -72,6 +76,32 @@ type describedRule struct {
 	Children []describedRule `json:"children,omitempty"`
 }
 
+// describedStyles reports how markdown reaches the page.
+type describedStyles struct {
+	// Mapped are the constructs this schema styles, in effect.
+	Mapped []describedStyleKey `json:"mapped,omitempty"`
+	// Available are the keys the schema could set but does not.
+	Available []describedStyleKey `json:"available,omitempty"`
+	// Unread are keys the schema sets that nothing reads — they render exactly
+	// as if absent.
+	Unread []string `json:"unread,omitempty"`
+	// Fixed are constructs the emitter formats itself; no theme can change them.
+	Fixed []describedFixed `json:"fixed,omitempty"`
+}
+
+type describedStyleKey struct {
+	Key     string `json:"key"`
+	Style   string `json:"style,omitempty"`
+	Purpose string `json:"purpose"`
+	// Fallback is the key used when this one is unset.
+	Fallback string `json:"fallback,omitempty"`
+}
+
+type describedFixed struct {
+	Construct  string `json:"construct"`
+	Formatting string `json:"formatting"`
+}
+
 // describedBlank is one entry of the schema's `fields:` — a blank that is
 // content rather than missing content.
 type describedBlank struct {
@@ -93,6 +123,11 @@ type describedBlock struct {
 	RequiredSpans []string           `json:"required_spans,omitempty"`
 	// Syntax is one valid opening line to imitate.
 	Syntax string `json:"syntax"`
+	// Pattern is how the block renders — "plain", "labelled", "amount" or
+	// "ruled" — selected by which `div.<name>.*` style the schema maps. It is
+	// not declared anywhere in the block's own definition, which is exactly why
+	// it is worth reporting.
+	Pattern string `json:"pattern,omitempty"`
 }
 
 type describedVariant struct {
@@ -201,7 +236,9 @@ func describe(sc *schema.Schema, rendered map[string][]string) describedType {
 	d.Frontmatter = describeFields(sc, sc.Frontmatter, "", rendered, nil)
 	d.Body = describeBody(sc.Body)
 	for _, name := range sortedKeys(sc.Blocks) {
-		d.Blocks = append(d.Blocks, describeBlock(name, sc.Blocks[name]))
+		b := describeBlock(name, sc.Blocks[name])
+		b.Pattern = emit.BlockPattern(sc, name)
+		d.Blocks = append(d.Blocks, b)
 	}
 	for _, name := range sortedKeys(sc.Spans) {
 		s := sc.Spans[name]
@@ -222,6 +259,7 @@ func describe(sc *schema.Schema, rendered map[string][]string) describedType {
 			Syntax:     fmt.Sprintf("[____________]{.docc-field key=%s}", name),
 		})
 	}
+	d.Styles = describeStyles(sc)
 	for _, r := range sc.Rules {
 		sev := r.Severity
 		if sev == "" {
@@ -230,6 +268,31 @@ func describe(sc *schema.Schema, rendered map[string][]string) describedType {
 		d.Rules = append(d.Rules, describedCheck{ID: r.ID, Check: r.Check, Severity: sev})
 	}
 	return d
+}
+
+// describeStyles reports how markdown reaches the page: which constructs this
+// schema styles, which it could, which mappings do nothing, and which
+// constructs no theme can reach at all.
+//
+// The last two are the ones worth printing. A mapping nothing reads renders as
+// if absent, and a construct with fixed formatting sends an author looking for
+// a theme bug that is not there.
+func describeStyles(sc *schema.Schema) describedStyles {
+	var out describedStyles
+	for _, k := range emit.StyleKeys(sc) {
+		entry := describedStyleKey{Key: k.Key, Purpose: k.Purpose, Fallback: k.Fallback}
+		if id := sc.Styles[k.Key]; id != "" {
+			entry.Style = id
+			out.Mapped = append(out.Mapped, entry)
+			continue
+		}
+		out.Available = append(out.Available, entry)
+	}
+	out.Unread = emit.UnreadStyleKeys(sc)
+	for _, f := range emit.FixedFormatting() {
+		out.Fixed = append(out.Fixed, describedFixed{Construct: f.Construct, Formatting: f.Formatting})
+	}
+	return out
 }
 
 // describeFields expands one level of fields, recursing into the object shapes
@@ -342,6 +405,9 @@ func printDescribed(d describedType) {
 		fmt.Println("\nblocks:")
 		for _, b := range d.Blocks {
 			fmt.Printf("  %s\n", b.Syntax)
+			if b.Pattern != "" {
+				fmt.Printf("    renders: %s\n", b.Pattern)
+			}
 			for _, v := range b.Variants {
 				fmt.Printf("    %s=%s requires: .%s\n", b.Discriminator, v.Name,
 					strings.Join(v.RequiredSpans, ", ."))
@@ -371,6 +437,8 @@ func printDescribed(d describedType) {
 			fmt.Println()
 		}
 	}
+	printStyles(d.Styles)
+
 	if len(d.Rules) > 0 {
 		fmt.Println("\nrules:")
 		for _, r := range d.Rules {
@@ -379,6 +447,44 @@ func printDescribed(d describedType) {
 	}
 	if d.HasExample {
 		fmt.Printf("\nrun `docc example %s` for a complete valid document\n", d.Type)
+	}
+}
+
+// printStyles prints how markdown reaches the page. The unread and fixed
+// sections are the reason this exists: both are otherwise silent.
+func printStyles(s describedStyles) {
+	if len(s.Mapped) > 0 {
+		fmt.Println("\nstyles (markdown construct → theme style):")
+		w := 0
+		for _, k := range s.Mapped {
+			w = max(w, len(k.Key))
+		}
+		for _, k := range s.Mapped {
+			fmt.Printf("  %-*s → %-20s %s\n", w, k.Key, k.Style, k.Purpose)
+		}
+	}
+	if len(s.Available) > 0 {
+		keys := make([]string, 0, len(s.Available))
+		for _, k := range s.Available {
+			keys = append(keys, k.Key)
+		}
+		fmt.Printf("\n  unmapped keys this type could set: %s\n", strings.Join(keys, ", "))
+	}
+	if len(s.Unread) > 0 {
+		fmt.Println("\n  these mappings are never read — they render as if absent:")
+		for _, u := range s.Unread {
+			fmt.Printf("    %s\n", u)
+		}
+	}
+	if len(s.Fixed) > 0 {
+		fmt.Println("\nfixed formatting (no theme can change these):")
+		w := 0
+		for _, f := range s.Fixed {
+			w = max(w, len(f.Construct))
+		}
+		for _, f := range s.Fixed {
+			fmt.Printf("  %-*s  %s\n", w, f.Construct, f.Formatting)
+		}
 	}
 }
 
