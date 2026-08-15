@@ -239,6 +239,11 @@ and one engine serves projects whose document conventions have nothing in common
 
 ## Schemas
 
+> Every schema key, with its accepted values and defaults, is in
+> **[docs/schema-reference.md](docs/schema-reference.md)**. This section is the
+> introduction; that one is exhaustive.
+
+
 A schema declares frontmatter fields and their types, the body structure, the
 markdown-to-Word-style mapping, and which named rules to run.
 
@@ -554,6 +559,10 @@ The labels are written as Word numbering, not as text. The document renumbers
 itself when a section moves, and does so without `docc`.
 
 ## Themes
+
+> Every theme key, with its accepted values and defaults, is in
+> **[docs/theme-reference.md](docs/theme-reference.md)**.
+
 
 A theme is the visual side of a document type: page geometry, named styles, list
 definitions, and the fixed furniture around the body. It also says how non-string

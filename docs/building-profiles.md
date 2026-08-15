@@ -22,14 +22,23 @@ render original to PNG                    write schema + example
   (ground truth)                                     │
         ▲                                            ▼
         │                                      write theme
-        └── visually compare ◄── render your build to PNG ◄── docc build
-                 │
-                 └── iterate: fix theme/schema, or fix the engine
+        │                                            │
+        │                                            ▼
+        │                                     docc doctor ──┐ wiring sound?
+        │                                            │      │
+        │                                            ▼      │
+        └── visually compare ◄── render to PNG ◄── docc build
+                 │                                          │
+                 └── iterate: fix theme/schema, or the engine ◄┘
 ```
 
 Two renders of the *same pipeline* (LibreOffice → PDF → PNG) are compared, so
 renderer quirks cancel out. Do not compare a Word screenshot to a soffice
 render and chase differences that are LibreOffice's, not yours.
+
+`docc doctor` sits between writing and rendering because it answers, in
+milliseconds, the question a render answers in a minute: is this profile
+wired up at all. Run it after every edit to a schema or theme.
 
 ## 1. Unpack and render the original
 
@@ -108,6 +117,12 @@ Rules of thumb:
 
 ## 4. Write the schema
 
+Every key, with its accepted values and defaults, is in
+[schema-reference.md](schema-reference.md); the theme's are in
+[theme-reference.md](theme-reference.md). What follows is the order to work in,
+not the full list.
+
+
 Order of work inside the YAML:
 
 1. `frontmatter:` + `types:` — only what step 3 put there.
@@ -139,10 +154,23 @@ Order of work inside the YAML:
 6. `render:` — heading/paragraph numbering, referencing definitions the theme
    will declare.
 7. `rules:` — pick from the registry (`no_placeholder_text`,
-   `div_items_match`, `cross_reference`, `no_empty_sections`) with
-   schema-owned codes. `div_items_match` with a pattern is the cheap way to
-   enforce a per-line shape inside a block, e.g. every Betragszeile starts
-   with `[CHF ...]`.
+   `div_items_match`, `cross_reference`, `no_empty_sections`,
+   `amounts_balance`) with schema-owned codes. `div_items_match` with a
+   pattern is the cheap way to enforce a per-line shape inside a block, e.g.
+   every Betragszeile starts with `[Fr. ...]`; `amounts_balance` then checks
+   that those figures add up.
+
+   Reach for a rule wherever the old template relied on the drafter noticing
+   something. A price whose parts do not sum to the total, or payments that
+   leave part of it unsettled, are invisible to a reader working down the
+   page and trivial for the compiler:
+
+   ```
+   error[KFV013]: declared total 865'000.00 does not match the sum of the
+   items, 864'000.00
+   error[KFV013]: the amounts do not settle "kaufpreis": 78'500.00 is
+   unaccounted for
+   ```
 8. `example:` — a compact but *complete* document. Write it against the real
    template content, scrubbed. This is the profile's spec: it exercises every
    block, span, field and furniture line you declared.
@@ -154,13 +182,33 @@ measurements from step 2 — page, margins, `title_page`, defaults, every style
 the schema maps, the numbering definitions the schema names, header/footer,
 prologue/epilogue. Notes that bite:
 
-- Styles referenced as `div.<name>` render every paragraph of that block;
-  the char style behind `div.<name>.label` styles the tabbed label. Give the
-  block style the tab stop (`tabs: [{ pos: ..., align: right }]`). The label
-  only lands at the tab stop if the description fits before it — a
-  description that wraps past the stop swallows the tab and the label runs
-  on inline. Keep those descriptions to one line, and say so in the block's
-  `description:` so the author is told rather than surprised.
+- The block rendering patterns all lean on tab stops, and the stops live in
+  the theme:
+  - **labelled** (`div.<name>.label`): give the block style a right stop and
+    the label lands there. It only does so if the description fits before it
+    — a description that wraps past the stop swallows the tab and the label
+    runs on inline. Keep those descriptions to one line, and say so in the
+    block's `description:` so the author is told rather than surprised.
+  - **amount** (`div.<name>.amount`): two stops, one left for the currency
+    and one right for the figure, so a column of prices aligns on the
+    decimal. `.total` styles the row marked `=`; a character style under
+    `.total.amount` is where a rule under the figure belongs, which is what
+    the old templates drew as `=================` by hand.
+  - **ruled** (`div.<name>.line`): the emitter writes one tab per stop the
+    style declares, so a stop with no leader followed by one with
+    `leader: dot` gives a gap and then a rule — a signature line whose shape
+    is entirely the theme's business. Do not let anyone type the dots.
+- `formats.amount_words: "(Franken %s)"` spells every amount out beneath its
+  figure, rendered from the figure itself. Deeds repeat sums in words so they
+  cannot be altered after signing; generating them means the words and the
+  digits cannot disagree, which is the failure the words exist to prevent.
+  The speller is German — a theme in another language leaves this unset.
+- A `span.<type>` style is how an annotation earns its appearance: mapping
+  `span.name` to a bold, underlined character style makes every
+  `[Anna Muster]{.name}` in the document look like a party name, without one
+  word of formatting in the source. This is the single highest-leverage
+  mapping in a profile — the house conventions that a Word user applied by
+  hand, once per occurrence, become a consequence of what the text *is*.
 - Some constructs never reach the theme at all: `**bold**`, `*italic*`,
   inline `` `code` `` (always Courier New), links (always `0000EE` and
   underlined, and rendered as text rather than a live hyperlink), and table
@@ -176,8 +224,51 @@ prologue/epilogue. Notes that bite:
   level's count; `"%2.%3."` composes.
 - Interpolated fields must exist in the schema; `docc build` validates the
   pair and refuses on typos, so build early and often.
+- `render.page_break_before_headings` is where a document type says its
+  certification starts a fresh sheet. Page breaks the markdown does not
+  express belong here for the same reason numbering does: where a deed breaks
+  is a fact about deeds, not about this deed. Pair it with `keep_next` on the
+  signature lines so the parties cannot end up signing on different sheets.
 
-## 6. Iterate visually
+## 6. Check the wiring with `docc doctor`
+
+Before rendering anything, ask the compiler whether the profile is connected:
+
+```bash
+docc doctor              # what resolved, and is every schema/theme pair sound
+docc doctor --strict     # make the warnings bind
+docc doctor --json       # the same report, for a script
+```
+
+It prints which `.docc` directory won, lists every type with the theme it
+names, and then runs the schema-against-theme agreement check that otherwise
+only runs inside a build — so a style the theme does not define, or a
+`{{ field }}` the schema does not declare, surfaces without a document to
+build:
+
+```
+ch_urkunde_kaufvertrag → theme ch_urkunde_kaufvertrag
+  schema "ch_urkunde_kaufvertrag" styles span types it does not declare:
+    span.nmae
+  schema declares: datum, geburtsdatum, grundbuch, heimatort, name, ...
+```
+
+The warnings are the more interesting half, because they catch the failure
+mode a profile author cannot see: a mapping that nothing reads.
+
+```
+1 warning(s) — these render as if the mapping were absent:
+  ch_urkunde_kaufvertrag: styles: code_span — not a construct docc styles;
+  `inline code` is rendered with fixed formatting (Courier New, ...)
+```
+
+`code_span: Code` is a plausible-looking line that validates, renders and
+does nothing — and so is `div.betreage` with the letters transposed. Both are
+otherwise silent, and both cost an afternoon of blaming the theme. Treat a
+doctor warning as an error while building a profile: if a mapping is unread,
+either the key is wrong or the mapping should go.
+
+## 7. Iterate visually
 
 ```bash
 docc example ch_urkunde_kaufvertrag > /tmp/kv.md
@@ -186,6 +277,20 @@ docc build --output /tmp/kv.docx /tmp/kv.md
 soffice --headless --convert-to pdf /tmp/kv.docx --outdir /tmp
 pdftoppm -png -r 60 /tmp/kv.pdf mine
 ```
+
+Iterate against *finished* documents, not only the blank template. A template
+shows every alternative and no decisions; a signed deed shows which
+alternatives survive together, how long the real prose runs, and where the
+page actually breaks. Rebuild two or three real ones as docc sources and
+render those. Every hard requirement in the reference profile came from that
+step and none of them were visible in the template: that a party's name is
+bold and underlined, that amounts sit in a currency column and a figure
+column with the sum spelled out beneath, that the payments have to settle the
+price, and that the signatures stay on one sheet and close with *Es folgt die
+Beurkundung* before the certification starts its own page.
+
+Keep those documents out of git — they are client files. An ignored
+`assets/` directory is enough.
 
 Put `mine-1.png` next to `orig-01.png` and compare *deliberately*, page by
 page: geometry first (margins, where the body starts), then blocks (is every
@@ -203,20 +308,29 @@ Expect to hit engine limits; sort each into one of three bins:
   built* `.docx` and reading the parts — the golden corpus and
   `testdata/golden/` show what correct output looks like. Fix in
   `internal/docx`, add a unit test, run `task`.
-- **The feature does not exist.** Also found in the deed run: there is no
-  dynamic `PAGE` field, so running page numbers cannot be produced yet.
-  Decide whether to live without it, emulate it, or grow the engine. Record
-  the decision as a comment at the top of the theme — a theme that silently
-  lacks page numbers looks like an oversight to the next reader.
+- **The feature does not exist.** Decide whether to live without it, emulate
+  it, or grow the engine — and when you live without it, record the decision
+  as a comment at the top of the theme, because a theme that silently lacks
+  page numbers looks like an oversight to the next reader. The deed run hit
+  this twice and answered it differently each time: there is still no dynamic
+  `PAGE` field, so the theme documents that it has no running page numbers;
+  but spans reached the emitter carrying no type at all, which made the house
+  convention for a party name impossible to express, so `span.<type>` styles
+  were added instead. The test is whether the gap is a *document-type* fact
+  the engine should be able to state. Numbering pages is layout the theme can
+  live without; making an annotation legible is what annotating is for.
 
 Stop iterating at *faithful*, not *pixel-identical*. The profile replaces the
 template; it does not have to reproduce its accidents (Word's default fonts,
 inherited spacing quirks, the highlighted placeholders themselves).
 
-## 7. Finish
+## 8. Finish
 
+- `docc doctor --strict` — clean, with no unread mappings left over.
 - `docc describe <type>` — read the contract as an author will see it; fix
-  descriptions and hints that read poorly.
+  descriptions and hints that read poorly. It prints the rendering pattern
+  each block resolved to, which is the one thing the block's own declaration
+  does not say.
 - `docc example <type> | docc check` must be clean, and the example must
   build; keep both true forever, they are the profile's regression test.
 - Author one real document with the new profile before calling it done. The
@@ -227,13 +341,24 @@ inherited spacing quirks, the highlighted placeholders themselves).
 
 ## Worked example
 
-The `ch_urkunde_kaufvertrag` profile is the reference run of this guide:
-`.docc/schemas/ch_urkunde_kaufvertrag.yaml` (party block with four variants,
-grundstueck and betraege blocks, two handwritten fields, amount-shape rule)
-and `.docc/themes/ch_urkunde_kaufvertrag.yaml` (crest in a first-page header,
-centered Urkunde title block with bordered rules, small-caps outline
-I./1./1.1., right-tab amount column). Every decision in this guide is made
-once there, concretely. The Word template it came from is not kept in the
-repository — only the crest extracted from it,
-`.docc/themes/urkunde-wappen.png`, and the schema's header comment recording
+The `ch_urkunde_kaufvertrag` profile is the reference run of this guide.
+
+`.docc/schemas/ch_urkunde_kaufvertrag.yaml` declares a `partei` block with
+four variants, a `grundstueck` block, `betraege` money blocks that must
+balance, an `unterschriften` signature block, seven span types, and two
+handwritten fields. `.docc/themes/ch_urkunde_kaufvertrag.yaml` puts the crest
+in a first-page header, the Urkunde title block between two rules, a
+small-caps I./1./1.1. outline over the headings, amounts in two columns with
+their sums spelled out, and signature lines drawn by a tab leader.
+
+Every decision in this guide is made once there, concretely, and each of the
+four hard parts came from comparing against real signed deeds rather than
+from the blank template: the party-name convention, the amount columns, the
+arithmetic that has to hold between the price and its payments, and the
+signature block that closes with *Es folgt die Beurkundung* before the
+certification starts its own page.
+
+The Word originals are not kept in the repository — reference material lives
+in an ignored `assets/` directory, and what survives in git is the crest
+(`.docc/themes/urkunde-wappen.png`) and the schema's header comment recording
 the lineage.
