@@ -53,6 +53,9 @@ flags:
   --strict             treat warnings as errors
   --no-color           disable coloured output
 
+describe, example and explain also take:
+  --from <path>        resolve the project from this path, not the working directory
+
 build flags:
   --to docx|pdf        output format; pdf is compatibility-only and needs soffice (default: docx)
   --output <path>      output path (default: input with the new extension)
@@ -188,9 +191,12 @@ type commonFlags struct {
 	schemaDir string
 	themeDir  string
 	docType   string
-	jsonOut   bool
-	strict    bool
-	noColor   bool
+	// from is the path project discovery starts at, for commands that name a
+	// document type rather than a file. Bound by bindFrom, not bind.
+	from    string
+	jsonOut bool
+	strict  bool
+	noColor bool
 }
 
 func (c *commonFlags) bind(fs *flag.FlagSet) {
@@ -200,6 +206,22 @@ func (c *commonFlags) bind(fs *flag.FlagSet) {
 	fs.BoolVar(&c.jsonOut, "json", false, "machine-readable output")
 	fs.BoolVar(&c.strict, "strict", false, "treat warnings as errors")
 	fs.BoolVar(&c.noColor, "no-color", false, "disable coloured output")
+}
+
+// bindFrom adds --from for the commands whose positional argument is a document
+// type, not a file. Without it they resolve the project from the working
+// directory only, so a type could not be described from outside its own tree
+// without naming both directories by hand.
+func (c *commonFlags) bindFrom(fs *flag.FlagSet) {
+	fs.StringVar(&c.from, "from", "", "resolve the project from this path (default: the working directory)")
+}
+
+// start is the path discovery begins at.
+func (c *commonFlags) start() string {
+	if c.from == "" {
+		return "."
+	}
+	return c.from
 }
 
 // Exit codes. Usage and configuration are separated because a caller can do
@@ -714,6 +736,7 @@ func cmdExplain(args []string) int {
 	fs := flag.NewFlagSet("explain", flag.ContinueOnError)
 	var cf commonFlags
 	cf.bind(fs)
+	cf.bindFrom(fs)
 	if code, stop := parseFlags(fs, explainHelp, args); stop {
 		return code
 	}

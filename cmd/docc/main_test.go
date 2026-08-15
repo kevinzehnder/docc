@@ -303,6 +303,29 @@ func TestJSONFailureObjects(t *testing.T) {
 	}
 }
 
+// describe and example resolve a project from the working directory, because
+// their positional argument is a type name rather than a file. --from is the way
+// to describe a type from outside its own tree without naming both directories.
+func TestDescribeFromAnotherProject(t *testing.T) {
+	proj := t.TempDir()
+	write(t, filepath.Join(proj, ".docc", "schemas", "memo.yaml"), memoSchema)
+	t.Chdir(t.TempDir()) // somewhere with no .docc above it
+
+	var code int
+	captureStdout(t, func() { code = run([]string{"describe", "memo"}) })
+	if code != exitConfig {
+		t.Errorf("describe without --from = %d, want %d", code, exitConfig)
+	}
+
+	out := captureStdout(t, func() { code = run([]string{"describe", "--from", proj, "memo"}) })
+	if code != 0 {
+		t.Fatalf("describe --from = %d, want 0", code)
+	}
+	if !strings.Contains(out, "memo — A memo.") {
+		t.Errorf("--from did not resolve the other project:\n%s", out)
+	}
+}
+
 // TestFlagsMayFollowTheInput covers the report's first friction point:
 // `docc build file.md --output x.docx` used to fail with "expects exactly one
 // input file", because Go's flag package stops at the first non-flag.

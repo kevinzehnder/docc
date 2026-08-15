@@ -761,3 +761,60 @@ func TestRepeatOverMissingListEmitsNothing(t *testing.T) {
 func countParagraphs(doc string) int {
 	return strings.Count(doc, "<w:p>") + strings.Count(doc, "<w:p/>")
 }
+
+// A block's style reaches every paragraph inside it, including a heading. That
+// is the documented behaviour of the plain rendering pattern, and it has a
+// consequence worth pinning: a heading written inside a block stops being a
+// heading. It loses its heading style, and the render pass that numbers headings
+// does not see it.
+//
+// Neither is an error, and nothing in the source looks wrong, so the reference
+// documentation tells authors to keep headings between blocks rather than in
+// them. This test is what keeps that advice true.
+func TestHeadingInsideDivIsNotAHeading(t *testing.T) {
+	sc := testSchema()
+	sc.Render.HeadingNumbering = &schema.NumberingRule{Definition: "Nummerierung"}
+
+	f, ds := parse.Parse("t.md", []byte("---\nx: 1\n---\n\n# Outside\n\n::: evidence\n## Inside\n:::\n\n# After\n"))
+	if ds.HasErrors() {
+		t.Fatalf("parse: %+v", ds)
+	}
+	built, err := Build(ir.Build(f, "test", map[string]any{}), sc, testTheme(), Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var inside docx.Paragraph
+	var found bool
+	for _, blk := range built.Body {
+		p, isPara := blk.(docx.Paragraph)
+		if !isPara {
+			continue
+		}
+		if text(p) == "Inside" {
+			inside, found = p, true
+		}
+	}
+	if !found {
+		t.Fatal("the heading inside the block produced no paragraph")
+	}
+	if inside.Props.Style != "Evidence" {
+		t.Errorf("style = %q, want Evidence — the block styles every paragraph in it", inside.Props.Style)
+	}
+	if inside.Props.Numbering != nil {
+		t.Error("a heading inside a block should not pick up heading numbering")
+	}
+}
+
+// text joins a paragraph's runs, for assertions.
+func text(p docx.Paragraph) string {
+	var b strings.Builder
+	for _, r := range p.Runs {
+		for _, item := range r.Items {
+			if t, ok := item.(docx.Text); ok {
+				b.WriteString(string(t))
+			}
+		}
+	}
+	return b.String()
+}

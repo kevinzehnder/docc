@@ -145,14 +145,42 @@ is true of `spans`.
 The zero value is a valid declaration: `beweis: {}` permits the block, requires
 nothing, and allows no attribute but `#id`.
 
-**What a block may contain** is ordinary markdown — paragraphs, lists, emphasis,
-and the spans the schema declares. A closing `:::` must be on a line of its own,
-and an unclosed block is `DOC023`.
+### What may go inside a block
 
-**Blocks do not nest.** A `::: name` inside another block leaves the inner one
-unclosed, reported as `DOC023` against the inner opening line, because the first
-bare `:::` closes the outer block. Keep them flat; a block that needs internal
-structure wants a list, or spans, or a second block after it.
+The syntax: an opening fence of **three or more colons** followed by the name and
+optional attributes, and a closing fence of **colons alone on their own line**.
+An unclosed block is `DOC023`.
+
+```markdown
+::: partei {#verkaeufer kind=person role=veraeusserer}
+Herr [Max Muster]{.name}, geboren am [12. April 1975]{.geburtsdatum}
+:::
+```
+
+Attributes are `{#id key=value key="quoted value"}`. Only `#id`, the
+discriminator and the keys in `attributes:` are permitted (`DOC035`); an
+attribute block that does not lex is `DOC026`, and the span equivalent is
+`DOC027`.
+
+Ordinary markdown is accepted inside: paragraphs, lists, tables, code fences,
+emphasis, and the spans the schema declares. Three limits are worth knowing
+before designing a block, because none of them is an error — the document
+compiles and the output is simply not what was intended:
+
+- **Blocks do not nest.** A `::: name` inside another block leaves the inner one
+  unclosed, reported as `DOC023` against the inner opening line, because the
+  first bare `:::` closes the outer block. Keep them flat; a block that needs
+  internal structure wants a list, spans, or a second block after it.
+- **A heading inside a block stops being a heading.** `div.<name>` styles *every
+  paragraph* of the block, so a `## Sub` inside one renders in the block's style,
+  without its outline level, and `render.heading_numbering` skips it. Headings
+  belong between blocks, not inside them.
+- **A table inside a block is not restyled.** `div.<name>` reaches paragraphs
+  only, so a table passes through with the compiler's own borders. See
+  [what a theme cannot change](../README.md#what-a-theme-cannot-change).
+
+A block with no `#id` is fine unless a span references it. Ids must be unique
+across the document (`DOC034`), because `ref=` resolves against them.
 
 **How a block renders** is decided by the style map, not here. See the README's
 [style map](../README.md#the-style-map) — mapping `div.<name>.amount`, `.line` or

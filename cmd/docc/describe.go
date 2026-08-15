@@ -152,6 +152,7 @@ func cmdDescribe(args []string) int {
 	fs := flag.NewFlagSet("describe", flag.ContinueOnError)
 	var cf commonFlags
 	cf.bind(fs)
+	cf.bindFrom(fs)
 	if code, stop := parseFlags(fs, describeHelp, args); stop {
 		return code
 	}
@@ -180,6 +181,7 @@ func cmdExample(args []string) int {
 	fs := flag.NewFlagSet("example", flag.ContinueOnError)
 	var cf commonFlags
 	cf.bind(fs)
+	cf.bindFrom(fs)
 	if code, stop := parseFlags(fs, exampleHelp, args); stop {
 		return code
 	}
@@ -204,7 +206,7 @@ func cmdExample(args []string) int {
 // schemaForType loads the nearest schemas and resolves one type, reporting
 // errors itself. A nil schema is accompanied by the exit code to return.
 func schemaForType(cf commonFlags, docType string) (*schema.Schema, int) {
-	set, err := loadSchemas(cf.schemaDir, ".")
+	set, err := loadSchemas(cf.schemaDir, cf.start())
 	if err != nil {
 		return nil, fail(cf, exitConfig, err)
 	}
@@ -339,7 +341,7 @@ func renderedFields(cf commonFlags, sc *schema.Schema) map[string][]string {
 	if sc.Theme == "" {
 		return nil
 	}
-	set, _, err := loadThemes(cf.themeDir, ".")
+	set, _, err := loadThemes(cf.themeDir, cf.start())
 	if err != nil {
 		return nil
 	}

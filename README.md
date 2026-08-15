@@ -58,6 +58,7 @@ docc lsp                          # serve editor diagnostics over stdio
 docc types                        # list known document types
 docc describe ch_legal            # report a document type's full contract
 docc example ch_legal             # print a compact valid document to start from
+docc describe --from ~/kanzlei ch_legal  # …for a project other than this directory
 docc explain                      # list every diagnostic code
 docc explain DOC010               # describe one
 docc explain DOC010 --type ch_legal  # …and the constraints that schema declares
