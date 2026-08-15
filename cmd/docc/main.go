@@ -506,6 +506,13 @@ var explanations = map[string]string{
 	"DOC025": "the frontmatter declares a docc format version this compiler does not support. Use the version listed in the diagnostic's hint.",
 	"DOC026": "the `{...}` attribute block on a fenced div did not parse. Attributes are written `{#id key=value key=\"quoted value\"}`, separated by spaces; the diagnostic names the first token that did not lex.",
 	"DOC027": "the `{...}` attribute block on an inline span did not parse. A span is written `[literal text]{.type key=value}` on one line; the diagnostic names the first token that did not lex.",
+	"DOC030": "the document uses a `:::` block the schema does not declare. The hint lists the declared blocks; check `blocks:` in the schema.",
+	"DOC031": "an inline span is missing its type class, or uses one the schema does not declare. The first `.class` in a span's attribute block is its type; the schema's `spans:` section lists the valid ones.",
+	"DOC032": "a block with variants is missing its discriminator attribute, or names a variant the schema does not declare — for example a `partei` block without `kind=person` or `kind=company`.",
+	"DOC033": "a block is missing a span its schema variant requires. Annotate the value inside the block with the named type: `[...]{.uid}`.",
+	"DOC034": "a `#id` is used by more than one block. Ids must be unique in the document because references resolve against them; the diagnostic lists the other occurrence.",
+	"DOC035": "a block carries an attribute its schema declaration does not permit. Only `#id`, the discriminator and the keys in the block's `attributes:` list are allowed.",
+	"DOC036": "the schema declares `variants:` for a block but no `discriminator:`, so no document can satisfy it. This is a schema bug, not a document bug.",
 }
 
 // loadSchemas resolves the schema directory: an explicit flag, else the nearest

@@ -27,6 +27,12 @@ type Schema struct {
 	Frontmatter Fields `yaml:"frontmatter"`
 	// Body declares the required heading structure, in document order.
 	Body []BodyRule `yaml:"body"`
+	// Blocks declares the semantic `:::name` blocks this type permits. A
+	// schema that declares any makes undeclared block names an error.
+	Blocks map[string]BlockSpec `yaml:"blocks"`
+	// Spans declares the inline `[text]{.type}` span types this type permits.
+	// A schema that declares any makes untyped or undeclared spans an error.
+	Spans map[string]SpanSpec `yaml:"spans"`
 	// Styles maps markdown constructs to style ids defined by the theme.
 	Styles map[string]string `yaml:"styles"`
 	// Rules lists named cross-cutting checks to run.
@@ -78,6 +84,34 @@ func (r *NumberingRule) Marker() (heading string, inclusive bool) {
 		return r.StartAtHeading, true
 	}
 	return r.StartAfterHeading, false
+}
+
+// BlockSpec declares one semantic block kind. The zero value is a valid
+// declaration: the block may appear, carries no required structure, and
+// permits no attributes beyond `#id`.
+type BlockSpec struct {
+	Description string `yaml:"description"`
+	// Attributes lists the permitted attribute keys, beyond `#id` and the
+	// discriminator, which are always permitted.
+	Attributes []string `yaml:"attributes"`
+	// Discriminator names the attribute whose value selects one of Variants —
+	// `kind` for a party block with person and company shapes.
+	Discriminator string `yaml:"discriminator"`
+	// Variants maps discriminator values to their structural requirements.
+	Variants map[string]BlockVariant `yaml:"variants"`
+	// RequiredSpans lists span types that must appear inside the block, for
+	// blocks without variants.
+	RequiredSpans []string `yaml:"required_spans"`
+}
+
+// BlockVariant is the structural requirement of one discriminator value.
+type BlockVariant struct {
+	RequiredSpans []string `yaml:"required_spans"`
+}
+
+// SpanSpec declares one inline span type.
+type SpanSpec struct {
+	Description string `yaml:"description"`
 }
 
 // Fields is a set of named field declarations.

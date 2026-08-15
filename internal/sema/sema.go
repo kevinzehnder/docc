@@ -94,6 +94,7 @@ func Check(f *parse.File, set *schema.Set, parseDiags diag.List, docTypeOverride
 
 	checkFrontmatter(f, sc, m, &ds)
 	checkBody(f, sc, m, &ds)
+	checkMarkup(f, sc, &ds)
 	runRules(f, sc, m, &ds)
 
 	res.Diagnostics = ds

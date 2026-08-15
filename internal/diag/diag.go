@@ -38,6 +38,13 @@ type Position struct {
 	Len int `json:"len,omitempty"`
 }
 
+// Location is a position in a named file, used for the other occurrences a
+// diagnostic involves.
+type Location struct {
+	File string   `json:"file"`
+	Pos  Position `json:"pos"`
+}
+
 // Diagnostic is one finding against one source file.
 type Diagnostic struct {
 	File     string   `json:"file"`
@@ -49,6 +56,19 @@ type Diagnostic struct {
 	Message string `json:"message"`
 	// Hint tells the author what to do. Omit only when genuinely self-evident.
 	Hint string `json:"hint,omitempty"`
+
+	// Block names the semantic block (its kind, or its `#id` when one exists)
+	// the finding concerns.
+	Block string `json:"block,omitempty"`
+	// Key is the span consistency key the finding concerns.
+	Key string `json:"key,omitempty"`
+	// Expected is one concise valid-syntax example that would satisfy the
+	// check, for an agent to imitate directly.
+	Expected string `json:"expected,omitempty"`
+	// Related lists the other source locations involved in the same finding —
+	// every conflicting occurrence of an inconsistent value, the first use of
+	// a duplicated id.
+	Related []Location `json:"related,omitempty"`
 }
 
 func (d Diagnostic) MarshalJSON() ([]byte, error) {
@@ -61,6 +81,12 @@ func (d Diagnostic) MarshalJSON() ([]byte, error) {
 
 // List is an ordered set of diagnostics for one compilation.
 type List []Diagnostic
+
+// Add appends a fully constructed diagnostic, for callers that set the
+// structured fields Errorf cannot express.
+func (l *List) Add(d Diagnostic) {
+	*l = append(*l, d)
+}
 
 // Errorf appends an error-severity diagnostic.
 func (l *List) Errorf(file string, pos Position, code, hint, format string, args ...any) {
@@ -220,19 +246,39 @@ func renderOne(w io.Writer, d Diagnostic, src SourceFn, color bool) error {
 	if d.Hint != "" {
 		trailer = " " + d.Hint
 	}
-	_, err := fmt.Fprintf(w, "%s %s\n",
+	if _, err := fmt.Fprintf(w, "%s %s\n",
 		tint(color, blue, pad+" |"),
 		tint(color, sevColor, caret+trailer),
-	)
-	return err
+	); err != nil {
+		return err
+	}
+	return writeExtras(w, d, color)
 }
 
 func writeBareHint(w io.Writer, d Diagnostic, color bool) error {
-	if d.Hint == "" {
-		return nil
+	if d.Hint != "" {
+		if _, err := fmt.Fprintf(w, "  %s %s\n", tint(color, blue, "="), d.Hint); err != nil {
+			return err
+		}
 	}
-	_, err := fmt.Fprintf(w, "  %s %s\n", tint(color, blue, "="), d.Hint)
-	return err
+	return writeExtras(w, d, color)
+}
+
+// writeExtras renders the structured fields that exist mainly for agents but
+// help humans too: the syntax to imitate and the other locations involved.
+func writeExtras(w io.Writer, d Diagnostic, color bool) error {
+	if d.Expected != "" {
+		if _, err := fmt.Fprintf(w, "  %s expected: %s\n", tint(color, blue, "="), d.Expected); err != nil {
+			return err
+		}
+	}
+	for _, r := range d.Related {
+		if _, err := fmt.Fprintf(w, "  %s related: %s:%d:%d\n",
+			tint(color, blue, "="), r.File, r.Pos.Line, r.Pos.Col); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // caretLine builds the "   ^^^^" underline beneath the quoted source line.

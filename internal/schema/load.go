@@ -114,6 +114,22 @@ func merge(parent, child *Schema) *Schema {
 		out.Types[k] = v
 	}
 
+	out.Blocks = map[string]BlockSpec{}
+	for k, v := range parent.Blocks {
+		out.Blocks[k] = v
+	}
+	for k, v := range child.Blocks {
+		out.Blocks[k] = v
+	}
+
+	out.Spans = map[string]SpanSpec{}
+	for k, v := range parent.Spans {
+		out.Spans[k] = v
+	}
+	for k, v := range child.Spans {
+		out.Spans[k] = v
+	}
+
 	if len(child.Body) == 0 {
 		out.Body = parent.Body
 	}

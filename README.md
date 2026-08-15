@@ -246,6 +246,52 @@ positional `beilagen` list in the frontmatter. Labels such as `Klagebeilage`,
 `Actorum`, `Augenschein`, or `Zeugenbefragung` remain valid but do not claim a
 locally filed attachment. A closing `:::` must be on a line of its own.
 
+### Semantic blocks and spans
+
+Two syntax extensions mark semantics that plain Markdown cannot express. A
+**block** is a `:::name` region, optionally attributed; a **span** annotates
+literal text inline. A span never changes rendering — it exists for validation:
+
+```markdown
+::: partei {#verkaeufer kind=person role=veraeusserer}
+Herr [Max Muster]{.name}, geboren am
+[12. April 1975]{.geburtsdatum}, wohnhaft an der
+[Musterstrasse 10, 5400 Baden]{.adresse}
+:::
+```
+
+Attributes are `{#id key=value key="quoted value"}`; a span's first `.class`
+is its type. The schema declares what is permitted — declaring any block or
+span type makes undeclared ones an error, while schemas that declare none
+leave the markup unchecked:
+
+```yaml
+blocks:
+  beweis: {}
+  partei:
+    discriminator: kind      # the attribute selecting a variant
+    attributes: [role]       # further permitted keys; #id is always allowed
+    variants:
+      person:
+        required_spans: [name, geburtsdatum, adresse]
+      company:
+        required_spans: [firma, sitz, uid, adresse]
+
+spans:
+  name: {}
+  geburtsdatum: {}
+  adresse: {}
+  firma: {}
+  sitz: {}
+  uid: {}
+```
+
+The checker reports undeclared blocks (`DOC030`), untyped or undeclared spans
+(`DOC031`), a missing discriminator or unknown variant (`DOC032`), missing
+required spans (`DOC033`), duplicate `#id`s (`DOC034`) and unpermitted
+attributes (`DOC035`). Malformed attribute syntax is caught at parse time
+(`DOC026`, `DOC027`).
+
 ### Field types
 
 `string`, `int`, `bool`, `date` (ISO `YYYY-MM-DD`), `enum` (with `values`), `any`,
