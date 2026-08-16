@@ -745,3 +745,66 @@ func assertNoTemp(t *testing.T, dest string) {
 		}
 	}
 }
+
+// A schema names its own diagnostic codes for the checks it selects, and the
+// engine has never heard of them. `docc describe` prints them beside the
+// DOC0xx ones and they look identical, so `docc explain` is the obvious next
+// move — and it used to answer "no explanation", leaving the check's meaning
+// discoverable only by deliberately breaking a document.
+func TestExplainResolvesSchemaOwnedCodes(t *testing.T) {
+	dir := t.TempDir()
+	schemaDir := filepath.Join(dir, "schemas")
+	write(t, filepath.Join(schemaDir, "memo.yaml"), `
+type: memo
+description: A memo.
+frontmatter:
+  document_type: { type: string, required: true }
+rules:
+  - id: MEM007
+    check: no_placeholder_text
+    severity: error
+    message: a placeholder survived into a filed memo
+    hint: replace it with the real wording
+`)
+
+	t.Run("with --type", func(t *testing.T) {
+		var code int
+		out := captureStdout(t, func() {
+			code = run([]string{"explain", "MEM007", "--type", "memo", "--schema-dir", schemaDir})
+		})
+		if code != 0 {
+			t.Fatalf("run(explain MEM007) = %d, want 0", code)
+		}
+		for _, want := range []string{
+			"MEM007", "memo", "no_placeholder_text",
+			"a placeholder survived into a filed memo",
+			"replace it with the real wording",
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("explain output missing %q:\n%s", want, out)
+			}
+		}
+	})
+
+	// Without --type it searches the project, because an author holding only a
+	// code from a diagnostic does not yet know which type declared it.
+	t.Run("without --type", func(t *testing.T) {
+		var code int
+		out := captureStdout(t, func() {
+			code = run([]string{"explain", "MEM007", "--schema-dir", schemaDir})
+		})
+		if code != 0 {
+			t.Fatalf("run(explain MEM007) = %d, want 0", code)
+		}
+		if !strings.Contains(out, "no_placeholder_text") {
+			t.Errorf("explain did not find the code by searching:\n%s", out)
+		}
+	})
+
+	// A code nobody declares still fails, and now says where else to look.
+	t.Run("genuinely unknown", func(t *testing.T) {
+		if code := run([]string{"explain", "ZZZ999", "--schema-dir", schemaDir}); code != exitUsage {
+			t.Errorf("run(explain ZZZ999) = %d, want %d", code, exitUsage)
+		}
+	})
+}

@@ -272,8 +272,11 @@ rules:
 | `hint` | string | the check's own | Overrides the hint. Write it as an instruction. |
 | `args` | map | — | Check-specific configuration; see below. |
 
-Codes a schema defines are documented *in the schema*, not in `docc explain` —
-`explain` knows the engine's `DOC0xx` codes only.
+A code a schema defines is resolved by `docc explain <CODE>`, which searches the
+project's types for the rule that declares it and reports the check it selects,
+its severity, and the schema's own `message:` and `hint:`. `docc describe <type>`
+prints the same detail beside each rule, so what a rule forbids is legible
+without provoking it.
 
 ### The check registry
 

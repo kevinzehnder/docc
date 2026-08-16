@@ -147,6 +147,12 @@ type describedCheck struct {
 	ID       string `json:"id"`
 	Check    string `json:"check"`
 	Severity string `json:"severity"`
+	// Reports is the check's own one-line description, so a code the engine
+	// does not own is still self-explaining here.
+	Reports string `json:"reports,omitempty"`
+	// Message and Hint are the schema's overrides, when it supplied any.
+	Message string `json:"message,omitempty"`
+	Hint    string `json:"hint,omitempty"`
 }
 
 func cmdDescribe(args []string) int {
@@ -268,7 +274,10 @@ func describe(sc *schema.Schema, rendered map[string][]string) describedType {
 		if sev == "" {
 			sev = "error"
 		}
-		d.Rules = append(d.Rules, describedCheck{ID: r.ID, Check: r.Check, Severity: sev})
+		d.Rules = append(d.Rules, describedCheck{
+			ID: r.ID, Check: r.Check, Severity: sev,
+			Reports: sema.DescribeCheck(r.Check), Message: r.Message, Hint: r.Hint,
+		})
 	}
 	return d
 }
@@ -443,9 +452,23 @@ func printDescribed(d describedType) {
 	printStyles(d.Styles)
 
 	if len(d.Rules) > 0 {
+		// The check's name alone leaves an author guessing what the rule
+		// forbids — and these codes are the schema's own, so `docc explain`
+		// used to be a dead end for them. Say what each one reports, and
+		// prefer the schema's own wording where it supplied some.
 		fmt.Println("\nrules:")
 		for _, r := range d.Rules {
 			fmt.Printf("  %-8s %s (%s)\n", r.ID, r.Check, r.Severity)
+			detail := r.Message
+			if detail == "" {
+				detail = r.Reports
+			}
+			if detail != "" {
+				fmt.Printf("           %s\n", detail)
+			}
+			if r.Hint != "" {
+				fmt.Printf("           hint: %s\n", r.Hint)
+			}
 		}
 	}
 	if d.HasExample {

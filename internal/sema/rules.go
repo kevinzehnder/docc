@@ -128,6 +128,25 @@ var registry = map[string]CheckFunc{
 	"amounts_balance":     checkAmountsBalance,
 }
 
+// checkDescriptions says what each registered check looks for, in one line.
+//
+// It lives beside the registry so a check cannot be added without a word about
+// what it does. A schema selects checks by name and gives them its own codes,
+// so this is the only place that can answer "what does STA031 actually test?"
+// for a code the engine has never heard of.
+var checkDescriptions = map[string]string{
+	"no_placeholder_text": "template placeholder text left in the document — bracketed prose such as `[FILL IN]`. A `.docc-field` blank is content and is not flagged.",
+	"div_items_match":     "a list item inside the named block that does not match the required shape.",
+	"cross_reference":     "a citation inside the named block that does not index into a frontmatter list.",
+	"required_div":        "the named block is absent. Declaring a block permits it; this makes it mandatory.",
+	"no_empty_sections":   "a heading with no content before the next one. A heading whose next heading is deeper is a container and is exempt.",
+	"amounts_balance":     "money that does not add up: items contradicting a `[= …]` total, or a block whose `total-of` does not settle.",
+}
+
+// DescribeCheck returns a one-line description of a registered check, or "" for
+// a name the registry does not know.
+func DescribeCheck(name string) string { return checkDescriptions[name] }
+
 // KnownChecks lists registered check names, for error messages and docs.
 func KnownChecks() []string {
 	out := make([]string, 0, len(registry))

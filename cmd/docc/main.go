@@ -776,8 +776,16 @@ func cmdExplain(args []string) int {
 	code := strings.ToUpper(fs.Arg(0))
 	text, ok := explanations[code]
 	if !ok {
+		// Not an engine code. It may still be one a schema declares for a rule
+		// it selects — `docc describe` prints those next to the DOC0xx ones and
+		// they look identical, so landing here is the expected way to arrive at
+		// a schema code, not a mistake worth a bare refusal.
+		if explained, exit := explainSchemaCode(cf, code); explained {
+			return exit
+		}
 		return failf(cf, exitUsage,
-			"no explanation for %q\n  run `docc explain` for the full list", code)
+			"no explanation for %q\n  run `docc explain` for the full list, "+
+				"or `docc explain %s --type <type>` if a schema declares it", code, code)
 	}
 
 	// --type turns the generic prose into the concrete contract: which fields
@@ -821,6 +829,77 @@ func cmdExplain(args []string) int {
 		fmt.Printf("  %s\n", line)
 	}
 	return 0
+}
+
+// explainSchemaCode explains a code a schema declared for a rule it selects.
+// Those codes never reach `explanations`: the engine does not own them, and the
+// point of schema-owned codes is that a document type names its own diagnostics.
+//
+// Without this the trail went cold exactly where an author picks it up.
+// `docc describe` prints "STA031  no_placeholder_text (error)" beside codes that
+// look identical to the engine's, so `docc explain STA031` is the obvious next
+// move, and it used to answer "no explanation" — leaving the check's meaning
+// discoverable only by deliberately breaking a document to read the message.
+//
+// With --type it reads that type; without one it searches the project, so an
+// author holding only a code from a diagnostic still gets an answer.
+func explainSchemaCode(cf commonFlags, code string) (bool, int) {
+	set, err := loadSchemas(cf.schemaDir, cf.start())
+	if err != nil {
+		return false, 0
+	}
+
+	types := set.Types()
+	if cf.docType != "" {
+		types = []string{cf.docType}
+	}
+	for _, name := range types {
+		sc, err := set.Get(name)
+		if err != nil {
+			continue
+		}
+		for _, rule := range sc.Rules {
+			if !strings.EqualFold(rule.ID, code) {
+				continue
+			}
+			severity := rule.Severity
+			if severity == "" {
+				severity = "error"
+			}
+			if cf.jsonOut {
+				out := struct {
+					Code        string `json:"code"`
+					Type        string `json:"type"`
+					Check       string `json:"check"`
+					Severity    string `json:"severity"`
+					Explanation string `json:"explanation,omitempty"`
+					Message     string `json:"message,omitempty"`
+					Hint        string `json:"hint,omitempty"`
+				}{code, name, rule.Check, severity, sema.DescribeCheck(rule.Check), rule.Message, rule.Hint}
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				if err := enc.Encode(out); err != nil {
+					return true, fail(cf, exitDiag, err)
+				}
+				return true, 0
+			}
+
+			fmt.Printf("%s — declared by the document type %q, not by docc itself\n", code, name)
+			fmt.Printf("\n  check:    %s (%s)\n", rule.Check, severity)
+			if d := sema.DescribeCheck(rule.Check); d != "" {
+				fmt.Printf("  reports:  %s\n", d)
+			}
+			if rule.Message != "" {
+				fmt.Printf("  message:  %s\n", rule.Message)
+			}
+			if rule.Hint != "" {
+				fmt.Printf("  hint:     %s\n", rule.Hint)
+			}
+			fmt.Printf("\nrun `docc describe %s` for the whole contract\n", name)
+			return true, 0
+		}
+	}
+	return false, 0
 }
 
 // explainAll lists every code docc emits.
