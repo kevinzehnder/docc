@@ -51,6 +51,9 @@ this repository's fixtures. Use invented identities and domains in `testdata/`.
 ## Backlog
 
 - Add focused negative tests for project discovery and schema loading.
+- Validate emitted packages against the OOXML standard: package invariants in
+  `internal/docx`, then ECMA-376 XSD validation in CI. Plan and traps in
+  [ooxml-conformance.md](ooxml-conformance.md).
 - Make `docc init` transactional so an I/O failure cannot leave a partial
   starter project.
 - Decide whether to retire the CLI PDF exporter in a future breaking release
