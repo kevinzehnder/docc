@@ -102,6 +102,15 @@ blocks:
       draws the rule.
 
 fields:
+  revisionsstelle:
+    description: >-
+      Der Revisionsentscheid, ausgeschrieben. Beim Opting Out der Verzicht und
+      sein Grund; sonst die gewählte Revisionsstelle. `revision` im Frontmatter
+      hält die Antwort maschinenlesbar fest — hier steht sie im Klartext, damit
+      sie nicht als Vorlagentext stehen bleibt.
+    required: true
+    completion: before-execution
+
   domizil:
     description: Das Domizil (Adresse), wie es im Fliesstext genannt wird.
     required: true
@@ -221,8 +230,7 @@ example: |
 
   # Bemerkungen
 
-  Gemäss Erklärung des Gründers vom [16. August 2026]{.datum} wird auf die
-  eingeschränkte Revision verzichtet.
+  Gemäss Erklärung des Gründers vom [16. August 2026]{.datum} [wird auf die eingeschränkte Revision verzichtet]{.docc-field key=revisionsstelle}.
 
   # Belege
 

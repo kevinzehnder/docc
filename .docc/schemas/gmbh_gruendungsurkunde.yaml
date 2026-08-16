@@ -174,6 +174,15 @@ blocks:
 # the template left as a grey blank in running prose, where nothing else would
 # notice their absence.
 fields:
+  revisionsstelle:
+    description: >-
+      Der Revisionsentscheid, ausgeschrieben. Beim Opting Out der Verzicht und
+      sein Grund; sonst die gewählte Revisionsstelle. `revision` im Frontmatter
+      hält die Antwort maschinenlesbar fest — hier steht sie im Klartext, damit
+      sie nicht als Vorlagentext stehen bleibt.
+    required: true
+    completion: before-execution
+
   domizil:
     description: Das Domizil (Adresse), wie es im Fliesstext genannt wird.
     required: true
@@ -388,9 +397,7 @@ example: |
 
   ## Revisionsstelle
 
-  Der Gründer erklärt, auf die eingeschränkte Revision und damit auf die Wahl
-  einer Revisionsstelle zu verzichten, weil die zu gründende Gesellschaft nicht
-  mehr als zehn Vollzeitstellen im Jahresdurchschnitt aufweist.
+  Der Gründer erklärt, [auf die eingeschränkte Revision und damit auf die Wahl einer Revisionsstelle zu verzichten, weil die zu gründende Gesellschaft nicht mehr als zehn Vollzeitstellen im Jahresdurchschnitt aufweist]{.docc-field key=revisionsstelle}.
 
   # Anmeldung Handelsregister
 

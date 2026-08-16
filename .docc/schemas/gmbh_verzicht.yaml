@@ -31,6 +31,16 @@ frontmatter:
     type: urkundsperson
     required: false
 
+  # This document exists only because the company waives the limited audit, so
+  # the dossier-wide enum narrows to its one meaningful value here. A founding
+  # that elects a Revisionsstelle and still draws up a Verzichtserklärung is a
+  # contradiction the registry would catch; this catches it first.
+  revision:
+    type: enum
+    required: true
+    values: [verzicht]
+    hint: 'a Verzichtserklärung is only drawn up for an Opting Out — set `revision: verzicht`, or do not write this document'
+
 body:
   - heading: Keine Pflicht zur ordentlichen Revision
     level: 1

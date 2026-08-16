@@ -79,11 +79,25 @@ frontmatter:
   # had to notice, on their own, that three documents were now wrong.
   #
   # An enum, and deliberately without a `default`: a default would make the
-  # decision silently, which is the failure this exists to prevent. It is
-  # declared in the fragment rather than in one type because it governs the
-  # whole dossier — the Urkunde's Revisionsstelle section, the Anmeldung's
-  # Bemerkungen, the Brief's Beilagen, and whether a Verzichtserklärung is
-  # drawn up at all.
+  # decision silently, which is the failure this exists to prevent.
+  #
+  # It is declared in the fragment because it is a fact of the founding that
+  # every document of the dossier is drafted against. Exactly where it bites,
+  # and where it does not, because an author asking "does this field change
+  # what I write here?" deserves an answer:
+  #
+  #   - Gründungsurkunde, Revisionsstelle: the prose differs, and the decision
+  #     is a `revisionsstelle` blank the author has to write out.
+  #   - Anmeldung, Bemerkungen: likewise, a `revisionsstelle` blank.
+  #   - Verzichtserklärung: the document exists only for `verzicht`, and that
+  #     type narrows this enum to the single value.
+  #   - Statuten: *no effect*. The Revisionsstelle article is the same
+  #     boilerplate for every GmbH — it states that the meeting elects a
+  #     Revisionsstelle and may waive one on the statutory conditions — and it
+  #     is correct whichever way this founding went. The field is still stated
+  #     there so the dossier's metadata is uniform and machine-readable.
+  #   - Begleitbrief: the enclosure list assumes `verzicht`. docc has no
+  #     conditional default, so that one is still the author's to check.
   revision:
     type: enum
     required: true
