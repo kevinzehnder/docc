@@ -409,6 +409,10 @@ func cmdCheck(args []string) int {
 	cache := map[string]*schema.Set{}
 
 	var all diag.List
+	// Occurrences of the span types the schemas ask to be consistent, gathered
+	// across every file in this invocation. The dossier check needs no dossier
+	// format: `docc check *.md` already has the whole set open.
+	var occurrences []sema.SpanOccurrence
 	sources := map[string][]byte{}
 	for _, path := range files {
 		src, err := os.ReadFile(path) //nolint:gosec // paths are the user's own arguments
@@ -426,6 +430,15 @@ func cmdCheck(args []string) int {
 		f, parseDiags := parse.Parse(name, src)
 		res := sema.Check(f, set, parseDiags, cf.docType)
 		all = append(all, res.Diagnostics...)
+		if res.Schema != nil {
+			occurrences = append(occurrences, sema.WatchedSpanValues(f, res.Schema)...)
+		}
+	}
+
+	// Only with more than one file: a document cannot disagree with itself
+	// across files, and `spans_agree` already covers it within one.
+	if len(files) > 1 {
+		all = append(all, sema.CrossFileDisagreements(occurrences)...)
 	}
 
 	return report(all, sources, cf)
@@ -962,6 +975,7 @@ var explanations = map[string]string{
 	"DOC025": "the frontmatter declares a docc format version this compiler does not support. Use the version listed in the diagnostic's hint.",
 	"DOC026": "the `{...}` attribute block on a fenced div did not parse. Attributes are written `{#id key=value key=\"quoted value\"}`, separated by spaces; the diagnostic names the first token that did not lex.",
 	"DOC027": "the `{...}` attribute block on an inline span did not parse. A span is written `[literal text]{.type key=value}` on one line; the diagnostic names the first token that did not lex.",
+	"DOC029": "two documents checked together disagree about a value both of them state. The span types compared are the ones a schema's `spans_agree` rule watches, so this fires only where a type has said the occurrences must match — a Firma spelled two ways across a dossier, not two different parties. It is a warning because files named on one command line are not necessarily one transaction; `--strict` makes it bind, which is what a dossier being filed should run.",
 	"DOC028": "an attribute block was found with no `[` on the same line. Spans are parsed a line at a time, so one wrapped across a line break is not a span at all — it becomes prose containing braces, and any check that looks for the annotation reports it as missing. Rewrap the line so the whole span, brackets and attributes together, sits on one of them.",
 	"DOC030": "the document uses a `:::` block the schema does not declare. The hint lists the declared blocks; check `blocks:` in the schema.",
 	"DOC031": "an inline span is missing its type class, or uses one the schema does not declare. The first `.class` in a span's attribute block is its type; the schema's `spans:` section lists the valid ones.",

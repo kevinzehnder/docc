@@ -355,3 +355,44 @@ func TestNoBlankSpans(t *testing.T) {
 		})
 	}
 }
+
+// Opt-in per span type, because some types are supposed to differ: a
+// Kaufvertrag's `.name` spans are the Verkäufer and the Käufer.
+func TestSpansAgree(t *testing.T) {
+	sc := &schema.Schema{
+		Type:  "deed",
+		Spans: map[string]schema.SpanSpec{"firma": {}, "name": {}},
+		Rules: []schema.Rule{{
+			ID: "X070", Check: "spans_agree", Severity: "warning",
+			Args: map[string]any{"spans": []any{"firma"}},
+		}},
+	}
+
+	for _, tc := range []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"a Firma spelled two ways", "[Motherstuhl]{.firma} und [Mutterstuhl]{.firma}.", true},
+		{"the same Firma twice", "[Motherstuhl]{.firma} und [Motherstuhl]{.firma}.", false},
+		{"line breaks are not disagreement", "[Motherstuhl]{.firma} und [Motherstuhl]{.firma}.", false},
+		// The reason the check is opt-in rather than automatic.
+		{"an unwatched type may differ", "[Anna]{.name} und [Peter]{.name}.", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := "---\ndocc: 1\ndocument_type: deed\n---\n\n" + tc.body + "\n"
+			f, ds := parse.Parse("deed.md", []byte(src))
+			runRules(f, sc, nil, &ds)
+
+			var got bool
+			for _, d := range ds {
+				if d.Code == "X070" {
+					got = true
+				}
+			}
+			if got != tc.want {
+				t.Errorf("disagreement reported = %v, want %v (%q)\n%+v", got, tc.want, tc.body, ds)
+			}
+		})
+	}
+}

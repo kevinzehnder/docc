@@ -92,6 +92,40 @@ func (c *ruleContext) argString(name string, required bool) (string, bool) {
 	return s, true
 }
 
+// argStrings reads a list-of-strings argument.
+func (c *ruleContext) argStrings(name string) ([]string, bool) {
+	raw, ok := c.Rule.Args[name]
+	if !ok {
+		c.schemaErrorf(fmt.Sprintf("add `args: { %s: [...] }` to the rule", name),
+			"check %q needs the argument %q", c.Rule.Check, name)
+		return nil, false
+	}
+	items, isList := raw.([]any)
+	if !isList {
+		c.schemaErrorf("write it as a YAML list",
+			"argument %q must be a list, got %T", name, raw)
+		return nil, false
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		str, isStr := item.(string)
+		if !isStr {
+			c.schemaErrorf("every entry must be a span type name",
+				"argument %q contains a %T", name, item)
+			return nil, false
+		}
+		if str = strings.TrimSpace(str); str != "" {
+			out = append(out, str)
+		}
+	}
+	if len(out) == 0 {
+		c.schemaErrorf(fmt.Sprintf("name at least one span type in `%s`", name),
+			"argument %q is empty", name)
+		return nil, false
+	}
+	return out, true
+}
+
 // argRegexp compiles a regexp argument, falling back to def when absent.
 func (c *ruleContext) argRegexp(name string, def *regexp.Regexp) (*regexp.Regexp, bool) {
 	raw, ok := c.Rule.Args[name]
@@ -125,6 +159,7 @@ var registry = map[string]CheckFunc{
 	"cross_reference":     checkCrossReference,
 	"required_div":        checkRequiredDiv,
 	"no_blank_spans":      checkNoBlankSpans,
+	"spans_agree":         checkSpansAgree,
 	"no_empty_sections":   checkNoEmptySections,
 	"amounts_balance":     checkAmountsBalance,
 }
@@ -140,6 +175,7 @@ var checkDescriptions = map[string]string{
 	"div_items_match":     "a list item inside the named block that does not match the required shape.",
 	"cross_reference":     "a citation inside the named block that does not index into a frontmatter list.",
 	"required_div":        "the named block is absent. Declaring a block permits it; this makes it mandatory.",
+	"spans_agree":         "two occurrences of the same span type that do not say the same thing — a Firma spelled two ways. Opt-in per span type, because some types are supposed to differ.",
 	"no_blank_spans":      "a semantic span left as a blank — `[____]{.heimatort}`. A `.docc-field` blank is content and is exempt; any other span is a fact the document claims to state.",
 	"no_empty_sections":   "a heading with no content before the next one. A heading whose next heading is deeper is a container and is exempt.",
 	"amounts_balance":     "money that does not add up: items contradicting a `[= …]` total, or a block whose `total-of` does not settle.",
@@ -425,6 +461,67 @@ func isFillBlank(text string) bool {
 	return strings.IndexFunc(trimmed, func(r rune) bool {
 		return !strings.ContainsRune("_.\u00b7\u2026-\u2013\u2014", r)
 	}) < 0
+}
+
+// checkSpansAgree reports occurrences of a span type that do not all carry the
+// same value. It is the inverse of a templating system: nothing is substituted
+// in from a variable, the author writes every occurrence, and the compiler
+// refuses to let them drift apart.
+//
+// That is deliberately the harder guarantee. A template that fills a Firma in
+// six places makes the six agree by construction and shows the author a
+// placeholder; writing them out means the deed reads correctly in context at
+// every point, and this check supplies the safety the template was giving up.
+//
+// Opt-in per span type, never automatic: a Kaufvertrag's `.name` spans are the
+// Verkäufer and the Käufer and are *supposed* to differ. Only a type that says
+// "every `.firma` in this document is the same company" gets the check.
+func checkSpansAgree(c *ruleContext) {
+	want, ok := c.argStrings("spans")
+	if !ok {
+		return
+	}
+	watched := make(map[string]bool, len(want))
+	for _, name := range want {
+		watched[name] = true
+	}
+
+	type seen struct {
+		value string
+		line  int
+	}
+	first := map[string]seen{}
+
+	for _, span := range c.File.Spans() {
+		typ := span.SpanType()
+		if !watched[typ] {
+			continue
+		}
+		value := normalizeSpanValue(span.LiteralText(c.File.BodySource))
+		if value == "" {
+			continue // a blank is no_blank_spans' business, not a disagreement
+		}
+		pos := c.File.BodyPos(span.Literal.Start)
+		pos.Len = span.Literal.Stop - span.Literal.Start
+
+		prior, ok := first[typ]
+		if !ok {
+			first[typ] = seen{value: value, line: pos.Line}
+			continue
+		}
+		if value == prior.value {
+			continue
+		}
+		c.report(pos,
+			"make them the same, or use a different span type if they are different things",
+			"`.%s` says %q here but %q on line %d", typ, value, prior.value, prior.line)
+	}
+}
+
+// normalizeSpanValue collapses the differences that are typing rather than
+// meaning, so a line break inside a name is not reported as a disagreement.
+func normalizeSpanValue(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // checkNoEmptySections flags a heading with no content before the next heading.

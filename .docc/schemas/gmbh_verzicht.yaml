@@ -126,6 +126,15 @@ rules:
     check: no_blank_spans
     severity: error
 
+  # The author writes the Firma at every point it is stated, so the deed reads
+  # correctly in context — and this refuses to let the occurrences drift apart.
+  # `.name` is deliberately not watched: a document may name several people.
+  - id: VRZ070
+    check: spans_agree
+    severity: warning
+    args:
+      spans: [firma, sitz]
+
 example: |
   ---
   docc: 1
