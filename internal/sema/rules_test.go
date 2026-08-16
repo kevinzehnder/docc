@@ -307,3 +307,51 @@ func TestNoPlaceholdersCustomPattern(t *testing.T) {
 		t.Errorf("line = %d, want 9", ds[0].Pos.Line)
 	}
 }
+
+// A `fields:` blank is content; a semantic span's blank is a missing fact.
+// Without this check a row of underscores satisfied `required_spans` exactly
+// as well as a name did — found by drafting a real founding whose Heimatort
+// nobody had looked up, which passed `check` in two documents.
+func TestNoBlankSpans(t *testing.T) {
+	sc := &schema.Schema{
+		Type: "deed",
+		Spans: map[string]schema.SpanSpec{
+			"heimatort": {}, "name": {},
+		},
+		Fields: map[string]schema.FieldSpec{
+			"datum": {Completion: "handwritten"},
+		},
+		Rules: []schema.Rule{{ID: "X060", Check: "no_blank_spans", Severity: "error"}},
+	}
+
+	for _, tc := range []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"underscores are a blank", "von [__________]{.heimatort}.", true},
+		{"dots are a blank", "von [......]{.heimatort}.", true},
+		{"an empty span is a blank", "von []{.heimatort}.", true},
+		{"a real value is not", "von [Baden AG]{.heimatort}.", false},
+		{"a value containing a dash is not", "von [Rüti-Winkel]{.heimatort}.", false},
+		// The exemption that makes the two mechanisms coexist.
+		{"a field blank is content", "am [______]{.docc-field key=datum}.", false},
+		{"a field blank behind a type is content", "von [____]{.heimatort .docc-field key=datum}.", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := "---\ndocc: 1\ndocument_type: deed\n---\n\n" + tc.body + "\n"
+			f, ds := parse.Parse("deed.md", []byte(src))
+			runRules(f, sc, nil, &ds)
+
+			var got bool
+			for _, d := range ds {
+				if d.Code == "X060" {
+					got = true
+				}
+			}
+			if got != tc.want {
+				t.Errorf("blank-span reported = %v, want %v (%q)\n%+v", got, tc.want, tc.body, ds)
+			}
+		})
+	}
+}

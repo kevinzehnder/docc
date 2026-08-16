@@ -287,6 +287,7 @@ without provoking it.
 | `cross_reference` | `div` (required), `pattern` (required regexp, capture group 1 is the key), `list_field` (required), `label` (defaults to `list_field`) | A citation in a block that does not index into a frontmatter list. |
 | `required_div` | `div` (required), `anchor_heading` (optional) | A required semantic block is absent. The optional heading anchors the diagnostic where the missing content belongs. |
 | `no_empty_sections` | — | A heading with no content. A heading whose next heading is deeper is a container and is exempt. |
+| `no_blank_spans` | — | A semantic span left as a blank — `[____]{.heimatort}`. A span carrying `.docc-field` is exempt, because there a blank is content; any other span is a fact the document claims to state. |
 | `amounts_balance` | `div` (required) | Money that does not add up: items whose sum contradicts a `[= …]` total, or a block with `total-of=<id>` whose items do not settle that block's total. |
 
 Adding a check is Go: implement it in `internal/sema/rules.go` and register it.

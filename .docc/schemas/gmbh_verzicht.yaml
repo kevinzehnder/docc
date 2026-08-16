@@ -119,6 +119,13 @@ rules:
     args:
       div: unterschriften
 
+  # A span is a fact the document claims to state. A row of underscores
+  # satisfies `required_spans` exactly as well as a name does, so without this
+  # a Heimatort nobody looked up reaches the Handelsregister as a blank.
+  - id: VRZ060
+    check: no_blank_spans
+    severity: error
+
 example: |
   ---
   docc: 1

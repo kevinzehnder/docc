@@ -124,6 +124,7 @@ var registry = map[string]CheckFunc{
 	"div_items_match":     checkDivItemsMatch,
 	"cross_reference":     checkCrossReference,
 	"required_div":        checkRequiredDiv,
+	"no_blank_spans":      checkNoBlankSpans,
 	"no_empty_sections":   checkNoEmptySections,
 	"amounts_balance":     checkAmountsBalance,
 }
@@ -139,6 +140,7 @@ var checkDescriptions = map[string]string{
 	"div_items_match":     "a list item inside the named block that does not match the required shape.",
 	"cross_reference":     "a citation inside the named block that does not index into a frontmatter list.",
 	"required_div":        "the named block is absent. Declaring a block permits it; this makes it mandatory.",
+	"no_blank_spans":      "a semantic span left as a blank — `[____]{.heimatort}`. A `.docc-field` blank is content and is exempt; any other span is a fact the document claims to state.",
 	"no_empty_sections":   "a heading with no content before the next one. A heading whose next heading is deeper is a container and is exempt.",
 	"amounts_balance":     "money that does not add up: items contradicting a `[= …]` total, or a block whose `total-of` does not settle.",
 }
@@ -373,6 +375,56 @@ func checkRequiredDiv(c *ruleContext) {
 	}
 	c.report(pos, fmt.Sprintf("add a `::: %s` block containing the required content", name),
 		"document has no required `::: %s` block", name)
+}
+
+// checkNoBlankSpans reports a semantic span whose text is a fill blank rather
+// than a value: `[__________]{.heimatort}`.
+//
+// The gap this closes is the asymmetry between the two ways a schema marks a
+// position. A `fields:` blank is *content* — the author is told to leave it
+// visible, and `docc build` refuses while it is empty. A span carries no such
+// notion: `required_spans` asks only that a span of that type be present, so a
+// row of underscores satisfies it exactly as well as a name does.
+//
+// Found by drafting a real founding whose Heimatort nobody had looked up. The
+// blank passed `check` in two documents, and the Handelsregister — which needs
+// the Bürgerort to make the entry — would have been the thing that noticed.
+//
+// A span carrying `.docc-field` is exempt: there a blank is the whole point,
+// and CheckCompletion already gates it at build time.
+func checkNoBlankSpans(c *ruleContext) {
+	for _, span := range c.File.Spans() {
+		if span.HasClass(FieldSpanType) {
+			continue
+		}
+		typ := span.SpanType()
+		if typ == "" {
+			continue // untyped spans are DOC031's business, not this check's
+		}
+		text := span.LiteralText(c.File.BodySource)
+		if !isFillBlank(text) {
+			continue
+		}
+		// Underline the bracketed blank, not the whole annotation: the caret
+		// should sit under the thing to be written.
+		pos := c.File.BodyPos(span.Literal.Start)
+		pos.Len = span.Literal.Stop - span.Literal.Start
+		c.report(pos,
+			"write the value, or leave the position out until it is known",
+			"span `.%s` is a blank, not a value", typ)
+	}
+}
+
+// isFillBlank reports whether text is empty or made only of the characters an
+// author reaches for when leaving room to write something in later.
+func isFillBlank(text string) bool {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return true
+	}
+	return strings.IndexFunc(trimmed, func(r rune) bool {
+		return !strings.ContainsRune("_.\u00b7\u2026-\u2013\u2014", r)
+	}) < 0
 }
 
 // checkNoEmptySections flags a heading with no content before the next heading.
