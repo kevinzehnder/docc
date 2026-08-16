@@ -38,6 +38,12 @@ output/
 # ── Reference material (real client documents, never committed) ──────────────
 assets/
 
+# ── A local profile binding ──────────────────────────────────────────────────
+# The firm's schemas and themes live in their own private pack repository. A
+# `docc profile use` here writes a binding and lockfile for local drafting;
+# that is one developer's convenience, not this repository's configuration.
+.docc/
+
 # ── Local secrets and machine-specific config ────────────────────────────────
 # .env carries credentials for the MCP servers this repo is developed against;
 # .mcp.json names them and is per-machine. Neither belongs in the history, and

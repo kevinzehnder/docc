@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Assemble the docc Cowork artifacts from the starter profile.
+# Assemble the docc Cowork artifacts from a docc profile pack.
 #
 # Produces (all git-ignored — regenerate anytime):
 #   1. docc/                                     — the generated skill directory
@@ -17,8 +17,29 @@ set -eu
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)     # cowork/
 ROOT=$(cd "$HERE/.." && pwd)                           # repo root
-SKILL="$HERE/docc"
-PROFILE="$ROOT/internal/starter/files/docc"
+# Which profile the skill carries. The default is the generic starter, so a
+# clone of this repository builds a shareable artifact. Point DOCC_PROFILE at a
+# pack checkout — a directory with schemas/ and themes/ — to package an
+# organisation's real document types instead:
+#
+#   DOCC_PROFILE=~/git/jlmy-profiles sh cowork/assemble.sh
+#
+# The firm's pack is a separate private repository precisely so its letterhead
+# does not live here; the path stays a parameter rather than a default.
+#
+# A custom profile also redirects the output into the git-ignored build/. The
+# generated skill under cowork/docc/ is *tracked*, so packaging a private pack
+# in place would rewrite committed files with a firm's schemas and letterhead,
+# one `git add -A` away from publishing them.
+if [ -n "${DOCC_PROFILE:-}" ]; then
+	PROFILE="$DOCC_PROFILE"
+	OUT="$HERE/build"
+else
+	PROFILE="$ROOT/internal/starter/files/docc"
+	OUT="$HERE"
+fi
+SKILL="$OUT/docc"
+mkdir -p "$OUT"
 cd "$ROOT"
 
 VER=$(git describe --tags --dirty --always 2>/dev/null || echo 0.0.0-dev)
@@ -35,7 +56,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
   -ldflags "-s -w -X main.buildVersion=${VER}-cowork" \
   -o "$TOOLS/docc-linux-amd64" ./cmd/docc
 
-# 3. Generate the skill from the starter profile.
+# 3. Generate the skill from the selected profile.
 echo "packaging the skill ..."
 rm -rf "$SKILL"
 "$TOOLS/docc" profile package \
@@ -45,16 +66,24 @@ rm -rf "$SKILL"
   --name       docc \
   --with-binary "$TOOLS/docc-linux-amd64" \
   --notes      "$HERE/host-notes.md" \
-  --zip        "$HERE/docc-cowork-skill.zip"
+  --zip        "$OUT/docc-cowork-skill.zip"
 
-# 4. Plugin payload — mirror the skill into the plugin's skills/ tree.
-echo "syncing plugin skill payload ..."
-DEST="$HERE/marketplace/plugins/docc/skills/docc"
-rm -rf "$DEST"
-mkdir -p "$(dirname "$DEST")"
-cp -r "$SKILL" "$DEST"
+# 4. Plugin payload — mirror the skill into the plugin's skills/ tree. Only for
+# the default profile: the marketplace manifest here describes the public docc
+# plugin, and a private pack's skill does not belong under it.
+if [ "$OUT" = "$HERE" ]; then
+	echo "syncing plugin skill payload ..."
+	DEST="$HERE/marketplace/plugins/docc/skills/docc"
+	rm -rf "$DEST"
+	mkdir -p "$(dirname "$DEST")"
+	cp -r "$SKILL" "$DEST"
+fi
 
 echo "done."
 echo "  skill      : $SKILL"
-echo "  standalone : $HERE/docc-cowork-skill.zip"
-echo "  plugin     : $HERE/marketplace/  (experimental prototype only)"
+echo "  standalone : $OUT/docc-cowork-skill.zip"
+if [ "$OUT" = "$HERE" ]; then
+	echo "  plugin     : $HERE/marketplace/  (experimental prototype only)"
+else
+	echo "  profile    : $PROFILE  (plugin payload skipped)"
+fi
