@@ -33,7 +33,7 @@ func sample() *Document {
 			{
 				ID: "Heading1", Name: "heading 1", Type: StyleParagraph,
 				BasedOn: "Standard", Next: "Standard", QFormat: true,
-				Run:  RunProps{Bold: true, Size: FontPt(14)},
+				Run:  RunProps{Bold: ToggleOn, Size: FontPt(14)},
 				Para: ParaProps{Spacing: Spacing{Before: Pt(12), After: Pt(6)}, KeepNext: true},
 			},
 		},
@@ -74,7 +74,7 @@ func sample() *Document {
 					R("Normal, "),
 					RB("fett"),
 					R(" und "),
-					{Props: RunProps{Italic: true}, Items: []Inline{Text("kursiv")}},
+					{Props: RunProps{Italic: ToggleOn}, Items: []Inline{Text("kursiv")}},
 					R("."),
 				},
 			},
@@ -235,6 +235,9 @@ func TestListsGetDistinctNumIDs(t *testing.T) {
 	third := n.NewInstance(n.Abstract[0].ID)
 	if third == first || third == second {
 		t.Errorf("NewInstance reused numId %d", third)
+	}
+	if got := n.Instances[len(n.Instances)-1].StartOverride; got != 1 {
+		t.Errorf("NewInstance start override = %d, want 1", got)
 	}
 }
 

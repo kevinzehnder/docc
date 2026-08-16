@@ -257,6 +257,19 @@ func writeFramePr(w *xw, f *FramePr) {
 	w.empty("w:framePr", attrs...)
 }
 
+// writeToggle emits a toggle property. Explicitly off is written as
+// `w:val="0"` rather than omitted, because omitting it inherits from the
+// based-on style instead of overriding it.
+func writeToggle(w *xw, name string, t Toggle) {
+	switch t {
+	case ToggleOn:
+		w.empty(name)
+	case ToggleOff:
+		w.empty(name, a("w:val", "0"))
+	case ToggleInherit:
+	}
+}
+
 func writeParaBorders(w *xw, b *ParaBorders) {
 	w.open("w:pBdr")
 	writeBorder(w, "w:top", b.Top)
@@ -314,23 +327,13 @@ func writeRunProps(w *xw, r RunProps, inBody bool) {
 	if r.Font != "" {
 		w.empty("w:rFonts", a("w:ascii", r.Font), a("w:hAnsi", r.Font), a("w:cs", r.Font))
 	}
-	if r.Bold {
-		w.empty("w:b")
-		w.empty("w:bCs")
-	}
-	if r.Italic {
-		w.empty("w:i")
-		w.empty("w:iCs")
-	}
-	if r.Caps {
-		w.empty("w:caps")
-	}
-	if r.SmallCaps {
-		w.empty("w:smallCaps")
-	}
-	if r.Strike {
-		w.empty("w:strike")
-	}
+	writeToggle(w, "w:b", r.Bold)
+	writeToggle(w, "w:bCs", r.Bold)
+	writeToggle(w, "w:i", r.Italic)
+	writeToggle(w, "w:iCs", r.Italic)
+	writeToggle(w, "w:caps", r.Caps)
+	writeToggle(w, "w:smallCaps", r.SmallCaps)
+	writeToggle(w, "w:strike", r.Strike)
 	if r.Color != "" {
 		w.empty("w:color", a("w:val", r.Color))
 	}

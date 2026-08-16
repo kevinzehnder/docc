@@ -219,7 +219,12 @@ fields:
 ```
 
 `check` accepts blank fields — drafting with them is the point; `build`
-refuses a blank whose completion is not `handwritten`.
+refuses a blank whose completion is not `handwritten`. A field may also retain
+a semantic span type and its character style; write that type first:
+
+```markdown
+[SIX SIS AG]{.glaeubiger .docc-field key=glaeubiger_name}
+```
 
 The checker reports undeclared blocks (`DOC030`), untyped or undeclared spans
 (`DOC031`), a missing discriminator or unknown variant (`DOC032`), missing
@@ -319,8 +324,11 @@ and runs continuously, across the headings between paragraphs.
 
 `start_at_heading` numbers that heading itself; `start_after_heading` leaves it
 unnumbered and begins with what follows — which is what a marginal number wants,
-since the count belongs to the prose and not to the heading above it. Set
-neither and the rule covers the whole body. Setting both is an error.
+since the count belongs to the prose and not to the heading above it.
+`end_before_heading` stops the outline before that heading, so an annex can
+retain a heading style without becoming the next Roman-numbered section. Set
+neither start marker and the rule covers the whole body. Setting both start
+markers is an error.
 
 Only top-level blocks are numbered. A list item, a table cell, a quotation and
 the contents of a fenced div are all paragraphs, and none of them are body

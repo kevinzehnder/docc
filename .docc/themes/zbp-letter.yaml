@@ -1,0 +1,154 @@
+# Zehnder Bolliger & Partner correspondence.
+#
+# Measured against assets/GmbH_Gründung/6 - Brief an HRA - Neueintragung
+# GmbH.docx. The letterhead has two parts: a banner across the top of every
+# sheet — "ADVOKATUR UND NOTARIAT" over the firm name, under a rule — and a
+# right-hand column carrying the office address and the partners, which the
+# original drew as a table cell and which is a frame here.
+#
+# The partner column is fixed firm data, not document metadata: it is the same
+# on every letter the office sends and changes when the partnership changes,
+# not when the letter does. So it lives in the theme rather than in
+# frontmatter, and a new partner is one edit for the whole firm.
+#
+# The body machinery — sender, recipient, date, subject, closing, Beilagen —
+# is jlmy-letter's and is inherited. Only the letterhead differs.
+extends: jlmy-letter
+name: zbp-letter
+description: Zehnder Bolliger & Partner, Advokatur und Notariat, Baden.
+
+page:
+  margins:
+    top: 15mm
+    bottom: 20mm
+    left: 25mm
+    right: 25mm
+    header: 10mm
+
+styles:
+  BriefkopfZeile:
+    name: Letterhead line
+    based_on: Standard
+    align: center
+    size: 9pt
+    spacing: { before: 0mm, after: 1mm }
+
+  BriefkopfFirma:
+    name: Letterhead firm
+    based_on: Standard
+    align: center
+    size: 16pt
+    spacing: { before: 0mm, after: 2mm }
+    borders:
+      bottom: { style: single, width: 1.0 }
+
+  # The right-hand column: office address, then one block per partner.
+  # The unemphasised line is the base and the bold ones derive from it, not
+  # the other way round: `bold: false` on a child omits `w:b` rather than
+  # writing `w:b val="0"`, so it does not cancel a bold it inherited.
+  KanzleiZeile:
+    name: Office line
+    based_on: Standard
+    align: left
+    size: 8pt
+    spacing: { before: 0mm, after: 0mm, line: 1.1 }
+
+  KanzleiAdresse:
+    name: Office address
+    based_on: KanzleiZeile
+    bold: true
+
+  PartnerName:
+    name: Partner name
+    based_on: KanzleiZeile
+    bold: true
+    spacing: { before: 3mm, after: 0mm, line: 1.1 }
+
+  PartnerZeile:
+    name: Partner line
+    based_on: KanzleiZeile
+
+  RegisterZeile:
+    name: Register note
+    based_on: KanzleiZeile
+    spacing: { before: 3mm, after: 0mm, line: 1.1 }
+
+  # The date, and the subject under it, must clear the bottom of the partner
+  # column: a subject line that starts beside the frame wraps at half width.
+  # jlmy-letter's spacing puts the date at 96mm, which is inside the column,
+  # so this letterhead pushes it below.
+  DateLine:
+    name: Date Line
+    based_on: Standard
+    align: left
+    spacing: { before: 54mm, after: 8mm }
+
+  # "EINSCHREIBEN" over the address. Its own line rather than the recipient's
+  # salutation: the salutation is "Herr" or "Frau", and a registered letter to
+  # a registry has neither.
+  Versandart:
+    name: Dispatch method
+    based_on: Standard
+    align: left
+    bold: true
+    spacing: { before: 0mm, after: 2mm }
+
+  # The register conventions, carried over from the deed profiles so that a
+  # Firma and a person's name look the same in the covering letter as they do
+  # in the Urkunde it encloses.
+  FirmaName:
+    name: Firma name
+    type: character
+    bold: true
+
+  ParteiName:
+    name: Partei name
+    type: character
+    bold: true
+    underline: single
+
+# The banner sits on every sheet, as it does in the original: a letter that
+# runs to a second page is still on the firm's paper.
+header:
+  default:
+    - { style: BriefkopfZeile, text: "ADVOKATUR UND NOTARIAT", omit_if_empty: false }
+    - { style: BriefkopfFirma, text: "ZEHNDER  BOLLIGER  &  PARTNER", omit_if_empty: false }
+
+prologue:
+  # The partner column, floated to the right of the address block. Word merges
+  # consecutive paragraphs whose framePr is identical into one frame, so every
+  # line of the column repeats the same frame — a line that omits it drops out
+  # of the column and back into the body flow.
+  - { style: KanzleiAdresse, text: "Bahnhofplatz 1", frame: &kanzlei { x: 118mm, y: 32mm, width: 62mm, height: 88mm, h_anchor: page, v_anchor: page, wrap: around } }
+  - { style: KanzleiAdresse, text: "5400 Baden", frame: *kanzlei }
+  - { style: KanzleiZeile, text: "Telefon 056 200 08 60", frame: *kanzlei }
+  - { style: KanzleiZeile, text: "Telefax 056 200 08 61", frame: *kanzlei }
+
+  - { style: PartnerName, text: "Dr. iur. Hans Zehnder", frame: *kanzlei }
+  - { style: PartnerZeile, text: "Rechtsanwalt u. Notar", frame: *kanzlei }
+  - { style: PartnerZeile, text: "hz@advozehnder.ch", frame: *kanzlei }
+
+  - { style: PartnerName, text: "lic. iur. Willy Bolliger-Kunz", frame: *kanzlei }
+  - { style: PartnerZeile, text: "Rechtsanwalt", frame: *kanzlei }
+  - { style: PartnerZeile, text: "wb@advobolliger.ch", frame: *kanzlei }
+
+  - { style: PartnerName, text: "lic. iur. Fred Hofer", frame: *kanzlei }
+  - { style: PartnerZeile, text: "Rechtsanwalt LL.M.", frame: *kanzlei }
+  - { style: PartnerZeile, text: "fh@advohofer.ch", frame: *kanzlei }
+
+  - { style: PartnerName, text: "lic. iur. Kevin Zehnder", frame: *kanzlei }
+  - { style: PartnerZeile, text: "Rechtsanwalt", frame: *kanzlei }
+  - { style: PartnerZeile, text: "kz@advozehnder.ch", frame: *kanzlei }
+
+  - { style: RegisterZeile, text: "im Anwaltsregister", frame: *kanzlei }
+  - { style: RegisterZeile, text: "eingetragen", frame: *kanzlei }
+
+  # The addressee, on the left, beside the frame.
+  - { style: Versandart, text: "{{ versandart }}" }
+  - { style: AddressBlockFirst, text: "{{ recipient.name }}" }
+  - { style: AddressBlock, text: "{{ recipient.organization }}" }
+  - { style: AddressBlock, text: "{{ recipient.street }}" }
+  - { style: AddressBlock, text: "{{ recipient.postal_code }} {{ recipient.city }}" }
+
+  - { style: DateLine, text: "{{ sender.postal_code }} {{ sender.city }}, {{ date }}" }
+  - { style: SubjectLine, text: "{{ subject }}" }

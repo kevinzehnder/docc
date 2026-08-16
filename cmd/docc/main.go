@@ -148,6 +148,11 @@ flags:
 
 Print a compact, complete document of the type, ready to edit.
 
+With --blank, every field marker is emptied and the rest is left alone: the
+result is a skeleton whose blanks are the decisions the type requires. It still
+passes "docc check", because a blank is content rather than missing content,
+and "docc build" refuses it while naming each position left to decide.
+
 flags:
 `
 	explainHelp = `docc explain [flags] [CODE]
@@ -878,6 +883,7 @@ var explanations = map[string]string{
 	"DOC025": "the frontmatter declares a docc format version this compiler does not support. Use the version listed in the diagnostic's hint.",
 	"DOC026": "the `{...}` attribute block on a fenced div did not parse. Attributes are written `{#id key=value key=\"quoted value\"}`, separated by spaces; the diagnostic names the first token that did not lex.",
 	"DOC027": "the `{...}` attribute block on an inline span did not parse. A span is written `[literal text]{.type key=value}` on one line; the diagnostic names the first token that did not lex.",
+	"DOC028": "an attribute block was found with no `[` on the same line. Spans are parsed a line at a time, so one wrapped across a line break is not a span at all — it becomes prose containing braces, and any check that looks for the annotation reports it as missing. Rewrap the line so the whole span, brackets and attributes together, sits on one of them.",
 	"DOC030": "the document uses a `:::` block the schema does not declare. The hint lists the declared blocks; check `blocks:` in the schema.",
 	"DOC031": "an inline span is missing its type class, or uses one the schema does not declare. The first `.class` in a span's attribute block is its type; the schema's `spans:` section lists the valid ones.",
 	"DOC032": "a block with variants is missing its discriminator attribute, or names a variant the schema does not declare — for example a `partei` block without `kind=person` or `kind=company`.",

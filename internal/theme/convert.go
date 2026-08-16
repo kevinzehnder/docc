@@ -54,11 +54,11 @@ func (s Style) runProps() docx.RunProps {
 	return docx.RunProps{
 		Font:      s.Font,
 		Size:      s.Size.HalfPt(0),
-		Bold:      s.Bold,
-		Italic:    s.Italic,
+		Bold:      docx.ToggleFrom(s.Bold),
+		Italic:    docx.ToggleFrom(s.Italic),
 		Underline: s.Underline,
-		Caps:      s.Caps,
-		SmallCaps: s.SmallCaps,
+		Caps:      docx.ToggleFrom(s.Caps),
+		SmallCaps: docx.ToggleFrom(s.SmallCaps),
 		Color:     s.Color,
 	}
 }
@@ -143,7 +143,7 @@ func (e *BorderEdge) docx() *docx.Border {
 	return &docx.Border{
 		Style: style,
 		Size:  docx.BorderPt(width),
-		Space: e.Space.Twips(0),
+		Space: e.Space.Points(0),
 		Color: e.Color,
 	}
 }

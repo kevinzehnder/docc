@@ -476,8 +476,13 @@ type renderState struct {
 	marker string
 	// inclusive reports that the marker heading is itself numbered.
 	inclusive bool
+	// endBefore is the first heading outside the numbered outline.
+	endBefore string
 	// active reports that numbering has started.
 	active bool
+	// stopped reports that the end marker has been reached. It prevents a later
+	// start marker from reactivating the rule.
+	stopped bool
 	// numID is the single instance every numbered block in this rule shares.
 	// One instance is the whole point: a fresh one per block would restart the
 	// count, so every heading would be I. and every paragraph 1.
@@ -494,6 +499,7 @@ func (e *emitter) renderRule(rule *schema.NumberingRule) *renderState {
 	}
 	heading, inclusive := rule.Marker()
 	s.marker = normalizeHeading(heading)
+	s.endBefore = normalizeHeading(rule.EndBeforeHeading)
 	s.inclusive = inclusive
 	// No marker means the rule covers the body from its first block.
 	s.active = s.marker == ""
@@ -503,6 +509,9 @@ func (e *emitter) renderRule(rule *schema.NumberingRule) *renderState {
 // arrive runs before a block is numbered, and starts an inclusive rule so that
 // `start_at_heading: RECHTSBEGEHREN` numbers RECHTSBEGEHREN itself.
 func (s *renderState) arrive(b ir.Block) {
+	if s.stopIfEndMarker(b) {
+		return
+	}
 	if s.inclusive {
 		s.startIfMarker(b)
 	}
@@ -517,8 +526,20 @@ func (s *renderState) depart(b ir.Block) {
 	}
 }
 
+func (s *renderState) stopIfEndMarker(b ir.Block) bool {
+	if s.rule == nil || s.stopped || s.endBefore == "" {
+		return false
+	}
+	if h, isHeading := b.(ir.Heading); isHeading && normalizeHeading(ir.Text(h.Inlines)) == s.endBefore {
+		s.active = false
+		s.stopped = true
+		return true
+	}
+	return false
+}
+
 func (s *renderState) startIfMarker(b ir.Block) {
-	if s.rule == nil || s.active || s.marker == "" {
+	if s.rule == nil || s.active || s.stopped || s.marker == "" {
 		return
 	}
 	if h, isHeading := b.(ir.Heading); isHeading && normalizeHeading(ir.Text(h.Inlines)) == s.marker {
@@ -589,7 +610,7 @@ func (e *emitter) blockTo(b ir.Block, out *[]docx.Block, depth int) {
 			// from body text, so carry the emphasis directly.
 			p.Props.KeepNext = true
 			for i := range p.Runs {
-				p.Runs[i].Props.Bold = true
+				p.Runs[i].Props.Bold = docx.ToggleOn
 			}
 		}
 		if e.breaksPage(ir.Text(v.Inlines)) {
@@ -1229,7 +1250,7 @@ func boldCell(c *docx.TableCell) {
 			continue
 		}
 		for j := range p.Runs {
-			p.Runs[j].Props.Bold = true
+			p.Runs[j].Props.Bold = docx.ToggleOn
 		}
 		c.Blocks[i] = p
 	}
@@ -1248,12 +1269,12 @@ func (e *emitter) runs(inlines []ir.Inline, inherited docx.RunProps) []docx.Run 
 
 		case ir.Strong:
 			props := inherited
-			props.Bold = true
+			props.Bold = docx.ToggleOn
 			out = append(out, e.runs(v.Inlines, props)...)
 
 		case ir.Emph:
 			props := inherited
-			props.Italic = true
+			props.Italic = docx.ToggleOn
 			out = append(out, e.runs(v.Inlines, props)...)
 
 		case ir.CodeSpan:
@@ -1504,8 +1525,8 @@ func (e *emitter) furnitureRunLine(line theme.Line, meta map[string]any, numID i
 
 		props := docx.RunProps{
 			Style:  r.Style,
-			Bold:   r.Bold,
-			Italic: r.Italic,
+			Bold:   boolToggle(r.Bold),
+			Italic: boolToggle(r.Italic),
 			Size:   r.Size.HalfPt(0),
 			Color:  r.Color,
 		}
@@ -1627,4 +1648,14 @@ func metaString(meta map[string]any, paths ...string) string {
 		}
 	}
 	return ""
+}
+
+// boolToggle lifts a furniture run's plain bool. A furniture run is a leaf —
+// it inherits from its character style, not from another run — so it has no
+// "off" to express and absent is simply not-on.
+func boolToggle(v bool) docx.Toggle {
+	if v {
+		return docx.ToggleOn
+	}
+	return docx.ToggleInherit
 }

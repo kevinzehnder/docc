@@ -26,6 +26,16 @@ func (l Length) Twips(fallback docx.Twips) docx.Twips {
 	return l.twips
 }
 
+// Points returns the measurement in whole points, or fallback when the field
+// was absent. Only border spacing needs this: it is the one place OOXML
+// measures in points rather than twips.
+func (l Length) Points(fallback docx.Point) docx.Point {
+	if !l.set {
+		return fallback
+	}
+	return docx.BorderSpacePt(float64(l.twips) / 20)
+}
+
 // Set reports whether the field was present in the source.
 func (l Length) Set() bool { return l.set }
 

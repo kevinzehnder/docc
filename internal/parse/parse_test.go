@@ -315,3 +315,41 @@ func TestPosAt(t *testing.T) {
 		}
 	}
 }
+
+// A span is parsed one line at a time. Wrapping one across a line break does
+// not half-work — it stops being a span — and the failure used to be silent,
+// surfacing much later as "required field does not appear in the document".
+func TestSpanWrappedAcrossLinesIsReported(t *testing.T) {
+	src := "---\ndocc: 1\n---\n\n" +
+		"Die Gesellschaft bezweckt [die Ausführung von Arbeiten\n" +
+		"sowie den Handel]{.docc-field key=zweck}.\n"
+
+	f, ds := Parse("wrapped.md", []byte(src))
+	if len(f.Spans()) != 0 {
+		t.Errorf("a wrapped span should not parse as a span, got %d", len(f.Spans()))
+	}
+	line := -1
+	for _, d := range ds {
+		if d.Code == "DOC028" {
+			line = d.Pos.Line
+		}
+	}
+	if line < 0 {
+		t.Fatalf("no DOC028 diagnostic: %+v", ds)
+	}
+	if line != 6 {
+		t.Errorf("DOC028 line = %d, want 6 — the line carrying the orphaned attributes", line)
+	}
+}
+
+// The ordinary case must stay quiet: a span entirely on one line, even with
+// brackets elsewhere in the paragraph, is not a wrapped span.
+func TestSpanOnOneLineIsNotReported(t *testing.T) {
+	src := "---\ndocc: 1\n---\n\nUnter der Firma [Muster]{.firma} GmbH,\nmit Sitz in [Baden]{.sitz}.\n"
+	_, ds := Parse("fine.md", []byte(src))
+	for _, d := range ds {
+		if d.Code == "DOC028" {
+			t.Errorf("DOC028 on a well-formed document: %+v", d)
+		}
+	}
+}

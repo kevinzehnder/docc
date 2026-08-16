@@ -62,6 +62,39 @@ func TestMissingArgIsSchemaError(t *testing.T) {
 	}
 }
 
+func TestRequiredDivReportsAtConfiguredHeading(t *testing.T) {
+	src := `---
+document_type: test
+---
+
+# Grundstückbeschrieb
+
+Kein Auszug.
+`
+	ds := run(t, src, schema.Rule{
+		ID:    "X002",
+		Check: "required_div",
+		Args:  map[string]any{"div": "grundstueck", "anchor_heading": "Grundstückbeschrieb"},
+	})
+	if got := codes(ds); len(got) != 1 || got[0] != "X002" {
+		t.Fatalf("codes = %v, want [X002]\n%s", got, messages(ds))
+	}
+	if got := ds[0].Pos.Line; got != 5 {
+		t.Errorf("diagnostic line = %d, want 5", got)
+	}
+}
+
+func TestRequiredDivAcceptsPresentBlock(t *testing.T) {
+	ds := run(t, evidenceDoc, schema.Rule{
+		ID:    "X003",
+		Check: "required_div",
+		Args:  map[string]any{"div": "evidence"},
+	})
+	if len(ds) != 0 {
+		t.Fatalf("present div reported:\n%s", messages(ds))
+	}
+}
+
 func TestMalformedPatternIsSchemaError(t *testing.T) {
 	ds := run(t, evidenceDoc, schema.Rule{
 		ID:    "X002",

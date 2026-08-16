@@ -97,10 +97,25 @@ func (n *Numbering) AddList(def AbstractNum) int {
 }
 
 // NewInstance returns another numId bound to an existing abstract definition,
-// so a second list restarts rather than continuing the first.
+// so a second list restarts rather than continuing the first. LibreOffice
+// otherwise carries the preceding instance's counter into this one; an
+// explicit level-0 override makes the restart portable.
 func (n *Numbering) NewInstance(abstractID int) int {
+	start := 1
+	for _, def := range n.Abstract {
+		if def.ID != abstractID {
+			continue
+		}
+		for _, level := range def.Levels {
+			if level.Level == 0 && level.Start > 0 {
+				start = level.Start
+			}
+		}
+		break
+	}
+
 	id := n.nextInstanceID()
-	n.Instances = append(n.Instances, NumInstance{ID: id, AbstractID: abstractID})
+	n.Instances = append(n.Instances, NumInstance{ID: id, AbstractID: abstractID, StartOverride: start})
 	return id
 }
 

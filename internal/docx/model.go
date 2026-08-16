@@ -237,7 +237,7 @@ const (
 type Border struct {
 	Style BorderStyle
 	Size  Eighth
-	Space Twips
+	Space Point
 	Color string
 }
 
@@ -273,16 +273,16 @@ type RunProps struct {
 	Style     string
 	Font      string
 	Size      HalfPt
-	Bold      bool
-	Italic    bool
+	Bold      Toggle
+	Italic    Toggle
 	Underline string // "single", "double", "none"
-	Strike    bool
+	Strike    Toggle
 	Color     string
 	// Highlight is a named Word highlight colour, e.g. "yellow". It is how an
 	// unfilled field is made impossible to miss.
 	Highlight string
-	Caps      bool
-	SmallCaps bool
+	Caps      Toggle
+	SmallCaps Toggle
 	VertAlign VertAlign
 	// Spacing is inter-character spacing in twips.
 	Spacing Twips
@@ -419,7 +419,7 @@ func R(text string) Run {
 
 // RB builds a bold run of plain text.
 func RB(text string) Run {
-	return Run{Props: RunProps{Bold: true}, Items: []Inline{Text(text)}}
+	return Run{Props: RunProps{Bold: ToggleOn}, Items: []Inline{Text(text)}}
 }
 
 // Cell builds a table cell holding a single paragraph.

@@ -1,0 +1,200 @@
+# Stampa- und Lex-Friedrich-Erklärung zur Gründung einer GmbH.
+#
+# Rebuilt from the office's Word template
+# (assets/GmbH_Gründung/3 - Stampa und Lex-Friedrich Erklärung GmbH.docx).
+#
+# This is a declaration, not a deed: the founder states five things and signs
+# for them, and the Handelsregisteramt files it. The template is almost
+# entirely fixed wording — which is exactly why the five declarations are
+# `required: true` in `body`. A Stampa-Erklärung that is missing one of them
+# is not a shorter declaration, it is an incomplete one, and the registry
+# rejects it.
+type: gmbh_stampa
+extends: gmbh
+description: Stampa- und Lex-Friedrich-Erklärung der Gründer einer GmbH.
+theme: gmbh_erklaerung
+
+frontmatter:
+  title:
+    type: string
+    default: Erklärung
+  subtitle:
+    type: string
+    default: >-
+      Im Hinblick auf die Bestimmungen des Obligationenrechts, der
+      Handelsregisterverordnung und des Bundesgesetzes über den Erwerb von
+      Grundstücken durch Personen im Ausland wird bezüglich der nachgenannten
+      Gesellschaft:
+  # A Stampa-Erklärung is signed by the founders, not certified by the notary,
+  # so this type does not need one. Declared here so the fragment's
+  # requirement does not force an irrelevant name onto the document.
+  urkundsperson:
+    type: urkundsperson
+    required: false
+
+body:
+  - heading: Stampa
+    level: 1
+    required: true
+    ordered: true
+    children:
+      - heading: Sacheinlagen und Sachübernahmen
+        level: 2
+        required: true
+      - heading: Beabsichtigte Sachübernahme
+        level: 2
+        required: true
+      - heading: Verrechnungen
+        level: 2
+        required: true
+      - heading: Gründervorteile und Sonderrechte
+        level: 2
+        required: true
+
+  - heading: Lex Friedrich
+    level: 1
+    required: true
+    ordered: true
+    children:
+      - heading: Erwerb von Grundstücken durch Personen im Ausland
+        level: 2
+        required: true
+
+styles:
+  h1: Erklaerungsteil
+  h2: Erklaerungssatz
+  paragraph: Standard
+  quote: Zitat
+  code: Code
+  ordered_list: Nummerierung
+  bullet_list: Aufzaehlung
+
+  "div.gesellschaft": Gesellschaftsbox
+  "div.erklaerung": Erklaerungstext
+  "div.unterschriften": Unterschriftsrolle
+  "div.unterschriften.line": Unterschriftslinie
+
+  "span.name": ParteiName
+  "span.firma": FirmaName
+
+render:
+  heading_numbering:
+    definition: ErklaerungOutline
+    start_at_heading: Stampa
+
+blocks:
+  gesellschaft:
+    description: >-
+      Die Gesellschaft, über die erklärt wird — Firma und Sitz, in the ruled
+      box. One block per document; naming the wrong company is the failure the
+      box exists to prevent.
+    required_spans: [firma, sitz]
+
+  erklaerung:
+    description: >-
+      Die erklärte Aussage selbst, set apart from the recitals around it. One
+      block per declaration, directly under its heading.
+
+  unterschriften:
+    description: >-
+      Unterschriftenblock der Gründer. Each list item is one signatory and
+      comes out as a ruled line to sign on. Do not type the dots — the theme
+      draws the rule.
+
+fields:
+  datum_unterzeichnung:
+    description: Datum der Unterzeichnung durch die Gründer.
+    completion: handwritten
+
+rules:
+  - id: STM031
+    check: no_placeholder_text
+    severity: error
+
+  - id: STM040
+    check: no_empty_sections
+    severity: warning
+
+  # A declared block is permitted, not required: without these an author
+  # could write fluent prose where a register entry belongs and every
+  # span check in that section would simply not run.
+  - id: STM050
+    check: required_div
+    severity: error
+    args:
+      div: gesellschaft
+  - id: STM051
+    check: required_div
+    severity: error
+    args:
+      div: unterschriften
+
+example: |
+  ---
+  docc: 1
+  document_type: gmbh_stampa
+  date: 2026-08-16
+  revision: verzicht
+  gesellschaft:
+    firma: Muster Bau
+    sitz: Baden
+    domizil: Musterstrasse 1, 5400 Baden
+  ---
+
+  ::: gesellschaft
+  [Muster Bau]{.firma .docc-field key=firma} GmbH, mit Sitz in [Baden]{.sitz .docc-field key=sitz}
+  :::
+
+  folgendes erklärt:
+
+  # Stampa
+
+  ## Sacheinlagen und Sachübernahmen
+
+  ::: erklaerung
+  Die Gesellschaft hat von Beteiligten oder Dritten keine Vermögenswerte wie
+  Grundstücke, Mobilien, Wertpapiere, Patente, Forderungen, Geschäfte oder
+  Verträge übernommen und beabsichtigt auch nicht, solche zu übernehmen.
+  :::
+
+  ## Beabsichtigte Sachübernahme
+
+  ::: erklaerung
+  Die Gesellschaft hat nicht die feste Absicht, unmittelbar nach der Gründung
+  von Beteiligten oder Dritten bereits bestimmte Vermögenswerte von einer
+  gewissen Erheblichkeit zu übernehmen.
+  :::
+
+  ## Verrechnungen
+
+  ::: erklaerung
+  Die Gesellschaft nimmt im Zusammenhang mit dem Kapital keine Verrechnungen
+  vor und beabsichtigt nicht, solche vorzunehmen, mit Ausnahme derjenigen, die
+  in den Gründungsbelegen offengelegt sind.
+  :::
+
+  ## Gründervorteile und Sonderrechte
+
+  ::: erklaerung
+  Die Gesellschaft hat weder Beteiligten noch Dritten besondere Vorteile
+  gewährt oder zugesichert, wie Beteiligungen am Reingewinn oder am
+  Liquidationsüberschuss, Vorkaufs-, Kaufs- oder Bezugsrechte.
+  :::
+
+  # Lex Friedrich
+
+  ## Erwerb von Grundstücken durch Personen im Ausland
+
+  ::: erklaerung
+  Bei der Gesellschaft besteht keine Beteiligung durch Personen im Ausland im
+  Sinne der Vorschriften über den Erwerb von Grundstücken durch Personen im
+  Ausland.
+  :::
+
+  ::: unterschriften
+  Baden, den [______________]{.docc-field key=datum_unterzeichnung}
+
+  Unterschriften der Gründer bzw. Anmeldenden:
+
+  - [Max Muster]{.name}:
+  :::

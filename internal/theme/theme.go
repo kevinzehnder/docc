@@ -128,14 +128,18 @@ type Style struct {
 	Type string `yaml:"type"`
 
 	// Character formatting.
-	Font      string   `yaml:"font"`
-	Size      FontSize `yaml:"size"`
-	Bold      bool     `yaml:"bold"`
-	Italic    bool     `yaml:"italic"`
-	Underline string   `yaml:"underline"`
-	Caps      bool     `yaml:"caps"`
-	SmallCaps bool     `yaml:"small_caps"`
-	Color     string   `yaml:"color"`
+	Font string   `yaml:"font"`
+	Size FontSize `yaml:"size"`
+	// The toggles are pointers so a child style can turn one *off*: absent
+	// means "inherit from based_on", false means "off even if the parent set
+	// it". A plain bool cannot tell those apart, and the theme decodes once
+	// from merged YAML precisely so that distinction survives.
+	Bold      *bool  `yaml:"bold"`
+	Italic    *bool  `yaml:"italic"`
+	Underline string `yaml:"underline"`
+	Caps      *bool  `yaml:"caps"`
+	SmallCaps *bool  `yaml:"small_caps"`
+	Color     string `yaml:"color"`
 
 	// Paragraph formatting.
 	Align   string   `yaml:"align"`
@@ -229,9 +233,15 @@ type Line struct {
 	// party entry is a bold name, a tab, the role in normal weight, then the
 	// address a size smaller. When set, Text is ignored.
 	Runs []LineRun `yaml:"runs"`
-	// Frame positions the line, and any that follow it in the same block, as a
-	// floating frame. This is how the address block reaches the envelope
-	// window without a text box.
+	// Frame positions this line as a floating frame. This is how the address
+	// block reaches the envelope window without a text box.
+	//
+	// It applies to the line that declares it and to no other. Word joins
+	// consecutive paragraphs whose frame properties are identical into one
+	// frame, so a multi-line block repeats the same `frame:` on every line —
+	// a YAML anchor is the readable way to do that. The alternative, letting a
+	// frame run on until something ended it, would have made a letterhead's
+	// frame swallow the addressee block that follows it.
 	Frame *Frame `yaml:"frame"`
 	// Image embeds a picture from the theme directory.
 	Image *Image `yaml:"image"`

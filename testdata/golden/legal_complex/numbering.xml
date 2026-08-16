@@ -119,9 +119,15 @@
 </w:num>
 <w:num w:numId="5">
 <w:abstractNumId w:val="3"/>
+<w:lvlOverride w:ilvl="0">
+<w:startOverride w:val="1"/>
+</w:lvlOverride>
 </w:num>
 <w:num w:numId="6">
 <w:abstractNumId w:val="3"/>
+<w:lvlOverride w:ilvl="0">
+<w:startOverride w:val="1"/>
+</w:lvlOverride>
 </w:num>
 <w:num w:numId="7">
 <w:abstractNumId w:val="4"/>

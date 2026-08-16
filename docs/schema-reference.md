@@ -24,7 +24,7 @@ docc doctor                   # which schemas resolved, and whether they are sou
 | `extends` | string | — | Another schema whose `frontmatter`, `types`, `blocks`, `spans`, `fields` and `rules` are inherited. Keys declared here win. Cycles are rejected at load. |
 | `description` | string | — | One line, shown by `docc types` and `docc describe`. |
 | `theme` | string | — | The theme in `.docc/themes` used to render this type. **Empty means check-only**: the type validates but `docc build` refuses it. `docc doctor` reports it as `check-only` rather than as a fault. |
-| `example` | string | — | A compact, complete document of this type, printed by `docc example`. Lives in the schema so the contract and its demonstration cannot drift; a test compiles it. |
+| `example` | string | — | A compact document or drafting starter of this type, printed by `docc example`. It lives in the schema so the contract and its starter cannot drift; a test checks it. A starter may contain blank `before-execution` fields: `check` accepts it while `build` deliberately refuses it. |
 | `types` | map | — | Reusable object shapes, referenced by name from a field's `type`. |
 | `frontmatter` | map | — | The top-level metadata fields. |
 | `body` | list | — | The expected heading structure, in document order. |
@@ -226,6 +226,16 @@ Written in the document as:
 Beurkundet am [____________]{.docc-field key=beurkundungsdatum}
 ```
 
+A field may retain a semantic character style. Put its semantic type first and
+add `.docc-field` as a second class:
+
+```markdown
+[SIX SIS AG]{.glaeubiger .docc-field key=glaeubiger_name}
+```
+
+The field key makes completion checkable; `.glaeubiger` still selects the
+schema's span validation and character style.
+
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `description` | string | — | Reported by `docc describe`. |
@@ -272,6 +282,7 @@ Codes a schema defines are documented *in the schema*, not in `docc explain` —
 | `no_placeholder_text` | `pattern` (regexp, defaults to bracketed prose) | Template placeholders left in the document. A `[FILL IN]` that reaches a filed brief. |
 | `div_items_match` | `div` (required), `pattern` (required regexp) | A list item inside `::: <div>` that does not match the shape. The cheap way to enforce a per-line format. |
 | `cross_reference` | `div` (required), `pattern` (required regexp, capture group 1 is the key), `list_field` (required), `label` (defaults to `list_field`) | A citation in a block that does not index into a frontmatter list. |
+| `required_div` | `div` (required), `anchor_heading` (optional) | A required semantic block is absent. The optional heading anchors the diagnostic where the missing content belongs. |
 | `no_empty_sections` | — | A heading with no content. A heading whose next heading is deeper is a container and is exempt. |
 | `amounts_balance` | `div` (required) | Money that does not add up: items whose sum contradicts a `[= …]` total, or a block with `total-of=<id>` whose items do not settle that block's total. |
 
@@ -309,9 +320,10 @@ Each rule:
 | `definition` | string | An entry in the theme's `numbering:`. One the theme does not define is caught by `emit.Validate` — and so by `docc doctor` — before anything renders. |
 | `start_at_heading` | string | The heading that is itself the first numbered block. |
 | `start_after_heading` | string | A heading that is *not* numbered, after which numbering begins. This is what a marginal number wants: the count starts with the prose, not the heading above it. |
+| `end_before_heading` | string | The first heading outside the numbered outline. It keeps its heading style but receives no label; useful for a deed's filing annex after its certification. |
 
-Set neither and numbering applies to the whole body. Setting both is an error
-rather than a precedence rule nobody would remember.
+Set neither start marker and numbering applies to the whole body. Setting both
+start markers is an error rather than a precedence rule nobody would remember.
 
 ## Diagnostics
 

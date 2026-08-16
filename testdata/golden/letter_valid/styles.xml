@@ -133,7 +133,10 @@
 <w:basedOn w:val="SenderName"/>
 <w:qFormat/>
 <w:pPr/>
-<w:rPr/>
+<w:rPr>
+<w:b w:val="0"/>
+<w:bCs w:val="0"/>
+</w:rPr>
 </w:style>
 <w:style w:type="paragraph" w:styleId="SenderLineLast">
 <w:name w:val="Sender Line Last"/>

@@ -16,9 +16,9 @@ func testTheme() *theme.Theme {
 		Name: "test",
 		Styles: map[string]theme.Style{
 			"Standard":      {Name: "Standard", Default: true},
-			"Ueberschrift1": {Name: "heading 1", BasedOn: "Standard", Bold: true},
+			"Ueberschrift1": {Name: "heading 1", BasedOn: "Standard", Bold: ptrTo(true)},
 			"Listenabsatz":  {Name: "List Paragraph", BasedOn: "Standard"},
-			"Evidence":      {Name: "Evidence", BasedOn: "Standard", Italic: true},
+			"Evidence":      {Name: "Evidence", BasedOn: "Standard", Italic: ptrTo(true)},
 			"EvidenceLabel": {Name: "Evidence Label", Type: "character"},
 		},
 		Numbering: map[string]theme.NumFormat{
@@ -378,6 +378,32 @@ func TestHeadingNumberingStartsAtMarker(t *testing.T) {
 
 // `start_after_heading` is the other half: the marker heading is not itself
 // numbered, and the count begins with the prose below it.
+// An annex may retain a heading style after a deed outline ends, but it must
+// not become the next Roman-numbered section.
+func TestHeadingNumberingEndsBeforeMarker(t *testing.T) {
+	sc := renderSchema()
+	sc.Render.HeadingNumbering.EndBeforeHeading = "Anmeldung"
+	f, ds := parse.Parse("t.md", []byte("---\nx: 1\n---\n\n# START\n\n# Before annex\n\n# Anmeldung\n\n# Annex tail\n"))
+	if ds.HasErrors() {
+		t.Fatalf("parse: %+v", ds)
+	}
+	built, err := Build(ir.Build(f, "test", map[string]any{}), sc, renderTheme(), Options{})
+	if err != nil {
+		t.Fatalf("build: %v", err)
+	}
+
+	byText := map[string]int{}
+	for _, p := range numberedParagraphs(t, built) {
+		byText[p.Text] = p.NumID
+	}
+	if byText["START"] == 0 || byText["Before annex"] == 0 {
+		t.Fatal("headings before the end marker must be numbered")
+	}
+	if byText["Anmeldung"] != 0 || byText["Annex tail"] != 0 {
+		t.Errorf("headings after end_before_heading were numbered: %#v", byText)
+	}
+}
+
 func TestParagraphNumberingStartsAfterMarker(t *testing.T) {
 	got := numberedParagraphs(t, buildRendered(t,
 		"---\nx: 1\n---\n\nBefore the marker.\n\n# START\n\nFirst.\n\n# Section\n\nSecond.\n"))
@@ -818,3 +844,7 @@ func text(p docx.Paragraph) string {
 	}
 	return b.String()
 }
+
+// ptrTo is for the theme's tri-state toggles, where absent, on and explicitly
+// off are three different things.
+func ptrTo[T any](v T) *T { return &v }

@@ -1,0 +1,252 @@
+# Anmeldung an das Handelsregisteramt — Neueintragung einer GmbH.
+#
+# Rebuilt from the office's Word template
+# (assets/GmbH_Gründung/5 - Anmeldung HRA.docx).
+#
+# The Anmeldung is the only document of the dossier that is a form rather than
+# a text: eleven fields the registry reads in order, and a signature the notary
+# certifies. Its `body` is therefore unusually strict — every one of the eleven
+# is `required: true` and the whole list is `ordered: true`, because the
+# registry reads them in that order and rejects an Anmeldung that is missing
+# one. The template could not say any of this; it was a table whose rows a
+# drafter could delete.
+#
+# Everything the eleven fields state is also stated in the Urkunde, the
+# Statuten or the Erklärungen. docc has no dossier-level input, so the values
+# are retyped here — but they are retyped into a form the checker knows the
+# shape of, which is the difference between this and the Word template.
+type: gmbh_anmeldung
+extends: gmbh
+description: Anmeldung an das Handelsregisteramt zur Neueintragung einer GmbH.
+theme: gmbh_anmeldung
+
+body:
+  - heading: Firma
+    level: 1
+    required: true
+  - heading: Sitz
+    level: 1
+    required: true
+  - heading: Domizil
+    level: 1
+    required: true
+  - heading: Statutendatum
+    level: 1
+    required: true
+  - heading: Zweck
+    level: 1
+    required: true
+  - heading: Stammkapital
+    level: 1
+    required: true
+  - heading: Publikationsorgan
+    level: 1
+    required: true
+  - heading: Mitteilungen
+    level: 1
+    required: true
+  - heading: Bemerkungen
+    level: 1
+    required: true
+  - heading: Belege
+    level: 1
+    required: true
+  - heading: Eingetragene Personen
+    level: 1
+    required: true
+
+styles:
+  h1: Feldname
+  paragraph: Feldwert
+  quote: Zitat
+  code: Code
+  ordered_list: Nummerierung
+  bullet_list: Aufzaehlung
+
+  "div.person": Feldwert
+  "div.betraege": Betragszeile
+  "div.betraege.amount": Betrag
+  "div.betraege.total": BetragTotal
+  "div.betraege.total.amount": BetragTotalZahl
+  "div.betraege.words": BetragWorte
+
+  "div.unterschriften": Unterschriftsrolle
+  "div.unterschriften.line": Unterschriftslinie
+
+  "span.name": ParteiName
+  "span.firma": FirmaName
+
+# No `render.heading_numbering`: the fields of a form are not an outline, and
+# the registry cites them by name. The rule above each field name is the
+# theme's, drawn where the template's table drew one.
+
+blocks:
+  person:
+    description: >-
+      Eine einzutragende Person. The required spans are exactly what the
+      register entry carries — who they are, where they live, what they do and
+      how they sign — so an entry that omits one cannot be filed.
+    required_spans: [name, geburtsdatum, heimatort, adresse, funktion, zeichnungsart]
+
+  betraege:
+    description: >-
+      Das Stammkapital und seine Stammanteile — one item per line, the amount
+      first in square brackets. The item whose amount begins with `=` is the
+      total, and the others must add up to it.
+    attributes: [total-of]
+
+  unterschriften:
+    description: >-
+      Unterschrift der anmeldenden Person. Each list item is one signatory and
+      comes out as a ruled line to sign on. Do not type the dots — the theme
+      draws the rule.
+
+fields:
+  domizil:
+    description: Das Domizil (Adresse), wie es im Fliesstext genannt wird.
+    required: true
+    completion: before-execution
+
+  datum_unterzeichnung:
+    description: Datum der Unterzeichnung der Anmeldung.
+    completion: handwritten
+
+rules:
+  - id: ANM031
+    check: no_placeholder_text
+    severity: error
+
+  - id: ANM012
+    check: div_items_match
+    severity: error
+    args:
+      div: betraege
+      pattern: '^\s*\[=?\s*(?:CHF|Fr\.)\s?[\d''’.]+(?:\.\d\d)?\]\s+\S'
+    message: "Betragszeile ohne Betrag in eckigen Klammern"
+    hint: 'write the amount first: "- [Fr. 1''000.00] je Stammanteil"'
+
+  - id: ANM013
+    check: amounts_balance
+    severity: error
+    args:
+      div: betraege
+
+  # A field left with a heading and nothing under it is the failure mode of a
+  # form: it looks answered and is not.
+  - id: ANM040
+    check: no_empty_sections
+    severity: error
+
+  # A declared block is permitted, not required: without these an author
+  # could write fluent prose where a register entry belongs and every
+  # span check in that section would simply not run.
+  - id: ANM050
+    check: required_div
+    severity: error
+    args:
+      div: person
+      anchor_heading: Eingetragene Personen
+  - id: ANM051
+    check: required_div
+    severity: error
+    args:
+      div: betraege
+      anchor_heading: Stammkapital
+  - id: ANM052
+    check: required_div
+    severity: error
+    args:
+      div: unterschriften
+
+example: |
+  ---
+  docc: 1
+  document_type: gmbh_anmeldung
+  date: 2026-08-16
+  handelsregisteramt: Kanton Aargau
+  urkundsperson:
+    name: Dr. iur. Hans Zehnder
+    amtstitel: Urkundsperson des Kantons Aargau
+    ort: Baden
+  revision: verzicht
+  gesellschaft:
+    firma: Muster Bau
+    sitz: Baden
+    domizil: Musterstrasse 1, 5400 Baden
+  ---
+
+  # Firma
+
+  [Muster Bau]{.firma .docc-field key=firma} GmbH
+
+  # Sitz
+
+  [Baden]{.sitz .docc-field key=sitz}
+
+  # Domizil
+
+  [Musterstrasse 1, 5400 Baden]{.docc-field key=domizil}
+
+  # Statutendatum
+
+  [16. August 2026]{.datum}
+
+  # Zweck
+
+  Die Gesellschaft bezweckt die Ausführung von Hoch- und Tiefbauarbeiten sowie
+  den Handel mit Baumaterialien. Die Gesellschaft kann Zweigniederlassungen und
+  Tochtergesellschaften im In- und Ausland errichten und sich an anderen
+  Unternehmen im In- und Ausland beteiligen sowie alle Geschäfte tätigen, die
+  direkt oder indirekt mit ihrem Zweck in Zusammenhang stehen. Die Gesellschaft
+  kann im In- und Ausland Grundeigentum erwerben, belasten, veräussern und
+  verwalten. Sie kann auch Finanzierungen für eigene oder fremde Rechnung
+  vornehmen sowie Garantien und Bürgschaften für Tochtergesellschaften und
+  Dritte eingehen.
+
+  # Stammkapital
+
+  ::: betraege {#stammkapital}
+  - [Fr. 20'000.00] 20 Stammanteile zu je Fr. 1'000.00
+  - [= Fr. 20'000.00] Ausmachend das Stammkapital von
+  :::
+
+  # Publikationsorgan
+
+  Schweizerisches Handelsamtsblatt (SHAB)
+
+  # Mitteilungen
+
+  Mitteilungen an die Gesellschafter erfolgen per Brief, E-Mail oder Telefax an
+  die im Anteilbuch verzeichneten Adressen.
+
+  # Bemerkungen
+
+  Gemäss Erklärung des Gründers vom [16. August 2026]{.datum} wird auf die
+  eingeschränkte Revision verzichtet.
+
+  # Belege
+
+  - Öffentliche Urkunde vom [16. August 2026]{.datum}
+  - Statuten vom [16. August 2026]{.datum}
+  - Bestätigung der Kapitaleinzahlung vom [10. August 2026]{.datum}
+  - Verzichtserklärung bezüglich Revision vom [16. August 2026]{.datum}
+  - Stampa- und Lex-Friedrich-Erklärung vom [10. August 2026]{.datum}
+  - Ausweiskopie der einzutragenden Person
+
+  # Eingetragene Personen
+
+  ::: person
+  [Max Muster]{.name}, geb. [12. April 1975]{.geburtsdatum}, von
+  [Baden AG]{.heimatort}, in [5400 Baden, Musterstrasse 1]{.adresse}, als
+  [Gesellschafter und Geschäftsführer]{.funktion}
+  [mit Einzelunterschrift]{.zeichnungsart}, mit 20 Stammanteilen zu
+  je Fr. 1'000.00.
+  :::
+
+  ::: unterschriften
+  Baden, den [______________]{.docc-field key=datum_unterzeichnung}
+
+  Der Gesellschafter und Geschäftsführer:
+
+  - [Max Muster]{.name}:
+  :::

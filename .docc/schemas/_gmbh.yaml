@@ -1,0 +1,146 @@
+# Shared contract of the GmbH-Gründung dossier.
+#
+# Rebuilt from the office's Word set (assets/GmbH_Gründung/): Gründungsurkunde,
+# Statuten, Stampa- und Lex-Friedrich-Erklärung, Verzichtserklärung (Opting
+# Out), Anmeldung HRA, Brief an das Handelsregisteramt.
+#
+# The six documents are one transaction, not six unrelated types. The same
+# facts recur in every one of them — Firma, Sitz, Domizil, Stammkapital, the
+# Gründer's identity, the Statutendatum — and in the Word set they are retyped
+# six times. This fragment is where the *shape* of those facts is declared
+# once; each document type extends it and adds only what makes it different.
+#
+# docc has no dossier-level input, so the values are still stated per source.
+# What this buys is that they cannot disagree in *form*: a UID that is not a
+# UID, a postal code that YAML turned into an integer, a Stammkapital whose
+# parts do not add up are caught in every one of the six.
+#
+# Filename starts with "_" by convention: this exists to be extended.
+# It declares no theme and so is check-only.
+type: gmbh
+extends: base
+description: Common shapes of the GmbH-Gründung dossier (check-only fragment).
+
+types:
+  # The notary. Identical in shape to the Kaufvertrag's, because it is the
+  # same office and the same furniture line renders it.
+  urkundsperson:
+    name: { type: string, required: true }
+    amtstitel:
+      type: string
+      required: true
+      hint: 'e.g. "Urkundsperson des Kantons Aargau"'
+    ort: { type: string, required: true }
+
+  # The company being founded. Its Firma and Sitz reach the title block of the
+  # Urkunde, the Statuten and the Anmeldung, so they are frontmatter; its Zweck
+  # is prose the author writes and so is not.
+  gesellschaft:
+    firma:
+      type: string
+      required: true
+      hint: 'the Firma without the legal form, e.g. "Muster Bau" — `rechtsform` carries the rest'
+    rechtsform:
+      type: string
+      default: GmbH
+    sitz:
+      type: string
+      required: true
+      hint: 'the political municipality, e.g. "Baden"'
+    # Required. A company must have a Domizil to be entered in the register,
+    # and the templates highlight it as a blank in the Urkunde and again in
+    # the Anmeldung. Optional here meant a founding could be drafted with no
+    # address at all and nothing would say so.
+    domizil:
+      type: string
+      required: true
+      hint: 'the full address, or "c/o …" when the domicile is not the company''s own offices'
+
+frontmatter:
+  urkundsperson:
+    type: urkundsperson
+    required: true
+
+  gesellschaft:
+    type: gesellschaft
+    required: true
+
+  # The registry the founding is filed with, named in full: it is written into
+  # a sentence ("ANMELDUNG an das …"), so a bare canton would not decline.
+  handelsregisteramt:
+    type: string
+    default: Handelsregisteramt des Kantons Aargau
+    hint: 'the office in full, e.g. "Handelsregisteramt des Kantons Aargau"'
+
+  # The one decision of the founding that the Word templates never marked,
+  # because they silently assumed the answer: the Anmeldung states "wird auf
+  # die eingeschränkte Revision verzichtet" as a fact, and the Verzichtserklärung
+  # is simply in the folder. A drafter founding a company that does *not* waive
+  # had to notice, on their own, that three documents were now wrong.
+  #
+  # An enum, and deliberately without a `default`: a default would make the
+  # decision silently, which is the failure this exists to prevent. It is
+  # declared in the fragment rather than in one type because it governs the
+  # whole dossier — the Urkunde's Revisionsstelle section, the Anmeldung's
+  # Bemerkungen, the Brief's Beilagen, and whether a Verzichtserklärung is
+  # drawn up at all.
+  revision:
+    type: enum
+    required: true
+    values: [verzicht, eingeschraenkt, ordentlich]
+    hint: >-
+      "verzicht" = Opting Out under Art. 727a Abs. 2 OR (a Verzichtserklärung
+      is then required); "eingeschraenkt" or "ordentlich" = a Revisionsstelle
+      is elected and named in the Urkunde
+
+# Facts the checker has to be able to find inside prose. Every document of the
+# dossier may use any of them; a type that has no use for one simply never
+# writes it. The theme decides which are set apart typographically.
+spans:
+  firma:
+    description: Firma der Gesellschaft, wie im Handelsregister einzutragen.
+  sitz:
+    description: Sitz (politische Gemeinde) der Gesellschaft.
+  name:
+    description: Name einer Person, wie im Handelsregister einzutragen.
+  geburtsdatum:
+    description: Geburtsdatum einer natürlichen Person.
+  heimatort:
+    description: Heimatort (Bürgerort) einer natürlichen Person.
+  adresse:
+    description: >-
+      Wohnadresse einer Person oder Sitzadresse einer Gesellschaft, wie im
+      Handelsregister einzutragen — PLZ, Ort und Strasse.
+  uid:
+    description: UID einer Gesellschaft, CHE-XXX.XXX.XXX.
+  datum:
+    description: Ein Kalenderdatum, wie geschrieben.
+  funktion:
+    description: Funktion im Handelsregister, z.B. "Gesellschafter und Geschäftsführer".
+  zeichnungsart:
+    description: Art der Zeichnungsberechtigung, z.B. "mit Einzelunterschrift".
+  ausweis:
+    description: Ausweis, mit dem sich eine Urkundspartei ausgewiesen hat.
+
+# Blanks completed by hand at the Beurkundung or the signing. Shared because
+# every document of the dossier carries at least the date, and the Word set
+# left all of them as grey tab-blanks.
+fields:
+  # The Firma and the Sitz are required frontmatter, which guarantees the
+  # *title block* names them. These two markers guarantee the *body* does —
+  # they sit exactly where the Word templates highlighted a blank, and they
+  # ride as a second class so the text keeps its `span.firma` / `span.sitz`
+  # appearance while also being a blank the compiler will not render over.
+  firma:
+    description: Die Firma, wie sie im Fliesstext der Urkunde genannt wird.
+    required: true
+    completion: before-execution
+
+  sitz:
+    description: Der Sitz, wie er im Fliesstext genannt wird.
+    required: true
+    completion: before-execution
+
+  datum_unterzeichnung:
+    description: Datum der Unterzeichnung — blank in a draft, written out once known.
+    completion: handwritten

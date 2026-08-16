@@ -89,6 +89,10 @@ type NumberingRule struct {
 	// Set neither and numbering applies to the whole body. Setting both is a
 	// schema error rather than a precedence rule nobody would remember.
 	StartAfterHeading string `yaml:"start_after_heading"`
+	// EndBeforeHeading names the first heading outside the numbered outline.
+	// It is useful for an annex following a deed's certification: the annex
+	// keeps its heading style but must not acquire the next Roman numeral.
+	EndBeforeHeading string `yaml:"end_before_heading"`
 }
 
 // Marker returns the heading text numbering keys off, and whether that heading

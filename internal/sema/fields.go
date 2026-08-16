@@ -20,8 +20,8 @@ const completionHandwritten = "handwritten"
 
 const completionBeforeExecution = "before-execution"
 
-// checkDocFields validates `.docc-field` spans at check time: every field
-// span carries a key, declared fields exist where required, and the schema's
+// checkDocFields validates spans carrying `.docc-field` at check time: every
+// field span carries a key, declared fields exist where required, and the schema's
 // completion values are ones the compiler knows. Whether a blank is *allowed*
 // is build business — see CheckCompletion.
 func checkDocFields(f *parse.File, sc *schema.Schema, ds *diag.List) {
@@ -102,11 +102,13 @@ func CheckCompletion(f *parse.File, sc *schema.Schema, ds *diag.List) {
 	}
 }
 
-// fieldSpans returns every `.docc-field` span in document order.
+// fieldSpans returns every span carrying `.docc-field` in document order.
+// The marker can be a second class after a semantic type, for example
+// `[SIX SIS AG]{.glaeubiger .docc-field key=glaeubiger_name}`.
 func fieldSpans(f *parse.File) []*parse.Span {
 	var out []*parse.Span
 	for _, span := range f.Spans() {
-		if span.SpanType() == FieldSpanType {
+		if span.HasClass(FieldSpanType) {
 			out = append(out, span)
 		}
 	}

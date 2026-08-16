@@ -43,6 +43,18 @@ func (n *Span) SpanType() string {
 	return n.Attr.Classes[0].Name
 }
 
+// HasClass reports whether the span carries a class, including classes after
+// its semantic type. This lets a semantic span also carry a compiler marker
+// such as `.docc-field` without giving up its character style.
+func (n *Span) HasClass(name string) bool {
+	for _, class := range n.Attr.Classes {
+		if class.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 // LiteralText returns the authored text between the brackets.
 func (n *Span) LiteralText(source []byte) string {
 	return string(n.Literal.Value(source))

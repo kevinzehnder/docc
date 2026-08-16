@@ -188,7 +188,7 @@ on it.
 | `style` | string | — | A style id from `styles:`. |
 | `text` | string | — | The paragraph's text, with `{{ }}` interpolation. Ignored when `runs` is set. |
 | `runs` | list | — | A paragraph whose formatting changes partway through. See below. |
-| `frame` | map | — | Positions this line, and those following it in the same block, as a floating frame: `x`, `y`, `width`, `height`, `h_anchor`, `v_anchor`, `wrap`. This is how an address block reaches the envelope window without a text box. |
+| `frame` | map | — | Positions **this line** as a floating frame: `x`, `y`, `width`, `height`, `h_anchor`, `v_anchor`, `wrap`. This is how an address block reaches the envelope window without a text box. A frame applies to the line that declares it and no other — Word joins consecutive paragraphs with identical frame properties into one frame, so a multi-line block repeats the same `frame:` on every line, most readably through a YAML anchor: `frame: &col { … }` on the first, `frame: *col` on the rest. |
 | `image` | map | — | A picture: `path` (relative to the theme file), `width`, `height`, `alt`. |
 | `repeat` | string | — | A list field, emitting one paragraph per element. Inside the text, `{{ item }}` is the element. |
 | `if_nonempty` | string | — | Emits the line only when the named field has a value — for a heading that must disappear along with the empty list it introduces. |

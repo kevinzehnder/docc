@@ -90,6 +90,9 @@
 </w:num>
 <w:num w:numId="3">
 <w:abstractNumId w:val="1"/>
+<w:lvlOverride w:ilvl="0">
+<w:startOverride w:val="1"/>
+</w:lvlOverride>
 </w:num>
 <w:num w:numId="4">
 <w:abstractNumId w:val="2"/>

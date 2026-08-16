@@ -123,6 +123,7 @@ var registry = map[string]CheckFunc{
 	"no_placeholder_text": checkNoPlaceholders,
 	"div_items_match":     checkDivItemsMatch,
 	"cross_reference":     checkCrossReference,
+	"required_div":        checkRequiredDiv,
 	"no_empty_sections":   checkNoEmptySections,
 	"amounts_balance":     checkAmountsBalance,
 }
@@ -319,6 +320,40 @@ func checkCrossReference(c *ruleContext) {
 				"%s %s is listed in `%s` but never cited in the body", label, key, field)
 		}
 	}
+}
+
+// checkRequiredDiv makes a semantic fenced block mandatory without prescribing
+// its prose. `anchor_heading` is optional; when present it anchors the
+// diagnostic on the heading where the missing content belongs.
+func checkRequiredDiv(c *ruleContext) {
+	name, ok := c.argString("div", true)
+	if !ok {
+		return
+	}
+	for _, div := range c.File.Divs() {
+		if div.Name == name {
+			return
+		}
+	}
+
+	pos := c.File.BodyPos(0)
+	if headings := c.File.Headings(); len(headings) > 0 {
+		pos = headings[0].Pos
+	}
+	anchor, ok := c.argString("anchor_heading", false)
+	if !ok {
+		return
+	}
+	if anchor != "" {
+		for _, heading := range c.File.Headings() {
+			if strings.EqualFold(strings.TrimSpace(heading.Text), strings.TrimSpace(anchor)) {
+				pos = heading.Pos
+				break
+			}
+		}
+	}
+	c.report(pos, fmt.Sprintf("add a `::: %s` block containing the required content", name),
+		"document has no required `::: %s` block", name)
 }
 
 // checkNoEmptySections flags a heading with no content before the next heading.

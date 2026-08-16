@@ -93,6 +93,20 @@ func TestFieldSpanTypeIsReserved(t *testing.T) {
 	}
 }
 
+func TestSemanticFieldUsesBothContracts(t *testing.T) {
+	sc := fieldSchema()
+	sc.Spans = map[string]schema.SpanSpec{"datum": {}}
+	src := strings.Replace(urkundeFields,
+		"[____________________]{.docc-field key=protokollnummer}",
+		"[____________________]{.datum .docc-field key=protokollnummer}", 1)
+	if ds := checkMarkupOn(t, src, sc); len(ds) != 0 {
+		t.Fatalf("semantic field rejected:\n%s", messages(ds))
+	}
+	if ds := completionOn(t, src, sc); len(ds) != 1 || ds[0].Code != "DOC039" || ds[0].Key != "protokollnummer" {
+		t.Fatalf("semantic field completion = %+v, want DOC039 for protokollnummer", ds)
+	}
+}
+
 func completionOn(t *testing.T, src string, sc *schema.Schema) diag.List {
 	t.Helper()
 	f, ds := parse.Parse("test.md", []byte(src))

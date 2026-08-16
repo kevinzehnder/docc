@@ -1,0 +1,438 @@
+# Gründungsurkunde einer GmbH — öffentliche Urkunde.
+#
+# Rebuilt from the office's Word template
+# (assets/GmbH_Gründung/1 - Gründungsurkunde GmbH.docx). It is the same
+# furniture as the Grundstückkaufvertrag — crest, "errichtet von", title
+# between two rules, Bescheinigung on its own sheet — over a different
+# outline, so the theme inherits from ch_urkunde_kaufvertrag and this schema
+# carries only the deed's own structure.
+#
+# Two deliberate departures from the template, both recorded rather than
+# silently made:
+#
+#   - The template's Einleitung numbers its three parts "1." "2." "3." with no
+#     titles at all — headings that are a bare number. docc generates the
+#     numbers from render.heading_numbering, so a titleless heading would come
+#     out as a number and nothing else. The three parts are given the titles
+#     they always had in substance: Belege, Prüfung, Beurkundungswille.
+#   - The Zeichnung of the Stammkapital was a bordered three-column table. It
+#     is a sum whose parts must equal the Stammkapital, so it is a `betraege`
+#     block: the figures land in one right-aligned column and `amounts_balance`
+#     checks that they add up, which the table never did.
+type: gmbh_gruendungsurkunde
+extends: gmbh
+description: Gründungsurkunde einer GmbH (öffentliche Urkunde) mit Zeichnungs- und Einlagenblöcken.
+theme: gmbh_gruendungsurkunde
+
+body:
+  - heading: Gründer
+    level: 1
+    required: true
+
+  - heading: Einleitung
+    level: 1
+    required: true
+    ordered: true
+    children:
+      - heading: Belege
+        level: 2
+        required: true
+      - heading: Prüfung
+        level: 2
+        required: true
+      - heading: Beurkundungswille
+        level: 2
+        required: true
+
+  - heading: Gründungserklärung
+    level: 1
+    required: true
+
+  - heading: Statuten
+    level: 1
+    required: true
+
+  - heading: Stammkapital
+    level: 1
+    required: true
+
+  - heading: Einlagen
+    level: 1
+    required: true
+
+  - heading: Feststellungen gemäss OR 777 II
+    level: 1
+    required: true
+
+  - heading: Organe
+    level: 1
+    required: true
+    ordered: true
+    children:
+      - heading: Geschäftsführung
+        level: 2
+        required: true
+      - heading: Revisionsstelle
+        level: 2
+        required: true
+
+  - heading: Anmeldung Handelsregister
+    level: 1
+    required: true
+
+  - heading: Bescheinigung
+    level: 1
+    required: true
+
+styles:
+  h1: Ueberschrift1
+  h2: Ueberschrift2
+  h3: Ueberschrift3
+  paragraph: Standard
+  quote: Zitat
+  code: Code
+  ordered_list: Nummerierung
+  bullet_list: Aufzaehlung
+
+  "div.gruender": Vertragspartei
+  "div.organ": Vertragspartei
+  "div.belege": Belegzeile
+
+  # The Zeichnung and the Einlagen are sums: the figure right-aligned in a
+  # column of its own, the total ruled beneath, the sum spelled out.
+  "div.betraege": Betragszeile
+  "div.betraege.amount": Betrag
+  "div.betraege.total": BetragTotal
+  "div.betraege.total.amount": BetragTotalZahl
+  "div.betraege.words": BetragWorte
+
+  "div.unterschriften": Unterschriftsrolle
+  "div.unterschriften.line": Unterschriftslinie
+
+  # The house conventions of the register: what gets transcribed into the
+  # Handelsregister is set apart wherever it appears.
+  "span.name": ParteiName
+  "span.firma": FirmaName
+
+render:
+  heading_numbering:
+    definition: GruendungOutline
+    start_at_heading: Gründer
+  page_break_before_headings: [Bescheinigung]
+
+blocks:
+  gruender:
+    description: >-
+      Ein Gründer. `kind` selects the shape; the required spans are what the
+      Handelsregisteramt needs to identify the person or the company.
+    discriminator: kind
+    variants:
+      person:
+        required_spans: [name, geburtsdatum, heimatort, adresse]
+      gesellschaft:
+        required_spans: [name, uid, sitz, adresse]
+
+  belege:
+    description: >-
+      Die Belege, die der Urkundsperson zum Zwecke der Gründung vorgelegen
+      haben. One item per Beleg; a Beleg that carries a date states it as a
+      `[…]{.datum}` span, so the Anmeldung can be checked against it.
+
+  betraege:
+    description: >-
+      Betragsaufstellung — one item per line, the amount first in square
+      brackets: "- [Fr. 20'000.00] für 20 Stammanteile". The item whose amount
+      begins with `=` is the block's total, and the others must add up to it.
+      A block that settles another block's total names it with
+      `total-of=<id>`; the Einlagen settle the Zeichnung that way. Keep
+      descriptions to one line — one that wraps past the tab stop pushes the
+      figure out of its column.
+    attributes: [total-of]
+
+  organ:
+    description: >-
+      Eine Wahl in ein Organ der Gesellschaft. Names the person, the function
+      and the signing authority, because those three are exactly what the
+      Handelsregister entry carries.
+    required_spans: [name, funktion, zeichnungsart, adresse]
+
+  unterschriften:
+    description: >-
+      Unterschriftenblock. Prose names the signing side; each list item is one
+      signatory and comes out as a ruled line to sign on. Do not type the dots
+      — the theme draws the rule.
+
+# The positions that have to be *decided*, as opposed to transcribed. Each is
+# a blank in the text: `docc check` accepts a draft that still carries it, and
+# `docc build` refuses until it is filled. What goes in is the author's
+# business — the compiler only insists the decision was not skipped.
+#
+# Only three, because most of this deed is already guarded: the Firma, Sitz and
+# Domizil are required frontmatter, and the Gründer, the Geschäftsführung and
+# every figure sit inside blocks whose `required_spans` and `amounts_balance`
+# already refuse an incomplete one. These three are the leftovers — the ones
+# the template left as a grey blank in running prose, where nothing else would
+# notice their absence.
+fields:
+  domizil:
+    description: Das Domizil (Adresse), wie es im Fliesstext genannt wird.
+    required: true
+    completion: before-execution
+
+  beurkundungsdatum:
+    description: >-
+      Das Datum im Eingang der Urkunde ("ist heute …"). Distinct from the
+      frontmatter `date`, which is the document's date rather than the day the
+      deed was read.
+    required: true
+    completion: before-execution
+
+  einlagezahlstelle:
+    description: >-
+      Die Bank, bei der die Einlagen hinterlegt sind, gemäss deren
+      Kapitaleinzahlungsbestätigung.
+    required: true
+    completion: before-execution
+
+  ausweis:
+    description: >-
+      Womit sich die Urkundspartei ausgewiesen hat — Identitätskarte, Pass,
+      oder "mir persönlich bekannt". The template kept all three as `ODER:`
+      alternatives; exactly one of them is true of any given deed.
+    required: true
+    completion: before-execution
+
+  datum_unterzeichnung:
+    description: Datum der Unterzeichnung — von Hand eingesetzt.
+    required: true
+    completion: handwritten
+
+  protokoll_nr:
+    description: Protokoll-Nummer der Urkundsperson — von Hand eingesetzt.
+    required: true
+    completion: handwritten
+
+rules:
+  - id: GRU031
+    check: no_placeholder_text
+    severity: error
+
+  - id: GRU012
+    check: div_items_match
+    severity: error
+    args:
+      div: betraege
+      pattern: '^\s*\[=?\s*(?:CHF|Fr\.)\s?[\d''’.]+(?:\.\d\d)?\]\s+\S'
+    message: "Betragszeile ohne Betrag in eckigen Klammern"
+    hint: 'write the amount first: "- [Fr. 20''000.00] für 20 Stammanteile"; a leading `=` marks the block total'
+
+  # The Stammkapital is the sum of the Stammanteile subscribed, and the
+  # Einlagen paid in must settle it. Both are arithmetic over figures the deed
+  # already carries, and both are invisible to a reader working down the page.
+  - id: GRU013
+    check: amounts_balance
+    severity: error
+    args:
+      div: betraege
+
+  - id: GRU040
+    check: no_empty_sections
+    severity: warning
+
+  # A declared block is permitted, not required: without these an author
+  # could write fluent prose where a register entry belongs and every
+  # span check in that section would simply not run.
+  - id: GRU050
+    check: required_div
+    severity: error
+    args:
+      div: gruender
+      anchor_heading: Gründer
+  - id: GRU051
+    check: required_div
+    severity: error
+    args:
+      div: belege
+      anchor_heading: Belege
+  - id: GRU052
+    check: required_div
+    severity: error
+    args:
+      div: organ
+      anchor_heading: Geschäftsführung
+  - id: GRU053
+    check: required_div
+    severity: error
+    args:
+      div: unterschriften
+
+example: |
+  ---
+  docc: 1
+  document_type: gmbh_gruendungsurkunde
+  date: 2026-08-16
+  urkundsperson:
+    name: Dr. iur. Hans Zehnder
+    amtstitel: Urkundsperson des Kantons Aargau
+    ort: Baden
+  revision: verzicht
+  gesellschaft:
+    firma: Muster Bau
+    sitz: Baden
+    domizil: Musterstrasse 1, 5400 Baden
+  ---
+
+  Vor der Urkundsperson des Kantons Aargau, Dr. iur. Hans Zehnder, ist heute
+  [16. August 2026]{.docc-field key=beurkundungsdatum}, zum Zwecke der
+  Errichtung einer öffentlichen
+  Urkunde über die Gründung einer GmbH erschienen:
+
+  # Gründer
+
+  ::: gruender {#gruender kind=person}
+  Herr [Max Muster]{.name}, geb. [12. April 1975]{.geburtsdatum},
+  von [Baden AG]{.heimatort}, in [5400 Baden, Musterstrasse 1]{.adresse}.
+  :::
+
+  # Einleitung
+
+  ## Belege
+
+  Dem Gründer und der Urkundsperson liegen zum Zwecke der Gründung der
+  [Muster Bau]{.firma} GmbH folgende Akten vor:
+
+  ::: belege
+  - Statuten mit heutigem Datum
+  - Bestätigung der Kapitaleinzahlung der Aargauischen Kantonalbank vom [10. August 2026]{.datum}
+  - Erklärung betreffend Verzicht auf eingeschränkte Revision (Opting Out)
+  - Stampa- / Lex-Friedrich-Erklärung vom [10. August 2026]{.datum}
+  :::
+
+  ## Prüfung
+
+  Aufgrund sorgfältiger Prüfung dieser Belege stellt die Urkundsperson fest,
+  dass alle gesetzlichen Voraussetzungen für die von dem Gründer gewünschte
+  Gründung der GmbH erfüllt sind.
+
+  ## Beurkundungswille
+
+  Dem seitens des Gründers mitgeteilten Gründungswillen wird hiermit die
+  gesetzlich vorgeschriebene Form gegeben. Aufgrund der von der Urkundsperson
+  gemachten Wahrnehmungen und Feststellungen **wird beurkundet:**
+
+  # Gründungserklärung
+
+  Ich gründe unter der Firma [Muster Bau]{.firma .docc-field key=firma} GmbH eine Gesellschaft mit
+  beschränkter Haftung im Sinne von Art. 772 ff. OR.
+
+  Der Sitz der Gesellschaft ist in [Baden]{.sitz .docc-field key=sitz}.
+
+  Das Domizil befindet sich in [5400 Baden, Musterstrasse 1]{.docc-field key=domizil} (eigene Büros).
+
+  # Statuten
+
+  Den mir vorliegenden Statutenentwurf lege ich als gültige Statuten der in
+  Gründung begriffenen Gesellschaft fest. Sie sind Bestandteil dieser Urkunde.
+
+  # Stammkapital
+
+  Das Stammkapital der Gesellschaft beträgt CHF 20'000.00 und ist eingeteilt in
+  20 Stammanteile zu je CHF 1'000.00, welche zum Ausgabebetrag von
+  CHF 1'000.00 je Stammanteil wie folgt gezeichnet werden:
+
+  ::: betraege {#zeichnung}
+  - [Fr. 20'000.00] [Max Muster]{.name}, für 20 Stammanteile
+  - [= Fr. 20'000.00] Ausmachend das Stammkapital von
+  :::
+
+  Die Statuten enthalten keine Bestimmungen gemäss Art. 777a Abs. 2 OR.
+
+  # Einlagen
+
+  Es sind folgende Einlagen geleistet worden:
+
+  ::: betraege {#einlagen total-of=zeichnung}
+  - [Fr. 20'000.00] in Geld, hinterlegt bei der [Aargauischen Kantonalbank]{.docc-field key=einlagezahlstelle}
+  :::
+
+  Dadurch sind die dem Ausgabebetrag aller Stammanteile entsprechenden Einlagen
+  vollständig erbracht.
+
+  # Feststellungen gemäss OR 777 II
+
+  Der Gründer stellt fest, dass
+
+  1. sämtliche Stammanteile gültig gezeichnet sind;
+  2. die Einlagen dem gesamten Ausgabebetrag entsprechen;
+  3. die gesetzlichen und statutarischen Anforderungen an die Leistung der
+     Einlagen erfüllt sind;
+  4. keine statutarischen Nachschuss- oder Nebenleistungspflichten bestehen;
+  5. keine anderen Sacheinlagen, Sachübernahmen und beabsichtigten
+     Sachübernahmen, Verrechnungstatbestände oder besonderen Vorteile als die
+     in den Belegen genannten bestehen.
+
+  # Organe
+
+  ## Geschäftsführung
+
+  Als vorsitzender Geschäftsführer wird ernannt:
+
+  ::: organ {#geschaeftsfuehrung}
+  [Max Muster]{.name}, geb. [12. April 1975]{.geburtsdatum}, von
+  [Baden AG]{.heimatort}, in [5400 Baden, Musterstrasse 1]{.adresse}, als
+  [Gesellschafter und Geschäftsführer]{.funktion}
+  [mit Einzelunterschrift]{.zeichnungsart}.
+  :::
+
+  Er erklärt durch Unterzeichnung dieser Urkunde die Annahme des Mandates.
+
+  ## Revisionsstelle
+
+  Der Gründer erklärt, auf die eingeschränkte Revision und damit auf die Wahl
+  einer Revisionsstelle zu verzichten, weil die zu gründende Gesellschaft nicht
+  mehr als zehn Vollzeitstellen im Jahresdurchschnitt aufweist.
+
+  # Anmeldung Handelsregister
+
+  Diese Gründung ist im Handelsregister des Kantons Aargau einzutragen und zu
+  publizieren.
+
+  Die Urkundsperson ist mit der Anmeldung an das Handelsregisteramt beauftragt
+  und bevollmächtigt.
+
+  Die Kosten der Gründung (Handelsregisteramt und Notar) trägt die Gesellschaft
+  unter solidarischer Haftung mit dem Gründer.
+
+  Baden, den [______________]{.docc-field key=datum_unterzeichnung}
+
+  ::: unterschriften
+  Der Gründer, Gesellschafter und Geschäftsführer:
+
+  - [Max Muster]{.name}:
+  :::
+
+  Es folgt die Beurkundung.
+
+  # Bescheinigung
+
+  Dr. iur. Hans Zehnder, Urkundsperson des Kantons Aargau, mit Büro in Baden,
+  bescheinigt:
+
+  1. Der Urkundspartei und mir haben alle in dieser Urkunde einzeln genannten
+     Belege vorgelegen.
+  2. Die Urkundspartei, Herr [Max Muster]{.name}, ausgewiesen durch
+     [Schweizer Identitätskarte]{.docc-field key=ausweis}, hat diese Urkunde in meiner
+     Gegenwart gelesen.
+  3. Die Urkundspartei hat mir erklärt, diese Urkunde enthalte ihren
+     mitgeteilten Willen.
+  4. Die Urkundspartei hat diese Urkunde in meiner Gegenwart unterzeichnet.
+  5. Die vom Bundesrecht verlangten Anforderungen sind nach meinen
+     Feststellungen erfüllt.
+
+  ::: unterschriften
+  Baden, den [______________]{.docc-field key=datum_unterzeichnung}
+
+  - Die Urkundsperson:
+  :::
+
+  Protokoll-Nr. [________]{.docc-field key=protokoll_nr}

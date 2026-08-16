@@ -1,0 +1,133 @@
+# Erklärungen accompanying a GmbH founding — Stampa/Lex-Friedrich and the
+# Verzichtserklärung (Opting Out).
+#
+# Measured against assets/GmbH_Gründung/3 - Stampa und Lex-Friedrich Erklärung
+# GmbH.docx and 4 - OptingOut - Verzichtserklärung.pdf. Two documents, one
+# sheet: a bold title, an introductory recital, the company named in a ruled
+# box, numbered declarations, and a signature line for the founder. They are
+# annexes to the deed and are read alongside it, so the gallery, the font and
+# the date format stay the Urkunde's.
+#
+# Two numbering definitions rather than one, because the two documents divide
+# their declarations differently: the Stampa has lettered parts (A. Stampa,
+# B. Lex Friedrich) over numbered declarations, the Verzicht has three
+# declarations and no parts.
+#
+# Known deliberate deviations from the Word originals:
+#   - no page numbers (no dynamic PAGE field in the writer); both documents
+#     are one sheet anyway.
+#   - the declarations under B. restart at 1. The originals number 1–5 across
+#     both parts; docc's numbering has no cross-branch continuation, and a
+#     declaration is self-contained, so the restart costs nothing legally.
+#     Cross-references in the body cite a declaration by name, not by number.
+extends: ch_urkunde_kaufvertrag
+name: gmbh_erklaerung
+description: Erklärungen zur GmbH-Gründung (Stampa, Lex Friedrich, Verzicht auf eingeschränkte Revision).
+
+page:
+  title_page: false
+  margins:
+    top: 15mm
+    bottom: 15mm
+    left: 25mm
+    right: 25mm
+
+styles:
+  ErklaerungTitel:
+    name: Erklärung title
+    based_on: Standard
+    align: left
+    size: 13pt
+    bold: true
+    keep_next: true
+    spacing: { before: 0mm, after: 2mm }
+
+  ErklaerungUntertitel:
+    name: Erklärung subtitle
+    based_on: Standard
+    align: left
+    bold: true
+    keep_next: true
+    spacing: { before: 0mm, after: 8mm }
+
+  # The company the declaration is about, in the box the templates draw around
+  # it. A declaration that names the wrong company is the failure the box
+  # exists to prevent, so it gets the whole width and all four rules.
+  # Not bold: `bold` is a *toggle* property in OOXML, so a bold character
+  # style inside a bold paragraph style cancels out and the Firma would come
+  # out lighter than the words around it. The emphasis belongs to the span.
+  Gesellschaftsbox:
+    name: Gesellschaft box
+    based_on: Standard
+    align: center
+    keep_next: true
+    indent: { left: 20mm, right: 20mm }
+    spacing: { before: 6mm, after: 6mm }
+    borders:
+      top: { style: single, width: 0.75, space: 4pt }
+      bottom: { style: single, width: 0.75, space: 4pt }
+      left: { style: single, width: 0.75, space: 4pt }
+      right: { style: single, width: 0.75, space: 4pt }
+
+  # A. Stampa / B. Lex Friedrich.
+  Erklaerungsteil:
+    name: Erklärung part
+    based_on: Standard
+    next: Standard
+    align: left
+    outline_level: 1
+    bold: true
+    keep_next: true
+    spacing: { before: 8mm, after: 3mm }
+
+  # "1. Sacheinlagen und Sachübernahmen" — the declaration's own heading.
+  Erklaerungssatz:
+    name: Erklärung heading
+    based_on: Standard
+    next: Standard
+    align: left
+    outline_level: 2
+    bold: true
+    keep_next: true
+    spacing: { before: 5mm, after: 2mm }
+
+  # The declared sentence itself. Bold in both originals: it is the statement
+  # the signatory is answerable for, and the office sets it apart from the
+  # recitals around it.
+  Erklaerungstext:
+    name: Erklärung text
+    based_on: Standard
+    bold: true
+    spacing: { after: 3mm }
+
+  FirmaName:
+    name: Firma name
+    type: character
+    bold: true
+
+numbering:
+  # A. Stampa / B. Lex Friedrich, with the declarations numbered under each.
+  ErklaerungOutline:
+    format: upperLetter
+    text: "%1."
+    indent: 8mm
+    hanging: 8mm
+    style: Erklaerungsteil
+    levels:
+      - format: decimal
+        text: "%2."
+        indent: 8mm
+        hanging: 8mm
+        style: Erklaerungssatz
+
+  # The Verzicht has no parts: its three declarations are the top level.
+  VerzichtOutline:
+    format: decimal
+    text: "%1."
+    indent: 8mm
+    hanging: 8mm
+    style: Erklaerungssatz
+
+prologue:
+  - { style: ErklaerungTitel, text: "{{ title }}" }
+  - { style: ErklaerungUntertitel, text: "{{ subtitle }}" }

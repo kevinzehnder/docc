@@ -218,10 +218,10 @@ styles:
 	if titel.Size.HalfPt(0) != docx.HalfPt(36) {
 		t.Errorf("titel size = %v, want the grandchild's 18pt", titel.Size)
 	}
-	if !titel.Caps {
+	if titel.Caps == nil || !*titel.Caps {
 		t.Error("titel caps = false, want the middle theme's true")
 	}
-	if !titel.Bold {
+	if titel.Bold == nil || !*titel.Bold {
 		t.Error("titel bold = false, want the root's true")
 	}
 	if got.Defaults.Font != "Arial" {

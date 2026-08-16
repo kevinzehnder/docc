@@ -91,7 +91,38 @@ func Parse(path string, src []byte) (*File, diag.List) {
 				span.LiteralText(f.BodySource), span.Attr.Err)
 		}
 	}
+	reportSplitSpans(f, path, &ds)
 	return f, ds
+}
+
+// reportSplitSpans finds an attribute block whose opening `[` is on an earlier
+// line. A span is parsed one line at a time, so wrapping one across a line
+// break does not half-work: it stops being a span at all and becomes prose
+// that happens to contain braces.
+//
+// Without this the failure is silent and the diagnostic that eventually fires
+// is a lie. A field marker split over two lines is reported by sema as
+// DOC038, "required field does not appear in the document" — while the field
+// is plainly there on the page, spelled correctly. Prose wraps, so an author
+// filling in a long value hits this the first time the line gets too long.
+func reportSplitSpans(f *File, path string, ds *diag.List) {
+	src := f.BodySource
+	lineStart := 0
+	for i := range src {
+		if src[i] == '\n' {
+			lineStart = i + 1
+			continue
+		}
+		if src[i] != ']' || i+1 >= len(src) || src[i+1] != '{' {
+			continue
+		}
+		if bytes.IndexByte(src[lineStart:i], '[') >= 0 {
+			continue // opened on this line: an ordinary span, split or not
+		}
+		ds.Errorf(path, f.BodyPos(i), "DOC028",
+			"put the whole span on one line, including its `[` and its attributes",
+			"span attributes found with no `[` on the same line — a span cannot be wrapped across lines")
+	}
 }
 
 // splitFrontmatter finds a leading `---` delimited YAML block.
