@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	"github.com/kevinzehnder/docc/internal/emit"
-	"github.com/kevinzehnder/docc/internal/parse"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/sema"
 )
@@ -201,62 +200,13 @@ func cmdExample(args []string) int {
 	}
 	out := sc.Example
 	if *blank {
-		out = blankFields(out)
+		out = sema.BlankFields(out)
 	}
 	fmt.Print(out)
 	if !strings.HasSuffix(out, "\n") {
 		fmt.Println()
 	}
 	return 0
-}
-
-// blankFieldWidth is the width of an emptied marker. Wide enough to read as a
-// blank to be filled rather than as a typo, and the same width everywhere so a
-// skeleton's blanks line up in a plain editor.
-const blankFieldWidth = 12
-
-// blankFields empties the text of every `.docc-field` span, leaving the
-// attribute block untouched. The result is the example turned back into the
-// form an author starts from: `docc check` still accepts it, because a blank
-// is content, and `docc build` refuses it while naming every position left to
-// decide.
-//
-// Emptying the *example* rather than shipping a second skeleton in each schema
-// is deliberate. A hand-written skeleton is one more thing to keep in step with
-// the contract, and the first time it drifts it teaches an author something the
-// checker will then reject.
-//
-// The spans are found by parsing, not by matching brackets: a field marker may
-// carry a semantic class before it — `[Muster Bau]{.firma .docc-field key=firma}`
-// keeps its `span.firma` styling — and the attribute block is the parser's to
-// read, not a regexp's.
-func blankFields(src string) string {
-	f, _ := parse.Parse("example", []byte(src))
-	spans := f.Spans()
-
-	// Rewrite back to front so earlier offsets stay valid as lengths change.
-	type edit struct{ start, stop int }
-	var edits []edit
-	for _, span := range spans {
-		if !span.HasClass(sema.FieldSpanType) {
-			continue
-		}
-		edits = append(edits, edit{
-			start: f.BodyBase + span.Literal.Start,
-			stop:  f.BodyBase + span.Literal.Stop,
-		})
-	}
-	slices.SortFunc(edits, func(a, b edit) int { return b.start - a.start })
-
-	out := []byte(src)
-	for _, e := range edits {
-		if e.start < 0 || e.stop > len(out) || e.start > e.stop {
-			continue
-		}
-		out = append(out[:e.start],
-			append([]byte(strings.Repeat("_", blankFieldWidth)), out[e.stop:]...)...)
-	}
-	return string(out)
 }
 
 // schemaForType loads the nearest schemas and resolves one type, reporting

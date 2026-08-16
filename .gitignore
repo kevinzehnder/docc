@@ -37,3 +37,12 @@ output/
 
 # ── Reference material (real client documents, never committed) ──────────────
 assets/
+
+# ── Local secrets and machine-specific config ────────────────────────────────
+# .env carries credentials for the MCP servers this repo is developed against;
+# .mcp.json names them and is per-machine. Neither belongs in the history, and
+# both sat untracked-but-not-ignored, one `git add -A` away from being pushed.
+.env
+.env.*
+!.env.example
+.mcp.json
