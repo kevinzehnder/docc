@@ -64,8 +64,8 @@ configuration:
 
 document types:
   base       check-only  declares no theme, cannot be built
-  ch_legal   ok          theme zbp-legal
-  ch_letter  ok          theme jlmy-letter
+  ch_legal   ok          theme starter-legal
+  ch_letter  ok          theme starter-letter
 ```
 
 `.docx` is the supported compiler output. `--to pdf` remains a

@@ -1,5 +1,0 @@
-# Notarial contract: parties, certification, registration text and signatures
-# all stay in the source body, so the theme adds no furniture of its own.
-name: notarial-contract
-description: Notarial contract with decimal clause numbering and Randziffern.
-extends: _vertrag

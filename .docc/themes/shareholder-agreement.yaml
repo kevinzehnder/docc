@@ -1,5 +1,0 @@
-# Shareholder agreement: the party count varies, so parties and signatures
-# stay in the source body rather than in fixed furniture.
-name: shareholder-agreement
-description: Multi-party shareholder agreement with decimal clause numbering and Randziffern.
-extends: _vertrag
