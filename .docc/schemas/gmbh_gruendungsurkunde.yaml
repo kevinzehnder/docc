@@ -291,6 +291,17 @@ rules:
     args:
       spans: [firma, sitz, heimatort, geburtsdatum]
 
+  # Art. 773 Abs. 1 OR: das Stammkapital beträgt mindestens 20'000 Franken.
+  # The one error every other check accepts — a figure transcribed wrongly but
+  # transcribed the same way everywhere, so nothing in the dossier contradicts
+  # anything else in it and the registry is what finds out.
+  - id: GRU080
+    check: amount_at_least
+    severity: error
+    args:
+      div: betraege
+      minimum: "Fr. 20'000.00"
+
 example: |
   ---
   docc: 1

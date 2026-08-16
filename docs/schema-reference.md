@@ -289,6 +289,7 @@ without provoking it.
 | `no_empty_sections` | — | A heading with no content. A heading whose next heading is deeper is a container and is exempt. |
 | `spans_agree` | `spans` (required list of span type names) | Two occurrences of one span type that do not say the same thing. Opt-in per type, because some are supposed to differ — a Kaufvertrag's `.name` spans are the Verkäufer and the Käufer. The types a schema watches here are also the ones compared **across** documents when several are checked in one `docc check` invocation, reported as `DOC029`. |
 | `no_blank_spans` | — | A semantic span left as a blank — `[____]{.heimatort}`. A span carrying `.docc-field` is exempt, because there a blank is content; any other span is a fact the document claims to state. |
+| `amount_at_least` | `div` (required), `minimum` (required, written as an amount: `"Fr. 20'000.00"`) | A money block whose total — its `[= …]` item, or the sum of its items — falls below a floor the document type declares. This is the error every other check accepts: a figure transcribed wrongly but transcribed the same way everywhere, so nothing in the document contradicts anything else in it. |
 | `amounts_balance` | `div` (required) | Money that does not add up: items whose sum contradicts a `[= …]` total, or a block with `total-of=<id>` whose items do not settle that block's total. |
 
 Adding a check is Go: implement it in `internal/sema/rules.go` and register it.

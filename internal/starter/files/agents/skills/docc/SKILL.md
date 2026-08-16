@@ -51,13 +51,16 @@ docc types                         # inspect document types
 docc themes                        # inspect themes
 docc describe --json <type>        # the type's whole contract, as data
 docc example <type>                # a compact valid document to start from
+docc example --blank <type>        # …with every field marker emptied, as a skeleton
 docc check document.md             # validate
+docc check --strict *.md           # a whole matter at once — see "One matter, several documents"
 docc check --json document.md      # use in an agent correction loop
 docc check --strict document.md    # warnings are errors
 docc build document.md             # validate, then emit document.docx
 docc build document.md --output out.docx
 docc explain DOC010                # explain an engine diagnostic
 docc explain DOC010 --type <type>  # …plus the constraints that schema declares
+docc explain STA031                # …or a code the schema itself declares
 ```
 
 Flags may precede or follow the file name.
@@ -91,6 +94,32 @@ is compatibility-only and requires `soffice`.
    diagnostics, so fix the complete list before rechecking.
 6. Build only after the document validates. Legal output remains a draft that
    requires appropriate human review.
+7. When the matter has several documents, run `docc check --strict` over all of
+   them together before delivering, and resolve every `DOC029`. See "One
+   matter, several documents".
+
+## One matter, several documents
+
+A founding, a purchase or an estate is often several documents that restate the
+same facts — the same company, the same parties, the same figures. Check them
+**in one invocation**, not one at a time:
+
+```sh
+docc check --strict *.md
+```
+
+Cross-document agreement is only computed when the documents are open together.
+A type that declares a `spans_agree` rule names the values that must match, and
+a mismatch across files is `DOC029` — a Firma spelled two ways, a birth date
+that differs between the deed and the registration. Checking each file on its
+own passes every one of them and never compares them, which is exactly the
+mistake that repetition invites.
+
+`--strict` matters here: `DOC029` is a warning, because files named on one
+command line are not necessarily one matter. When they are, make it bind.
+
+Before delivering, confirm the set is complete — the document types the matter
+requires, not merely the ones drafted. Nothing counts the documents for you.
 
 ## Frontmatter and diagnostics
 

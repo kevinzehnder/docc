@@ -162,6 +162,7 @@ var registry = map[string]CheckFunc{
 	"spans_agree":         checkSpansAgree,
 	"no_empty_sections":   checkNoEmptySections,
 	"amounts_balance":     checkAmountsBalance,
+	"amount_at_least":     checkAmountAtLeast,
 }
 
 // checkDescriptions says what each registered check looks for, in one line.
@@ -178,6 +179,7 @@ var checkDescriptions = map[string]string{
 	"spans_agree":         "two occurrences of the same span type that do not say the same thing — a Firma spelled two ways. Opt-in per span type, because some types are supposed to differ.",
 	"no_blank_spans":      "a semantic span left as a blank — `[____]{.heimatort}`. A `.docc-field` blank is content and is exempt; any other span is a fact the document claims to state.",
 	"no_empty_sections":   "a heading with no content before the next one. A heading whose next heading is deeper is a container and is exempt.",
+	"amount_at_least":     "a money block whose total is below a floor the document type declares — a figure transcribed wrongly but consistently, which every other check accepts.",
 	"amounts_balance":     "money that does not add up: items contradicting a `[= …]` total, or a block whose `total-of` does not settle.",
 }
 

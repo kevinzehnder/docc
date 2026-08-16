@@ -264,3 +264,81 @@ func parseAmount(s string) (amount, bool) {
 	}
 	return amount(units*100 + cents), true
 }
+
+// checkAmountAtLeast reports a money block whose total falls below a floor the
+// document type declares.
+//
+// This is the one shape of error that survives every other check in this
+// package: a figure transcribed wrongly but transcribed *consistently*. A
+// Stammkapital of CHF 5'000 written into all six documents of a founding
+// balances perfectly, agrees across every file, fills every blank — and is
+// below the statutory minimum of CHF 20'000 (Art. 773 Abs. 1 OR), so the
+// registry rejects the lot. Nothing in the document contradicts anything else
+// in it; the contradiction is with the law, which is why the floor has to be
+// stated by the document type rather than derived.
+//
+// The floor is written the way amounts are written everywhere else in a
+// source, so a schema declares `minimum: "Fr. 20'000.00"` rather than a bare
+// number in some unstated unit.
+func checkAmountAtLeast(c *ruleContext) {
+	name, ok := c.argString("div", true)
+	if !ok {
+		return
+	}
+	raw, ok := c.argString("minimum", true)
+	if !ok {
+		return
+	}
+	floor, ok := parseAmount(raw)
+	if !ok {
+		c.schemaErrorf("write it as a currency and a figure, e.g. \"Fr. 20'000.00\"",
+			"argument \"minimum\" is not an amount: %q", raw)
+		return
+	}
+
+	for _, div := range c.File.Divs() {
+		if div.Name != name {
+			continue
+		}
+		total, pos, ok := divTotal(c.File, div)
+		if !ok {
+			continue
+		}
+		if total >= floor {
+			continue
+		}
+		c.report(pos,
+			"raise the amount, or check that this block is the one the floor applies to",
+			"total %s is below the minimum of %s this document type requires",
+			total.String(), floor.String())
+	}
+}
+
+// divTotal returns a money block's total: the item marked `=` when there is
+// one, otherwise the sum of its items. The position is the line worth pointing
+// at — the total itself, or the block's opening when the total is a sum.
+func divTotal(f *parse.File, div *parse.Div) (amount, diag.Position, bool) {
+	var sum amount
+	items := 0
+	pos := f.BodyPos(div.OpenOffset)
+
+	for _, item := range divListItems(f, div) {
+		label, isTotal, ok := amountLabel(item.Text)
+		if !ok {
+			continue
+		}
+		value, ok := parseAmount(label)
+		if !ok {
+			continue
+		}
+		if isTotal {
+			return value, item.Pos, true
+		}
+		sum += value
+		items++
+	}
+	if items == 0 {
+		return 0, pos, false
+	}
+	return sum, pos, true
+}

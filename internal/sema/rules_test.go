@@ -396,3 +396,66 @@ func TestSpansAgree(t *testing.T) {
 		})
 	}
 }
+
+// The one error every other check accepts: a figure transcribed wrongly but
+// transcribed consistently. It balances, it agrees across files, it fills
+// every blank — and it is below the statutory floor.
+func TestAmountAtLeast(t *testing.T) {
+	sc := &schema.Schema{
+		Type:   "deed",
+		Blocks: map[string]schema.BlockSpec{"betraege": {}},
+		Rules: []schema.Rule{{
+			ID: "X080", Check: "amount_at_least", Severity: "error",
+			Args: map[string]any{"div": "betraege", "minimum": "Fr. 20'000.00"},
+		}},
+	}
+
+	for _, tc := range []struct {
+		name string
+		body string
+		want bool
+	}{
+		{
+			"a declared total below the floor",
+			"::: betraege\n- [Fr. 5'000.00] gezeichnet\n- [= Fr. 5'000.00] Stammkapital\n:::",
+			true,
+		},
+		{
+			"a declared total at the floor",
+			"::: betraege\n- [Fr. 20'000.00] gezeichnet\n- [= Fr. 20'000.00] Stammkapital\n:::",
+			false,
+		},
+		{
+			"above the floor",
+			"::: betraege\n- [Fr. 50'000.00] gezeichnet\n- [= Fr. 50'000.00] Stammkapital\n:::",
+			false,
+		},
+		// A block need not declare a total; the sum of its items is one.
+		{
+			"a summed total below the floor",
+			"::: betraege\n- [Fr. 6'000.00] eine Einlage\n- [Fr. 4'000.00] noch eine\n:::",
+			true,
+		},
+		{
+			"a summed total that clears it",
+			"::: betraege\n- [Fr. 12'000.00] eine Einlage\n- [Fr. 8'000.00] noch eine\n:::",
+			false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := "---\ndocc: 1\ndocument_type: deed\n---\n\n" + tc.body + "\n"
+			f, ds := parse.Parse("deed.md", []byte(src))
+			runRules(f, sc, nil, &ds)
+
+			var got bool
+			for _, d := range ds {
+				if d.Code == "X080" {
+					got = true
+				}
+			}
+			if got != tc.want {
+				t.Errorf("below-minimum reported = %v, want %v\n%+v", got, tc.want, ds)
+			}
+		})
+	}
+}
