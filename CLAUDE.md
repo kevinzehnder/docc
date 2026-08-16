@@ -45,6 +45,25 @@ testdata/            golden corpus: schemas/, good/, bad/
   a single paragraph is built.
 - **Adding a diagnostic code:** add it to `explanations` in `cmd/docc/main.go`.
 
+## Inheritance
+
+Schemas and themes both have `extends:`, and they must keep behaving the same
+way. Two different inheritance semantics in one product is a defect.
+
+- **Maps merge key-wise; ordered sequences are replaced wholesale** when the
+  child declares them. Half a letterhead is worse than a restated one.
+- **A theme merges YAML documents, then decodes once** (`internal/theme`),
+  rather than merging decoded structs. Only the document distinguishes a key
+  left out from a key set to its zero value, and both cases are real: a child
+  omitting `formats:` must keep the parent's month names, and a child setting
+  `title_page: false` under a parent that set it true must win. Adding a field
+  to `Theme` therefore needs no merge code — keep it that way.
+- **A name beginning with `_` is a fragment**: extended, never selected.
+  `Set.Names` hides them and `Set.Get` rejects them, so a schema cannot name one.
+- **Resolution stays inside one directory.** No cross-pack parent. A base pack
+  silently changing header spacing in every firm that installed it is the
+  failure a compiler exists to prevent.
+
 ## Testing
 
 `testdata/` is the regression suite, checked against `testdata/schemas/`:

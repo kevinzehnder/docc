@@ -56,6 +56,16 @@ tasks:
     cmds:
       - task: skill:release
 
+  agent:package:
+    desc: build publishable Agent Skill archives (plain, Claude plugin, Codex plugin)
+    cmds:
+      - ./scripts/package-agent-skills.sh
+
+  agent:test:
+    desc: build and verify the Agent Skill archives
+    cmds:
+      - ./scripts/test-agent-packages.sh
+
   hooks:install:
     desc: install local git hooks from .githooks
     cmds:
