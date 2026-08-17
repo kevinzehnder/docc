@@ -176,6 +176,10 @@ rules:
     severity: error
     args:
       div: beweis
+      # Deliberately conditional: a Rechtsschrift arguing only a point of law
+      # offers no exhibits, so an absent `::: beweis` is not a finding. Saying
+      # so is what distinguishes this from a rule whose author never asked.
+      on_missing: ignore
       pattern: '^\s*\[[^\]\r\n]+\]\s+\S'
     message: "Beweismittel without a bracketed label"
     hint: 'prefix it with a label, e.g. "[Beilage 3]"'

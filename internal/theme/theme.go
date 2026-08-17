@@ -218,6 +218,12 @@ type NumFormat struct {
 	// Suffix is what separates the label from the text: "tab" (default),
 	// "space" or "nothing".
 	Suffix string `yaml:"suffix"`
+	// Restart says when this level's counter goes back to Start: "after-parent"
+	// (the default, and Word's) restarts it whenever the level above
+	// increments; "never" keeps counting across parents. A Stampa-Erklärung
+	// numbers its points 1–4 under A.) and continues with 5 under B.), which is
+	// inexpressible without this.
+	Restart string `yaml:"restart"`
 	// Style is the paragraph style applied to items at this level.
 	Style string `yaml:"style"`
 	// Levels defines deeper levels. Level 0 is this definition itself.

@@ -522,6 +522,29 @@ func TestNumFormatLevelsAreFlat(t *testing.T) {
 	}
 }
 
+// `restart:` is how a sub-level keeps counting across its parents. Unset means
+// Word's own default, which is the behaviour every existing theme relies on, so
+// it must reach docx as "no element" rather than as a zero.
+func TestNumFormatRestart(t *testing.T) {
+	def := NumFormat{
+		Format: "upperLetter", Text: "%1.)",
+		Levels: []NumFormat{
+			{Format: "decimal", Text: "%2.", Restart: RestartNever},
+			{Format: "decimal", Text: "%3.", Restart: RestartAfterParent},
+			{Format: "decimal", Text: "%4."},
+		},
+	}.AbstractNum()
+
+	if got := def.Levels[1].Restart; got == nil || *got != 0 {
+		t.Errorf("restart: never = %v, want a pointer to 0", got)
+	}
+	for _, i := range []int{0, 2, 3} {
+		if got := def.Levels[i].Restart; got != nil {
+			t.Errorf("level %d restart = %v, want nil (Word's default)", i, *got)
+		}
+	}
+}
+
 // Word's numbering has nine levels. A definition declaring more is truncated
 // rather than emitted as XML Word rejects; emit.Validate reports it.
 func TestNumFormatCapsAtNineLevels(t *testing.T) {

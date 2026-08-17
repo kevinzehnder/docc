@@ -50,11 +50,7 @@ func checkAmountsBalance(c *ruleContext) {
 	}
 	var settlements []pending
 
-	for _, div := range c.File.Divs() {
-		if div.Name != name {
-			continue
-		}
-
+	for _, div := range c.divsNamed(name) {
 		var sum amount
 		var declared *amount
 		var declaredPos diag.Position
@@ -296,10 +292,7 @@ func checkAmountAtLeast(c *ruleContext) {
 		return
 	}
 
-	for _, div := range c.File.Divs() {
-		if div.Name != name {
-			continue
-		}
+	for _, div := range c.divsNamed(name) {
 		total, pos, ok := divTotal(c.File, div)
 		if !ok {
 			continue

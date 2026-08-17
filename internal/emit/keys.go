@@ -73,7 +73,7 @@ func StyleKeys(sc *schema.Schema) []StyleKey {
 }
 
 // blockSuffixes are the keys a declared block brings into existence beyond
-// `div.<name>` itself, each with what it does. The first three select a
+// `div.<name>` itself, each with what it does. The first four select a
 // rendering pattern; mapping none renders every paragraph in `div.<name>`.
 //
 // Keep this in step with the `e.style("div."+d.Name+...)` lookups in emit.go. A
@@ -83,9 +83,10 @@ var blockSuffixes = []struct{ suffix, purpose, fallback string }{
 	{".amount", "selects amount rendering; styles the amount column", ""},
 	{".line", "selects ruled rendering; styles the rule", ""},
 	{".label", "selects labelled rendering; styles the tabbed label", ""},
+	{".field", "selects field rendering — label first, then the value; styles the label column", ""},
 	{".total", "styles the total row of amount rendering", ""},
 	{".total.amount", "styles the amount cell of that total row", ""},
-	{".words", "styles the amount spelled out in words; needs the theme's `formats.amount_words`", "div.<name>"},
+	{".words", "adds the amount spelled out in words; needs the theme's `formats.amount_words` as well", ""},
 }
 
 // blockKeys reports the keys one declared block brings into existence.
@@ -96,11 +97,7 @@ func blockKeys(name string) []StyleKey {
 		Fallback: "paragraph",
 	}}
 	for _, s := range blockSuffixes {
-		fallback := s.fallback
-		if fallback == "div.<name>" {
-			fallback = "div." + name
-		}
-		keys = append(keys, StyleKey{Key: "div." + name + s.suffix, Purpose: s.purpose, Fallback: fallback})
+		keys = append(keys, StyleKey{Key: "div." + name + s.suffix, Purpose: s.purpose, Fallback: s.fallback})
 	}
 	return keys
 }
@@ -193,6 +190,8 @@ func BlockPattern(sc *schema.Schema, name string) string {
 		return "ruled"
 	case sc.Styles["div."+name+".label"] != "":
 		return "labelled"
+	case sc.Styles["div."+name+".field"] != "":
+		return "field"
 	default:
 		return "plain"
 	}

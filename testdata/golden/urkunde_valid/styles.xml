@@ -17,7 +17,9 @@
 <w:name w:val="Bullet list"/>
 <w:basedOn w:val="Listenabsatz"/>
 <w:qFormat/>
-<w:pPr/>
+<w:pPr>
+<w:jc w:val="left"/>
+</w:pPr>
 <w:rPr/>
 </w:style>
 <w:style w:type="character" w:styleId="Betrag">
@@ -73,6 +75,7 @@
 <w:tab w:val="right" w:pos="8504"/>
 </w:tabs>
 <w:spacing w:after="85" w:line="276" w:lineRule="auto"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr/>
 </w:style>
@@ -82,6 +85,7 @@
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="567" w:after="0"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr/>
 </w:style>
@@ -104,6 +108,7 @@
 <w:pPr>
 <w:spacing w:after="113" w:line="276" w:lineRule="auto"/>
 <w:ind w:left="454"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr/>
 </w:style>
@@ -184,6 +189,7 @@
 <w:pPr>
 <w:keepNext/>
 <w:spacing w:before="454" w:after="170"/>
+<w:jc w:val="left"/>
 <w:outlineLvl w:val="0"/>
 </w:pPr>
 <w:rPr>
@@ -202,6 +208,7 @@
 <w:pPr>
 <w:keepNext/>
 <w:spacing w:before="283" w:after="113"/>
+<w:jc w:val="left"/>
 <w:outlineLvl w:val="1"/>
 </w:pPr>
 <w:rPr>
@@ -221,6 +228,7 @@
 <w:keepNext/>
 <w:keepLines/>
 <w:spacing w:before="340" w:after="113"/>
+<w:jc w:val="left"/>
 <w:outlineLvl w:val="2"/>
 </w:pPr>
 <w:rPr>
@@ -237,6 +245,7 @@
 <w:tab w:val="right" w:pos="8957" w:leader="dot"/>
 </w:tabs>
 <w:spacing w:before="680" w:after="794" w:line="276" w:lineRule="auto"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr/>
 </w:style>
@@ -246,6 +255,7 @@
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="567" w:after="454"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr/>
 </w:style>
@@ -256,6 +266,7 @@
 <w:pPr>
 <w:keepNext/>
 <w:spacing w:before="454" w:after="454"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr/>
 </w:style>
@@ -316,6 +327,7 @@
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="113" w:line="276" w:lineRule="auto"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr/>
 </w:style>

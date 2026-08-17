@@ -20,6 +20,9 @@ func testTheme() *theme.Theme {
 			"Listenabsatz":  {Name: "List Paragraph", BasedOn: "Standard"},
 			"Evidence":      {Name: "Evidence", BasedOn: "Standard", Italic: ptrTo(true)},
 			"EvidenceLabel": {Name: "Evidence Label", Type: "character"},
+			"Formularzeile": {Name: "Formularzeile", BasedOn: "Standard"},
+			"Feldname":      {Name: "Feldname", Type: "character"},
+			"Firma":         {Name: "Firma", Type: "character", Bold: ptrTo(true)},
 		},
 		Numbering: map[string]theme.NumFormat{
 			"Nummerierung": {Format: "decimal", Text: "%1.", Style: "Listenabsatz"},
@@ -36,7 +39,11 @@ func testSchema() *schema.Schema {
 			"ordered_list":       "Nummerierung",
 			"div.evidence":       "Evidence",
 			"div.evidence.label": "EvidenceLabel",
+			"div.feld":           "Formularzeile",
+			"div.feld.field":     "Feldname",
+			"span.firma":         "Firma",
 		},
+		Spans: map[string]schema.SpanSpec{"firma": {}},
 		// The furniture tests below interpolate these. Validate rejects a theme
 		// that names a field the schema does not declare, so the test schema has
 		// to declare them for the same reason a real one does.
@@ -519,6 +526,20 @@ func TestValidateCatchesBadNumberingSuffix(t *testing.T) {
 	}
 }
 
+// A misspelt `restart:` would otherwise be a level that quietly keeps Word's
+// default — the same silence the value exists to escape.
+func TestValidateCatchesBadNumberingRestart(t *testing.T) {
+	th := renderTheme()
+	def := th.Numbering["Margin"]
+	def.Restart = "sometimes"
+	th.Numbering["Margin"] = def
+
+	err := Validate(renderSchema(), th)
+	if err == nil || !strings.Contains(err.Error(), `unknown restart "sometimes"`) {
+		t.Fatalf("expected a restart error, got: %v", err)
+	}
+}
+
 // A nested `levels:` is an author expecting a tree. Silently flattening it
 // would renumber their outline; saying so costs one line to fix.
 func TestValidateCatchesNestedLevels(t *testing.T) {
@@ -592,6 +613,58 @@ func TestLabelledDivMovesEvidenceLabelToRightTab(t *testing.T) {
 	}
 	if got := runText(p.Runs[2]); got != "Exhibit 1" {
 		t.Errorf("label = %q, want Exhibit 1", got)
+	}
+}
+
+// The form pattern: label left, value right, and no list marker. It is the
+// labelled pattern with the emission order reversed, which is what a registry
+// form needs and what furniture could only fake.
+func TestFieldDivPutsLabelBeforeValue(t *testing.T) {
+	doc := build(t, "---\nx: 1\n---\n\n::: feld\n- [Firma:] [Fake AI]{.firma} GmbH\n:::\n")
+	if len(doc.Body) != 1 {
+		t.Fatalf("got %d body blocks, want 1", len(doc.Body))
+	}
+	p, ok := doc.Body[0].(docx.Paragraph)
+	if !ok {
+		t.Fatalf("body block is %T, want paragraph", doc.Body[0])
+	}
+	if p.Props.Style != "Formularzeile" {
+		t.Errorf("paragraph style = %q, want Formularzeile", p.Props.Style)
+	}
+	// A form row is not a bulleted list; its columns are tab stops.
+	if p.Props.Numbering != nil {
+		t.Errorf("form row got list numbering: %+v", p.Props.Numbering)
+	}
+	if len(p.Runs) < 4 {
+		t.Fatalf("got %d runs, want tab + label + tab + value", len(p.Runs))
+	}
+	if _, ok := p.Runs[0].Items[0].(docx.Tab); !ok {
+		t.Errorf("first run = %T, want the tab into the label column", p.Runs[0].Items[0])
+	}
+	if p.Runs[1].Props.Style != "Feldname" {
+		t.Errorf("label style = %q, want Feldname", p.Runs[1].Props.Style)
+	}
+	if got := runText(p.Runs[1]); got != "Firma:" {
+		t.Errorf("label = %q, want Firma:", got)
+	}
+	if _, ok := p.Runs[2].Items[0].(docx.Tab); !ok {
+		t.Errorf("third run = %T, want the tab into the value column", p.Runs[2].Items[0])
+	}
+
+	// The point of reaching this from the body rather than from furniture: the
+	// spans the checks anchor on survive into the output.
+	var value, styled string
+	for _, r := range p.Runs[3:] {
+		value += runText(r)
+		if r.Props.Style == "Firma" {
+			styled += runText(r)
+		}
+	}
+	if strings.TrimSpace(value) != "Fake AI GmbH" {
+		t.Errorf("value = %q, want Fake AI GmbH", value)
+	}
+	if styled != "Fake AI" {
+		t.Errorf("span run = %q, want the .firma span styled as Firma", styled)
 	}
 }
 

@@ -104,12 +104,14 @@ the pattern is a consequence of the style map, not something the block declares:
 | `div.<name>.amount` | amount rendering; styles the amount column |
 | `div.<name>.total` | the total row of amount rendering |
 | `div.<name>.total.amount` | the amount cell of that total row |
-| `div.<name>.words` | the amount spelled out; needs the theme's `formats.amount_words` |
+| `div.<name>.words` | the amount spelled out; needs the theme's `formats.amount_words` as well. Unmapped means no gloss, so a form inheriting a deed's theme can drop it |
 | `div.<name>.line` | ruled rendering; styles the rule |
 | `div.<name>.label` | labelled rendering; styles the tabbed label |
+| `div.<name>.field` | field rendering — label first, then the value; styles the label column |
 
-They are tried in the order `.amount`, `.line`, `.label`; mapping two silently
-takes the first. `docc describe` reports which pattern each block ended up with.
+They are tried in the order `.amount`, `.line`, `.label`, `.field`; mapping two
+silently takes the first. `docc describe` reports which pattern each block ended
+up with.
 
 ### What a theme cannot change
 
@@ -153,6 +155,28 @@ the proof. Only `[Beilage N]` has special semantics: `N` is checked against the
 positional `beilagen` list in the frontmatter. Labels such as `Klagebeilage`,
 `Actorum`, `Augenschein`, or `Zeugenbefragung` remain valid but do not claim a
 locally filed attachment. A closing `:::` must be on a line of its own.
+
+### Form blocks
+
+A form row is a label and a value side by side — the commonest shape in Swiss
+registry paperwork. It is written like an evidence item, label first in
+brackets, and rendered the other way round: the label in its own column, the
+value beside it.
+
+```markdown
+::: feld
+- [Firma:] [Fake AI]{.firma .docc-field key=firma} GmbH
+- [Sitz:]  [Neuenhof]{.sitz .docc-field key=sitz}
+:::
+```
+
+The label is plain text; the value is ordinary body content, so it keeps its
+spans and its emphasis. That is the reason to build a form this way rather than
+out of theme furniture: the content stays in the document, so `no_blank_spans`,
+`spans_agree`, `required_spans` and every block-scoped rule keep applying to it.
+
+The columns are the row style's tab stops, set by the theme; nothing about the
+layout is in the source.
 
 ### Semantic blocks and spans
 

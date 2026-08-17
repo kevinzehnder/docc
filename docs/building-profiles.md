@@ -146,10 +146,11 @@ Order of work inside the YAML:
    |---|---|
    | `div.<name>` only | plain — every paragraph in that style |
    | `div.<name>.label` | labelled — `- [LABEL] description` comes out as description, tab, label at a tab stop. Evidence references. |
+   | `div.<name>.field` | field — `- [LABEL] value` comes out as tab, label, tab, value. Registry forms and party blocks: label column left, rich value beside it. |
    | `div.<name>.amount` | amount — a right-aligned amount column; `.total` and `.total.amount` style the total row, `.words` the spelled-out sum (needs the theme's `formats.amount_words`) |
    | `div.<name>.line` | ruled — a signature or entry line |
 
-   They are tried `.amount`, `.line`, `.label`; mapping two takes the first
+   They are tried `.amount`, `.line`, `.label`, `.field`; mapping two takes the first
    silently. `docc describe <type>` prints the pattern each block resolved to.
 6. `render:` — heading/paragraph numbering, referencing definitions the theme
    will declare.
@@ -209,6 +210,23 @@ prologue/epilogue. Notes that bite:
     of a bare `2.1.`, and the section it belongs to is obvious. Blocks that
     name the same `total-of` are summed together, so splitting them up costs
     nothing in checking.
+  - **field** (`div.<name>.field`): a right stop for the label column and a
+    left stop just past it for the value, plus a hanging indent equal to the
+    second stop so a value that wraps stays in its own column. This is the
+    two-column form row Swiss registry paperwork is made of — `Firma:`,
+    `Sitz:`, `Zweck:` — and it is the labelled pattern with the order
+    reversed, because a form's label comes first. The value keeps its spans,
+    which is the whole reason to build the form out of body content instead
+    of furniture: `no_blank_spans`, `spans_agree` and `required_spans` go on
+    applying to it, and the block is still a div, so `required_div` anchors
+    on it.
+
+    ```markdown
+    ::: feld
+    - [Firma:] [Fake AI]{.firma .docc-field key=firma} GmbH
+    - [Sitz:]  [Neuenhof]{.sitz .docc-field key=sitz}
+    :::
+    ```
   - **ruled** (`div.<name>.line`): the emitter writes one tab per stop the
     style declares, so a stop with no leader followed by one with
     `leader: dot` gives a gap and then a rule — a signature line whose shape

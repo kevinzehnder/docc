@@ -202,6 +202,16 @@ rules:
     check: no_placeholder_text
     severity: error
 
+  # Every rule below scopes itself to `::: betraege`, and a rule scoped to a
+  # block reports nothing at all when the block is absent. A deed without a
+  # price block is not a Kaufvertrag, so requiring it is what makes the two
+  # rules that follow mean something.
+  - id: KFV014
+    check: required_div
+    severity: error
+    args:
+      div: betraege
+
   - id: KFV012
     check: div_items_match
     severity: error
