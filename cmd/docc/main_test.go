@@ -158,6 +158,24 @@ func TestHelpExitsZero(t *testing.T) {
 	}
 }
 
+// `docc --version` is what a CI step reaches for first, and what every other
+// tool on the PATH answers. It must say exactly what the subcommand says.
+func TestVersionFlagMatchesSubcommand(t *testing.T) {
+	var flagCode, cmdCode int
+	fromFlag := captureStdout(t, func() { flagCode = run([]string{"--version"}) })
+	fromCmd := captureStdout(t, func() { cmdCode = run([]string{"version"}) })
+
+	if flagCode != 0 || cmdCode != 0 {
+		t.Fatalf("exit codes = %d and %d, want 0", flagCode, cmdCode)
+	}
+	if fromFlag != fromCmd {
+		t.Errorf("--version printed %q, version printed %q", fromFlag, fromCmd)
+	}
+	if !strings.HasPrefix(fromFlag, "docc ") {
+		t.Errorf("--version = %q, want it to name the program", fromFlag)
+	}
+}
+
 func TestPermute(t *testing.T) {
 	newSet := func() *flag.FlagSet {
 		fs := flag.NewFlagSet("t", flag.ContinueOnError)

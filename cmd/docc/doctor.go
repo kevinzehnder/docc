@@ -123,12 +123,26 @@ func diagnose(cf commonFlags, start string) (*doctorReport, error) {
 		rep.SchemaSource = "--schema-dir"
 	}
 
-	themes, themeDir, _, themeErr := loadThemes(cf.themeDir, start)
+	themes, themeDir, resolved, themeErr := loadThemes(cf.themeDir, start)
+	// Which *kind* of discovery answered is the question this command exists
+	// for, and "discovered" does not answer it: a pack checkout and an
+	// installed profile resolve to different directories for different reasons.
+	if resolved != nil {
+		if cf.schemaDir == "" {
+			rep.SchemaSource = resolved.Source
+		}
+		if resolved.Root != "" && rep.Root == "" {
+			rep.Root = resolved.Root
+		}
+	}
 	if themeErr != nil {
 		rep.ThemeError = themeErr.Error()
 	} else {
 		rep.ThemeDir = themeDir
 		rep.ThemeSource = "discovered"
+		if resolved != nil {
+			rep.ThemeSource = resolved.Source
+		}
 		if cf.themeDir != "" {
 			rep.ThemeSource = "--theme-dir"
 		}

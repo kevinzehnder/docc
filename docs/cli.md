@@ -25,12 +25,13 @@ docc describe --from ~/kanzlei ch_legal  # …for a project other than this dire
 docc explain                      # list every diagnostic code
 docc explain DOC010               # describe one
 docc explain DOC010 --type ch_legal  # …and the constraints that schema declares
+docc version                      # print the version; `docc --version` is the same
 ```
 
 Flags may appear before or after the positional arguments, so
 `docc build docs/klage.md --to pdf` works. Use `--` to end flag parsing when a
 file name begins with a dash. `--help` on any subcommand prints its usage and
-exits `0`.
+exits `0`, and `--version` answers as the `version` subcommand does.
 
 Exit codes:
 
@@ -47,8 +48,8 @@ flag is worth retrying; a missing profile configuration is not.
 ### Which configuration am I using?
 
 Schemas and themes resolve from a project profile binding, a legacy local
-`.docc/schemas` + `.docc/themes` directory, or the user's installed default
-profile pack. `docc doctor` reports the directories that resolved to, lists the
+`.docc/schemas` + `.docc/themes` directory, the `docc-profile.yaml` of a pack
+checkout you are standing in, or the user's installed default profile pack. `docc doctor` reports the directories that resolved to, lists the
 types and themes it found, and checks every schema against the theme it names —
 that every mapped style exists, every interpolated field is declared, and every
 numbering definition resolves. Those checks otherwise run only inside a build, so
@@ -59,8 +60,8 @@ document for it.
 $ docc doctor
 configuration:
   project root   /srv/kanzlei
-  schemas        /srv/kanzlei/.docc/schemas  (discovered)
-  themes         /srv/kanzlei/.docc/themes  (discovered)
+  schemas        /srv/kanzlei/.docc/schemas  (legacy-project)
+  themes         /srv/kanzlei/.docc/themes  (legacy-project)
 
 document types:
   base       check-only  declares no theme, cannot be built

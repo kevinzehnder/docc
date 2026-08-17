@@ -23,9 +23,12 @@ can be reverted once the fix lands. **The numbers are stable identifiers** —
 | 7 | Themes cannot compose (single `extends`) | structural | `theme` | design first | open — design |
 | 8 | Sub-level numbering cannot continue across its parent | capability | `theme` | 1 h | **done** |
 | 9 | **A label-left block pattern for the body** | capability | `emit` | ½ d | **done** |
-| 10 | `docc --version` is not accepted, only `docc version` | papercut | `cmd/docc` | 10 min | open |
-| 11 | A pack checkout needs `--schema-dir`/`--theme-dir` on every command | papercut | `project` | ½ d | open |
+| 10 | `docc --version` is not accepted, only `docc version` | papercut | `cmd/docc` | 10 min | **done** |
+| 11 | A pack checkout needs `--schema-dir`/`--theme-dir` on every command | papercut | `project` | ½ d | **done** |
 | 12 | `.field` gives nested and continuation paragraphs the row style | papercut | `emit` | 1 h | open |
+
+**10 and 11 landed too** (2026-08-17), after the six above. 12 is the only open
+papercut; 4, 5 and 7 remain as they were.
 
 **Adopted in the pack.** All six landed changes are now in use: `on_missing:
 ignore` on `legal`'s conditional evidence rule, both theme workarounds reverted,
@@ -618,6 +621,11 @@ dispatch and removes a surprise from the first minute of using the tool.
 Worth deciding at the same time: `-v` (conventional, but often "verbose") and
 `--help`/`-h` beside `docc help`.
 
+**Landed.** `--version` is a second case beside `version`, printing the same
+line — a test asserts the two cannot drift. `-v` was deliberately left out: it
+reads as "verbose" often enough that answering it with a version is a trap.
+`-h`/`--help` already worked.
+
 ---
 
 ## 11. A pack checkout needs `--schema-dir` and `--theme-dir` on every command
@@ -646,6 +654,25 @@ Directions, cheapest first:
 The marker file is the one that fits how the rest of docc behaves: `doctor`
 already reports *which* configuration resolved and from where, and a marker
 keeps that answer a fact rather than a guess.
+
+**Landed — and the marker already existed.** Every pack carries
+`docc-profile.yaml`, which names `schemas:` and `themes:` and is already
+validated by `profile.LoadPack`; it was only ever read for *installed* packs.
+`profile.FindPack` now walks up for it the way `project.Resolve` walks up for
+`.docc`, and `profile.Resolve` tries it after the two project forms and before
+the user default. So no new file, no new configuration language, and a pack
+repository is usable from inside itself:
+
+```sh
+cd jlmy-profiles/documents
+docc doctor --strict      # schemas … (pack-checkout)
+docc build gruendung.md
+```
+
+A checkout pins nothing — you are working *on* the pack, not consuming a
+revision of it — so a document built this way records no commit, and `doctor`
+now names which form answered (`pack-checkout`, `project-profile`,
+`legacy-project`, `user-default`) instead of saying "discovered".
 
 ---
 

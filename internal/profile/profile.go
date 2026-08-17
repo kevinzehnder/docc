@@ -403,7 +403,7 @@ type Resolved struct {
 	Root      string     `json:"root,omitempty"`
 	SchemaDir string     `json:"schema_dir"`
 	ThemeDir  string     `json:"theme_dir"`
-	Source    string     `json:"source"` // project-profile, legacy-project, or user-default
+	Source    string     `json:"source"` // project-profile, legacy-project, pack-checkout, or user-default
 	Reference *Reference `json:"reference,omitempty"`
 }
 
@@ -429,8 +429,47 @@ func (r *Resolved) Provenance() []docx.CustomProperty {
 	return append(props, docx.CustomProperty{Name: "docc-profile-commit", Value: r.Reference.Commit})
 }
 
-// Resolve finds a project binding, legacy project configuration, or user
-// default in that order. It never fetches or updates a profile.
+// FindPack walks up from start looking for a pack manifest, the way
+// project.Resolve looks for .docc. start may be a file or a directory.
+//
+// It is what makes a pack repository usable from inside itself. A pack has no
+// .docc — its schemas and themes are the product, not one project's local
+// configuration — so authoring or checking anything in a pack checkout meant
+// passing --schema-dir and --theme-dir to every command. The manifest is
+// already there, already names both directories, and is already validated, so
+// nothing new has to be written down for this to work.
+//
+// A manifest that fails to load is an error rather than a miss: the file says
+// this is a pack, and walking past a broken one would silently resolve some
+// other configuration.
+func FindPack(start string) (*Pack, error) {
+	abs, err := filepath.Abs(start)
+	if err != nil {
+		return nil, err
+	}
+	if info, err := os.Stat(abs); err == nil && !info.IsDir() {
+		abs = filepath.Dir(abs)
+	}
+
+	for dir := abs; ; {
+		if _, err := os.Stat(filepath.Join(dir, manifestName)); err == nil {
+			return LoadPack(dir)
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return nil, fmt.Errorf("no %s found in %s or any parent: %w", manifestName, abs, ErrNotFound)
+}
+
+// ErrNotFound signals that no pack manifest exists above the start path.
+var ErrNotFound = errors.New("profile pack not found")
+
+// Resolve finds a project binding, legacy project configuration, a pack
+// checkout, or the user default, in that order. It never fetches or updates a
+// profile.
 func Resolve(start string, paths Paths) (*Resolved, error) {
 	if proj, err := project.Resolve(start); err == nil {
 		binding, bindErr := ReadBinding(proj.Dir)
@@ -455,6 +494,22 @@ func Resolve(start string, paths Paths) (*Resolved, error) {
 			}
 		}
 	} else if !errors.Is(err, project.ErrNotFound) {
+		return nil, err
+	}
+
+	// Standing inside a pack checkout. It comes after the project forms —
+	// a .docc binding is an explicit statement about which profile applies,
+	// and a pack that happens to sit above it does not override that — and
+	// before the user default, because the pack you are working in is a more
+	// specific answer than the one you installed globally.
+	if pack, err := FindPack(start); err == nil {
+		return &Resolved{
+			Root:      pack.Root,
+			SchemaDir: pack.SchemaDir(),
+			ThemeDir:  pack.ThemeDir(),
+			Source:    "pack-checkout",
+		}, nil
+	} else if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
 
