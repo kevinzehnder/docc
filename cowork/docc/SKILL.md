@@ -92,9 +92,35 @@ document of a type for the first time.
    ```
 
 `build` re-validates before rendering. Never pass `--force` for a deliverable.
-Exit code `0` is clean, `1` reports diagnostics or a build failure, `2` is a
-usage or configuration error. Legal and contractual output is a **draft that
-requires human review**.
+`--strict` turns warnings into errors. Legal and contractual output is a
+**draft that requires human review**.
+
+Exit code `0` is clean, `1` reports diagnostics or a build failure, `2` means
+the command line is wrong, and `3` that the schemas or themes could not be
+resolved at all — `3` is a setup problem, never a problem with the document.
+Read `--json` rather than scraping stderr. It has two shapes: a validation
+result carries `ok`, `errors`, `warnings` and `diagnostics`, while a command
+that could not run carries `ok: false`, an `error` message and a `kind` of
+`usage`, `config` or `error`.
+
+## Frontmatter
+
+A file becomes a docc document by declaring the format marker. Without it
+nothing is validated and `check` reports `DOC024`, which is the answer to
+"why did my document pass with no output".
+
+```yaml
+---
+docc: 1
+document_type: <one of the types above>
+---
+```
+
+- Dates are ISO: `2026-08-04`.
+- Quote a value whose leading zeros carry meaning, or YAML discards them:
+  `postal_code: "3000"`.
+- A field that is required *and* nullable must still be present. Write `~`
+  only where the schema says an explicitly absent value is valid.
 
 ## Diagnostics
 
@@ -104,6 +130,22 @@ requires human review**.
 
 Explain any engine code with `"./$DOCC" explain DOC010`. Codes a schema defines
 carry their own hint inside the schema file.
+
+## PDF
+
+`.docx` is the compiler's supported output. When the user asks for a PDF,
+build the `.docx` first and then use whatever document conversion this host
+offers. `--to pdf` exists for compatibility and needs `soffice` installed,
+which most hosts do not have.
+
+## When the request does not fit a type
+
+The schemas and themes here are configuration, not values to work around. If
+a requested document cannot be expressed by any type above, say what does not
+fit and ask whether the owner of this profile wants to change it. Do not
+weaken a required field, drop a rule, or reach for `--force` to make a draft
+validate: a document that passes because the contract was lowered is worse
+than one that visibly fails.
 
 ## Try it
 
@@ -118,8 +160,8 @@ A complete example ships for each type:
 The VM is x86_64, which is the architecture the bundled binary is built for.
 `probe.sh` checks it and reports the architecture it found.
 
-DOCX is the compiler's supported output. When the user asks for a PDF, build the
-DOCX first and then use Cowork's own document/PDF capability. The compiler's
-`--to pdf` needs `soffice`, which is not installed here.
+The conversion the PDF section above refers to is Cowork's own document
+capability; `soffice` is not installed in this VM, so `--to pdf` cannot work
+here at all.
 
 Write deliverables into the workspace so the user receives them.

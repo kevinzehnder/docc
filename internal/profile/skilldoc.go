@@ -2,10 +2,38 @@ package profile
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/kevinzehnder/docc/internal/schema"
+	"github.com/kevinzehnder/docc/internal/sema"
 )
+
+// watchedSpans returns the span types the packaged types require to agree, as
+// the union over them. It decides whether the cross-document section applies at
+// all: a profile whose types never declare `spans_agree` has nothing to compare
+// across files, and explaining DOC029 to that reader is noise. Derived from the
+// schemas for the same reason the type table is — a profile that adds such a
+// rule gets the instructions for it without anyone remembering to write them.
+func watchedSpans(schemas *schema.Set, types []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, typ := range types {
+		sc, err := schemas.Get(typ)
+		if err != nil {
+			continue
+		}
+		for _, span := range sema.WatchedSpanTypes(sc) {
+			if seen[span] {
+				continue
+			}
+			seen[span] = true
+			out = append(out, span)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
 
 // skillDoc generates the skill's instructions. It is generated rather than
 // carried alongside the profile so that the types it documents are the types
@@ -94,15 +122,68 @@ func skillDoc(name string, schemas *schema.Set, r *SkillResult, notes []byte) []
 	fmt.Fprintf(&b, "   ```sh\n   %s build --output document.docx document.md\n   ```\n\n", docc)
 
 	b.WriteString("`build` re-validates before rendering. Never pass `--force` for a deliverable.\n" +
-		"Exit code `0` is clean, `1` reports diagnostics or a build failure, `2` is a\n" +
-		"usage or configuration error. Legal and contractual output is a **draft that\n" +
-		"requires human review**.\n\n")
+		"`--strict` turns warnings into errors. Legal and contractual output is a\n" +
+		"**draft that requires human review**.\n\n" +
+		"Exit code `0` is clean, `1` reports diagnostics or a build failure, `2` means\n" +
+		"the command line is wrong, and `3` that the schemas or themes could not be\n" +
+		"resolved at all — `3` is a setup problem, never a problem with the document.\n" +
+		"Read `--json` rather than scraping stderr. It has two shapes: a validation\n" +
+		"result carries `ok`, `errors`, `warnings` and `diagnostics`, while a command\n" +
+		"that could not run carries `ok: false`, an `error` message and a `kind` of\n" +
+		"`usage`, `config` or `error`.\n\n")
+
+	b.WriteString("## Frontmatter\n\n" +
+		"A file becomes a docc document by declaring the format marker. Without it\n" +
+		"nothing is validated and `check` reports `DOC024`, which is the answer to\n" +
+		"\"why did my document pass with no output\".\n\n" +
+		"```yaml\n---\ndocc: 1\ndocument_type: <one of the types above>\n---\n```\n\n" +
+		"- Dates are ISO: `2026-08-04`.\n" +
+		"- Quote a value whose leading zeros carry meaning, or YAML discards them:\n" +
+		"  `postal_code: \"3000\"`.\n" +
+		"- A field that is required *and* nullable must still be present. Write `~`\n" +
+		"  only where the schema says an explicitly absent value is valid.\n\n")
+
+	if spans := watchedSpans(schemas, r.Types); len(spans) > 0 {
+		b.WriteString("## Several documents in one matter\n\n" +
+			"These types require some values to say the same thing wherever they\n" +
+			"appear: ")
+		for i, span := range spans {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "`%s`", span)
+		}
+		b.WriteString(". Across several documents that agreement is only computed\n" +
+			"when they are open together, so check them in **one** invocation:\n\n")
+		fmt.Fprintf(&b, "```sh\n%s check --strict *.md\n```\n\n", docc)
+		b.WriteString("Checking each file on its own passes every one of them and never compares\n" +
+			"them, which is exactly the mistake that repetition invites. A disagreement\n" +
+			"across files is `DOC029`. It is a warning, because files named on one command\n" +
+			"line are not necessarily one matter; `--strict` makes it bind, which is what a\n" +
+			"matter being filed should run.\n\n" +
+			"Before delivering, confirm the set is complete — the types the matter\n" +
+			"requires, not merely the ones drafted. Nothing counts the documents for you.\n\n")
+	}
 
 	b.WriteString("## Diagnostics\n\n" +
 		"- `DOC004` required field missing · `DOC006` wrong scalar type · `DOC007` bad date\n" +
 		"- `DOC008` disallowed enum value · `DOC010` pattern failed · `DOC011` unknown key\n" +
 		"- `DOC020`–`DOC022` body-structure problems\n\n")
 	fmt.Fprintf(&b, "Explain any engine code with `%s explain DOC010`. Codes a schema defines\ncarry their own hint inside the schema file.\n\n", docc)
+
+	b.WriteString("## PDF\n\n" +
+		"`.docx` is the compiler's supported output. When the user asks for a PDF,\n" +
+		"build the `.docx` first and then use whatever document conversion this host\n" +
+		"offers. `--to pdf` exists for compatibility and needs `soffice` installed,\n" +
+		"which most hosts do not have.\n\n")
+
+	b.WriteString("## When the request does not fit a type\n\n" +
+		"The schemas and themes here are configuration, not values to work around. If\n" +
+		"a requested document cannot be expressed by any type above, say what does not\n" +
+		"fit and ask whether the owner of this profile wants to change it. Do not\n" +
+		"weaken a required field, drop a rule, or reach for `--force` to make a draft\n" +
+		"validate: a document that passes because the contract was lowered is worse\n" +
+		"than one that visibly fails.\n\n")
 
 	if len(r.Examples) > 0 {
 		b.WriteString("## Try it\n\nA complete example ships for each type:\n\n")

@@ -212,6 +212,18 @@ renamed a type, dropped the block and span declarations and shipped no
 examples before this command existed. The type table, the example commands and
 the frontmatter description all come from the schemas.
 
+The compiler's own contract is generated too, because it is the half that does
+*not* come from the schemas and is therefore the half a generator silently
+omits: the `docc: 1` marker without which nothing is validated, the exit codes
+and the two `--json` shapes, that `--force` is never for a deliverable, that
+`.docx` is the supported output and a PDF is the host's job, and that a request
+which does not fit a type is a question for the profile's owner rather than a
+reason to weaken it. One section is conditional: cross-document agreement and
+`DOC029` are explained only when some packaged type declares a `spans_agree`
+rule, and the watched span types are named from the rule itself. A pack that
+never asks two documents to agree does not need the paragraph, and a pack that
+does gets it without anyone remembering to write it.
+
 The hand-written part comes from the pack's own `skill:` block — its notes file
 and its description — so the firm's drafting guidance lives beside the schemas
 it describes. `--notes FILE` appends *after* it rather than replacing it: the

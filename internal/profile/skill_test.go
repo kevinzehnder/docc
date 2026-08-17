@@ -132,6 +132,87 @@ func TestSkillDocNamesEveryPackagedType(t *testing.T) {
 	}
 }
 
+// The compiler's contract does not come from the schemas, so it is the half a
+// generated skill can silently omit — and did, while a hand-maintained skill
+// file elsewhere carried it. Every string below was a paragraph that existed
+// only in that file.
+func TestSkillDocCarriesTheCompilerContract(t *testing.T) {
+	result := packageCorpus(t, SkillOptions{})
+	text := string(mustRead(t, filepath.Join(result.Dir, "SKILL.md")))
+
+	for _, want := range []string{
+		"docc: 1",   // without the marker nothing is validated at all
+		"DOC024",    // and this is the code that says so
+		"ISO",       // date form
+		`"3000"`,    // quoting a value whose leading zeros matter
+		"`--force`", // never for a deliverable
+		"`--strict` turns warnings into errors",
+		"`3` is a setup problem",       // the exit code the agent must not blame on the document
+		"`usage`, `config` or `error`", // the real kinds; there is no "diagnostics" kind
+		"## PDF",                       // build .docx first, then the host converts
+		"## When the request does not fit a type", // do not lower the contract to pass
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("SKILL.md does not carry %q", want)
+		}
+	}
+}
+
+// The corpus declares no `spans_agree` rule, so the cross-document section must
+// stay out of its skill. This is the inversion worth keeping: the generic
+// hand-written skill explained DOC029 to profiles that never used it, while a
+// pack that does use it got instructions that never mentioned it.
+func TestSkillDocOmitsCrossDocumentSectionWithoutSpansAgree(t *testing.T) {
+	result := packageCorpus(t, SkillOptions{})
+	text := string(mustRead(t, filepath.Join(result.Dir, "SKILL.md")))
+	if strings.Contains(text, "Several documents in one matter") {
+		t.Error("SKILL.md explains cross-document agreement for a profile that declares none")
+	}
+	if strings.Contains(text, "DOC029") {
+		t.Error("SKILL.md cites DOC029 for a profile with no spans_agree rule")
+	}
+}
+
+func TestSkillDocExplainsCrossDocumentAgreementWhenDeclared(t *testing.T) {
+	schemaDir, themeDir := corpus(t)
+	patched := t.TempDir()
+	if err := copyTree(schemaDir, patched); err != nil {
+		t.Fatal(err)
+	}
+	// Declared on the deed, whose spans are the ones a dossier restates.
+	target := filepath.Join(patched, "ch_urkunde_kaufvertrag.yaml")
+	body := string(mustRead(t, target))
+	rule := "rules:\n  - id: KFV099\n    check: spans_agree\n    severity: warning\n    args:\n      spans: [name, geburtsdatum]\n"
+	patchedBody := strings.Replace(body, "rules:\n", rule, 1)
+	if patchedBody == body {
+		t.Fatal("test fixture has no rules: key to extend")
+	}
+	if err := os.WriteFile(target, []byte(patchedBody), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := PackageSkill(SkillOptions{
+		SchemaDir: patched, ThemeDir: themeDir,
+		Out: filepath.Join(t.TempDir(), "skill"),
+	})
+	if err != nil {
+		t.Fatalf("PackageSkill: %v", err)
+	}
+	text := string(mustRead(t, filepath.Join(result.Dir, "SKILL.md")))
+
+	for _, want := range []string{
+		"Several documents in one matter",
+		"`geburtsdatum`", // the watched types are named, from the rule itself
+		"`name`",
+		"check --strict *.md", // one invocation, or nothing is compared
+		"DOC029",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("SKILL.md does not carry %q for a profile that declares spans_agree", want)
+		}
+	}
+}
+
 func TestPackageSkillWithBinary(t *testing.T) {
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "docc-linux-amd64")
