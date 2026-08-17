@@ -15,6 +15,13 @@ build() {
 }
 build amd64 "$stage/runtime/bin/docc-linux-amd64"
 build arm64 "$stage/runtime/bin/docc-linux-arm64"
+manifest() {
+  mkdir -p "$(dirname -- "$2")"
+  awk -v v="$version" 'NR==1 && $0 ~ /^\{/ {
+    sub(/^\{/, "{\n  \"version\": \"" v "\",")
+  } { print }' "$1" > "$2"
+  grep -q "\"version\": \"$version\"" "$2" || { echo "version not injected into $2" >&2; exit 1; }
+}
 prepare() {
   mkdir -p "$1"
   cp -R "$root/skills/docc/." "$1/"
@@ -28,12 +35,10 @@ archive() {
 }
 prepare "$stage/plain"
 archive "$stage/plain" "$dist/docc-agent-skill-$version.zip"
-mkdir -p "$stage/claude/.claude-plugin"
-sed "s/1.0.0/$version/" "$root/.claude-plugin/plugin.json" > "$stage/claude/.claude-plugin/plugin.json"
+manifest "$root/.claude-plugin/plugin.json" "$stage/claude/.claude-plugin/plugin.json"
 prepare "$stage/claude/skills/docc"
 archive "$stage/claude" "$dist/docc-claude-plugin-$version.zip"
-mkdir -p "$stage/openai/.codex-plugin"
-sed "s/1.0.0/$version/" "$root/.codex-plugin/plugin.json" > "$stage/openai/.codex-plugin/plugin.json"
+manifest "$root/.codex-plugin/plugin.json" "$stage/openai/.codex-plugin/plugin.json"
 prepare "$stage/openai/skills/docc"
 archive "$stage/openai" "$dist/docc-openai-plugin-$version.zip"
 printf '%s\n' "$dist/docc-agent-skill-$version.zip" "$dist/docc-claude-plugin-$version.zip" "$dist/docc-openai-plugin-$version.zip"
