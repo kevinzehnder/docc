@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # git describe needs the tag history for the version stamp.
+          # goreleaser needs the tag history for the version stamp.
           fetch-depth: 0
 
       - uses: actions/setup-go@v5
@@ -33,44 +33,18 @@ jobs:
           sudo apt-get install -y --no-install-recommends libreoffice-writer
           go test -tags roundtrip -run LibreOffice ./internal/docx/ -v
 
-      - name: build binaries
-        run: |
-          set -eu
-          version="${GITHUB_REF_NAME}"
-          mkdir -p dist
-          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
-            goos="${target%/*}"; goarch="${target#*/}"
-            ext=""; [ "$goos" = "windows" ] && ext=".exe"
-            out="dist/docc-${version}-${goos}-${goarch}${ext}"
-            echo "building ${out}"
-            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
-              go build -trimpath \
-                -ldflags "-s -w -X main.buildVersion=${version}" \
-                -o "$out" ./cmd/docc
-          done
+      # The archives an install actually resolves, checked before one is
+      # published rather than after someone reports it.
+      - name: verify agent skill packages
+        run: ./scripts/test-agent-packages.sh
 
-      - name: package cowork skill
-        run: |
-          sh cowork/assemble.sh
-          cp cowork/docc-cowork-skill.zip "dist/docc-cowork-skill-${GITHUB_REF_NAME}.zip"
-
-      - name: checksums
-        run: |
-          cd dist
-          sha256sum -- * > SHA256SUMS
-
-      # Both this workflow and release-agent-skills.yml fire on the same tag,
-      # so either may reach the release first. Create it only if it is not
-      # already there, then upload — the same pattern the skills workflow
-      # already uses. A bare `gh release create` loses that race and takes the
-      # binaries down with it.
-      - name: create release
+      # goreleaser is the only job that creates the release: it builds every
+      # target and attaches the skill archives its before-hook produced. When a
+      # second workflow also created the release on the same tag, whichever lost
+      # the race took the other's assets down with it.
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -eu
-          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 \
-            || gh release create "${GITHUB_REF_NAME}" \
-                 --title "docc ${GITHUB_REF_NAME}" \
-                 --generate-notes
-          gh release upload "${GITHUB_REF_NAME}" dist/* --clobber
+          GITHUB_TOKEN: ${{ github.token }}

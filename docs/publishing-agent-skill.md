@@ -39,8 +39,54 @@ go install github.com/kevinzehnder/docc/cmd/docc@latest   # or: task install
 ```
 
 `skills/docc/scripts/run-docc.sh` prefers a bundled binary, then falls back to
-`PATH`, and reports a missing runtime rather than downloading one. For a host
-with neither Go nor an installed `docc`, use an archive instead.
+`PATH`, and reports a missing runtime rather than downloading one. A host with
+neither Go nor an installed `docc` wants the `docc-bundled` entry below.
+
+## Installing the bundled build from a release
+
+The same marketplace carries a second entry for a machine with no Go toolchain:
+
+```sh
+/plugin install docc-bundled@docc
+```
+
+Its source is an
+[`archive`](https://code.claude.com/docs/en/plugin-marketplaces#zip-archives)
+pointing at `releases/latest/download/docc-claude-plugin.zip` — a *stable* URL,
+which is why `scripts/release-artifacts.sh` attaches the plugin zip under a bare
+name as well as a versioned one. The entry pins neither a `version` nor a
+`sha256`, so the downloaded file's own digest is the version: publish a release
+and every installation sees an update, with nothing to rewrite here. Pinning the
+digest instead would buy an integrity check at the price of a commit to this file
+per release.
+
+Two costs come with the entry, and both fall on the git entry above as well:
+
+- Archive sources need Claude Code v2.1.224 or later. On v2.1.120 through
+  v2.1.223 this entry fails to install; before v2.1.120 the whole marketplace
+  fails to load.
+- Nothing verifies the download beyond HTTPS.
+
+## Releasing
+
+`goreleaser release` on a `v*` tag is the only job that creates the GitHub
+release. It builds all six targets, and its before-hook runs
+`scripts/release-artifacts.sh`, which produces the agent-skill archives, the
+Cowork skill and the unversioned plugin zip into `build/release/` for
+`release.extra_files` to attach. `release-agent-skills.yml` verifies the same
+archives on pull requests but no longer publishes: when both workflows created
+the release on one tag, whichever lost the race took the other's assets down.
+
+Check a config change without publishing anything:
+
+```sh
+goreleaser check
+goreleaser release --snapshot --clean
+```
+
+A released `docc version` now prints `1.2.3` rather than `v1.2.3`. goreleaser's
+`.Version` drops the leading `v`, which is what `package-agent-skills.sh` has
+always stamped into the bundled binaries, so the two paths finally agree.
 
 ## Packaged archives
 
@@ -60,16 +106,11 @@ no network or Go installation. Local agents on other platforms fall back to a
 `docc` executable on `PATH`. Packaging injects the version into the copied
 manifests, which is why the committed ones carry none.
 
-Push a `v*` tag to test, create a GitHub release, and upload all archives.
-Manual workflow runs create downloadable CI artifacts without publishing.
-Test representative prompts in clean Claude/Cowork and ChatGPT Work sessions
-before completing each vendor's listing and review process.
+`docc-claude-plugin-<version>.zip` is also what the `docc-bundled` entry
+installs: `.claude-plugin/plugin.json` at the top of the archive, `skills/docc/`
+beside it, which is the layout an archive source expects.
 
-Once a release exists, the same marketplace can serve the self-contained build
-to machines without Go by adding a second entry with an
-[`archive` source](https://code.claude.com/docs/en/plugin-marketplaces#zip-archives)
-pointing at `docc-claude-plugin-<version>.zip` and its `sha256`. That zip
-already has the layout an archive source expects: `.claude-plugin/plugin.json`
-at the top, `skills/docc/` beside it. Requires Claude Code v2.1.224 or later,
-and both the digest and the version have to move with every new zip or clients
-keep the cached copy.
+A manual `release-agent-skills.yml` run produces the archives as downloadable CI
+artifacts without publishing. Test representative prompts in clean Claude/Cowork
+and ChatGPT Work sessions before completing each vendor's listing and review
+process.

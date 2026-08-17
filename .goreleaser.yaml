@@ -1,0 +1,61 @@
+# Release engineering for docc. `goreleaser release` owns the GitHub release:
+# it builds every target, attaches the agent-skill and Cowork archives the
+# before-hook produces, and publishes. Nothing else may create the release —
+# two workflows racing for it is how binaries get taken down again.
+#
+# Verify a config change without publishing:
+#
+#   goreleaser check
+#   goreleaser release --snapshot --clean
+version: 2
+
+project_name: docc
+
+before:
+  hooks:
+    - go mod download
+    # The skill and plugin archives, staged where --clean cannot reach them.
+    - ./scripts/release-artifacts.sh {{ .Version }}
+
+builds:
+  - id: docc
+    main: ./cmd/docc
+    binary: docc
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    # `.Version` is the tag without its leading v, which is what
+    # package-agent-skills.sh has always stamped. A released `docc version` now
+    # prints 1.2.3 rather than v1.2.3, and both paths agree.
+    ldflags:
+      - -s -w -X main.buildVersion={{ .Version }}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: docc
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github-native
+
+release:
+  extra_files:
+    - glob: build/release/*.zip
