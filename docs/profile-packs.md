@@ -31,6 +31,8 @@ docc-profiles/
     letter.yaml
     legal.yaml
     logo.png
+  docs/
+    skill-notes.md
   examples/
 ```
 
@@ -42,10 +44,35 @@ id: example-kanzlei
 name: Example Kanzlei profiles
 schemas: schemas
 themes: themes
+
+# Optional: what an AgentSkill packaged from this pack should say.
+skill:
+  description: >-
+    Draft and render Example Kanzlei deeds, letters and briefs.
+    Use for any client-facing document of the firm.
+  notes: docs/skill-notes.md
 ```
 
 `id` is a stable, filesystem-safe identifier. `schemas` and `themes` are
-relative paths inside the repository. Compatibility is verified by the profile
+relative paths inside the repository.
+
+### `skill:` — the firm's own drafting guidance
+
+Everything an AgentSkill can derive from the schemas is generated, and stays
+generated: a hand-written list of document types drifts from the types the pack
+declares, and nobody notices until someone uses it. What cannot be derived is
+the firm's knowledge — when to ask for a Heimatort rather than infer it, which
+type fits which instruction, what has to be verified before signing.
+
+`skill.notes` is a Markdown file inside the pack, appended to the generated
+instructions. `skill.description` replaces the generated one-line description,
+which is what an agent reads when deciding whether this skill applies at all.
+Both are validated at load: a pack that promises notes it does not carry fails
+where it is validated, not in the one command that reads the file.
+
+Without them the prose has to be handed to `docc profile package --notes` by
+whoever runs it, so the one thing only the firm knows lives outside the
+repository that knows it. Compatibility is verified by the profile
 repository's CI against supported `docc` releases; a machine-enforced range can
 be added once the public release versioning policy is in place. A pack contains
 data and assets only:
@@ -98,14 +125,20 @@ or filed work.
 Schema and theme resolution has one shared precedence order:
 
 1. Explicit `--schema-dir` and `--theme-dir` flags.
-2. A nearest project `.docc/profile.yaml` plus its lockfile.
-3. Existing local `.docc/schemas` and `.docc/themes` (legacy and custom
+2. `DOCC_PROFILE`, naming a pack directory. It is for the case neither walking
+   up nor the working directory can answer: a packaged AgentSkill carries its
+   profile beside itself and compiles documents that live wherever the agent
+   happens to be. A value that names no usable pack is an error, never a
+   fallback — compiling against schemas nobody chose is the failure this whole
+   order exists to prevent.
+3. A nearest project `.docc/profile.yaml` plus its lockfile.
+4. Existing local `.docc/schemas` and `.docc/themes` (legacy and custom
    projects).
-4. A nearest `docc-profile.yaml` — you are standing inside a pack checkout.
-5. The user's configured default pack.
-6. A configuration error with an installation hint.
+5. A nearest `docc-profile.yaml` — you are standing inside a pack checkout.
+6. The user's configured default pack.
+7. A configuration error with an installation hint.
 
-Step 4 is what makes a pack repository usable from inside itself. A pack has no
+Step 5 is what makes a pack repository usable from inside itself. A pack has no
 `.docc`: its schemas and themes are the product, not one project's local
 configuration, so working in a checkout used to mean passing `--schema-dir` and
 `--theme-dir` to every command. The manifest already names both directories, so
@@ -116,7 +149,7 @@ you are editing is a more specific answer than the one you installed globally.
 
 Nothing is pinned by a checkout: you are working *on* the pack rather than
 consuming a revision of it, so a document built this way records no commit.
-`docc doctor` names which of these answered, as `pack-checkout`,
+`docc doctor` names which of these answered, as `env-profile`, `pack-checkout`,
 `project-profile`, `legacy-project` or `user-default`.
 
 Installed packs are never merged. Selecting one pack avoids collisions between
@@ -156,22 +189,35 @@ and `.docc/themes` entries are for — see
 
 ```text
 <id>-skill/
-  SKILL.md          generated from the schemas
-  config/schemas/   copied verbatim
-  config/themes/    copied verbatim, assets included
-  examples/         one document per renderable type
-  probe.sh          generated self-test
-  bin/              only with --with-binary
+  SKILL.md            generated from the schemas
+  docc-profile.yaml   generated; makes the skill a pack in its own right
+  config/schemas/     copied verbatim
+  config/themes/      copied verbatim, assets included
+  examples/           one document per renderable type
+  probe.sh            generated self-test
+  bin/                only with --with-binary
 ```
+
+The generated manifest is what lets the instructions say `docc check
+document.md` instead of repeating `--schema-dir config/schemas --theme-dir
+config/themes` on every line — two flags an agent can forget separately, and
+does. `SKILL.md` tells it to set `DOCC_PROFILE` to the skill's own directory,
+which works from whatever directory the document lives in; the explicit flags
+still work and are documented beside it.
 
 `SKILL.md` is **generated**, not carried alongside the pack. A hand-written
 skill file drifts from the types it claims to document, and the drift is only
 discovered by whoever tries to use it — the repository's own Cowork skill had
 renamed a type, dropped the block and span declarations and shipped no
 examples before this command existed. The type table, the example commands and
-the frontmatter description all come from the schemas. `--notes FILE` appends
-host-specific guidance that the generator cannot know, which is the only part
-that stays hand-written.
+the frontmatter description all come from the schemas.
+
+The hand-written part comes from the pack's own `skill:` block — its notes file
+and its description — so the firm's drafting guidance lives beside the schemas
+it describes. `--notes FILE` appends *after* it rather than replacing it: the
+two are different halves that both belong, since a pack knows when to ask for a
+Heimatort and only the person packaging knows how a particular host hands a
+file back.
 
 Examples come from each schema's `example:` field, so a shipped example cannot
 fall out of step with its type. Packaging validates every schema/theme pair

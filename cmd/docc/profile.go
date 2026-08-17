@@ -275,7 +275,7 @@ func cmdProfilePackage(args []string) int {
 	out := fs.String("out", "", "skill directory to write (default: ./<profile>-skill)")
 	name := fs.String("name", "", "skill name (default: the profile id)")
 	binary := fs.String("with-binary", "", "docc executable to bundle, for hosts without docc on PATH")
-	notes := fs.String("notes", "", "Markdown file appended to the generated SKILL.md, for host-specific guidance")
+	notes := fs.String("notes", "", "Markdown file appended to the generated SKILL.md, after the pack's own skill notes")
 	zipPath := fs.String("zip", "", "also write the skill as a zip archive at this path")
 	jsonOut := fs.Bool("json", false, "machine-readable output")
 	if code, stop := parseFlags(fs, profilePackageHelp, args); stop {
@@ -307,9 +307,15 @@ func cmdProfilePackage(args []string) int {
 		}
 		sources = *resolved
 		if id == "" {
-			id = "docc"
-			if resolved.Reference != nil {
+			// A pinned reference and an unpinned checkout both name the pack;
+			// only the first records a commit.
+			switch {
+			case resolved.Reference != nil:
 				id = resolved.Reference.ID
+			case resolved.PackID != "":
+				id = resolved.PackID
+			default:
+				id = "docc"
 			}
 		}
 	}
@@ -323,13 +329,29 @@ func cmdProfilePackage(args []string) int {
 		return fail(cf, exitUsage, err)
 	}
 
+	// The firm's drafting guidance first, then this build's host-specific
+	// notes. Both belong: a pack knows when to ask for a Heimatort, and only
+	// the person packaging knows how this host hands a file back.
+	var skillNotes []string
+	description := ""
+	if sources.Skill != nil {
+		description = sources.Skill.Description
+		if sources.Skill.Notes != "" {
+			skillNotes = append(skillNotes, filepath.Join(sources.PackRoot, filepath.Clean(sources.Skill.Notes)))
+		}
+	}
+	if *notes != "" {
+		skillNotes = append(skillNotes, *notes)
+	}
+
 	result, err := profile.PackageSkill(profile.SkillOptions{
-		SchemaDir: sources.SchemaDir,
-		ThemeDir:  sources.ThemeDir,
-		Out:       dir,
-		Name:      id,
-		Binary:    *binary,
-		Notes:     *notes,
+		SchemaDir:   sources.SchemaDir,
+		ThemeDir:    sources.ThemeDir,
+		Out:         dir,
+		Name:        id,
+		Binary:      *binary,
+		Notes:       skillNotes,
+		Description: description,
 	})
 	if err != nil {
 		return fail(cf, exitConfig, err)

@@ -304,6 +304,16 @@ col 1     right-aligned labels ("Firma:", "Sitz:", …)
 
 So the shape the firm actually files needs: **uneven columns**, **no table
 border**, **a bottom rule per row and nothing else**, and **no header row**.
+
+**The row rules are now the only reason left to want this.** Change 9 gave the
+pack the two-column layout without a table, and the Anmeldung ships that way —
+but the per-row rule cannot be reproduced with paragraph borders. Word treats a
+run of consecutive paragraphs carrying identical borders as one bordered block
+and draws only its outer edge, so a bottom border on the row style produced two
+rules across eleven rows, at the two points where the style changes and the run
+breaks. There is no way to vary it per row from the theme. If change 4 is ever
+built, that is what it buys; if it is not, the pack's form simply has no rules,
+which is a defensible place to land.
 docc today offers none of those. Column alignment it already has — markdown's
 `|---:|:---|` reaches the cells through `applyCellAlign`.
 

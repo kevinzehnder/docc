@@ -9,6 +9,11 @@ set -eu
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$DIR"
 
+# This skill is its own profile pack; resolving through it is part of what
+# the probe proves.
+DOCC_PROFILE="$DIR"
+export DOCC_PROFILE
+
 echo "== docc skill probe =="
 echo "uname -s : $(uname -s 2>/dev/null || echo '?')"
 echo "uname -m : $(uname -m 2>/dev/null || echo '?')"
@@ -32,9 +37,9 @@ EX="examples/ch_legal.md"
 OUT="$DIR/probe-out.docx"
 
 echo "-- check $EX --"
-"$DOCC" check --schema-dir config/schemas "$EX"
+"$DOCC" check "$EX"
 echo "-- build $EX --"
-"$DOCC" build --schema-dir config/schemas --theme-dir config/themes --output "$OUT" "$EX"
+"$DOCC" build --output "$OUT" "$EX"
 
 if [ -s "$OUT" ]; then
   echo "wrote    : $OUT ($(wc -c < "$OUT") bytes)"
