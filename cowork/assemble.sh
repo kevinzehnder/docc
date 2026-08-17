@@ -57,11 +57,19 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
   -o "$TOOLS/docc-linux-amd64" ./cmd/docc
 
 # 3. Generate the skill from the selected profile.
+#
+# A real pack carries a docc-profile.yaml, so let resolution read it: it names
+# the schema and theme directories, and it carries the firm's own skill notes
+# and description. Hardcoding schemas/ and themes/ here would ignore both. The
+# generic starter has no manifest, so it is still named directly.
 echo "packaging the skill ..."
 rm -rf "$SKILL"
-"$TOOLS/docc" profile package \
-  --schema-dir "$PROFILE/schemas" \
-  --theme-dir  "$PROFILE/themes" \
+if [ -f "$PROFILE/docc-profile.yaml" ]; then
+	set -- --project "$PROFILE"
+else
+	set -- --schema-dir "$PROFILE/schemas" --theme-dir "$PROFILE/themes"
+fi
+"$TOOLS/docc" profile package "$@" \
   --out        "$SKILL" \
   --name       docc \
   --with-binary "$TOOLS/docc-linux-amd64" \

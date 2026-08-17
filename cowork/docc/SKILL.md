@@ -27,6 +27,21 @@ A version line means the compiler runs here. `sh probe.sh` does the same
 check plus a real build, and prints `PROBE RESULT: PASS` when the skill is
 fully operational.
 
+## Point docc at this profile
+
+This skill is a profile pack: its `docc-profile.yaml` names the schemas and themes below.
+Set `DOCC_PROFILE` to **this skill's absolute directory** and every command finds them,
+whatever directory the document lives in:
+
+```sh
+export DOCC_PROFILE="$(pwd)"    # run this from the skill directory
+```
+
+Each shell command may be run in a fresh shell, so if the export does not
+survive, prefix each command instead: `DOCC_PROFILE=/abs/path/to/skill "./$DOCC" check doc.md`.
+The equivalent explicit form is `--schema-dir config/schemas --theme-dir
+config/themes`, which still works and needs no environment at all.
+
 ## Document types
 
 The types below are the whole contract. There is no generic mode: a document
@@ -42,13 +57,12 @@ The schemas and themes live under `config/`:
 - `config/schemas/` — the document types, their fields and body rules
 - `config/themes/` — page geometry, styles and letterhead furniture
 
-Point docc at them explicitly, because this is not the usual hidden `.docc/`:
-
 ```sh
-"./$DOCC" types    --schema-dir config/schemas
-"./$DOCC" themes   --theme-dir  config/themes
-"./$DOCC" describe --schema-dir config/schemas <type>
-"./$DOCC" example  --schema-dir config/schemas <type>
+"./$DOCC" types
+"./$DOCC" themes
+"./$DOCC" describe <type>
+"./$DOCC" example <type>
+"./$DOCC" doctor    # confirm the profile resolved to this skill
 ```
 
 `describe` prints the resolved contract for a type — every required field,
@@ -68,14 +82,13 @@ document of a type for the first time.
 4. Validate and fix every diagnostic. One run reports the complete list:
 
    ```sh
-   "./$DOCC" check --json --schema-dir config/schemas document.md
+   "./$DOCC" check --json document.md
    ```
 
 5. Build only after it validates cleanly:
 
    ```sh
-   "./$DOCC" build --schema-dir config/schemas --theme-dir config/themes \
-       --output document.docx document.md
+   "./$DOCC" build --output document.docx document.md
    ```
 
 `build` re-validates before rendering. Never pass `--force` for a deliverable.
@@ -97,8 +110,7 @@ carry their own hint inside the schema file.
 A complete example ships for each type:
 
 ```sh
-"./$DOCC" build --schema-dir config/schemas --theme-dir config/themes \
-    --output out.docx examples/ch_legal.md
+"./$DOCC" build --output out.docx examples/ch_legal.md
 ```
 
 ## Cowork host notes

@@ -88,6 +88,26 @@ type Manifest struct {
 	Name    string `yaml:"name"`
 	Schemas string `yaml:"schemas"`
 	Themes  string `yaml:"themes"`
+	Skill   *Skill `yaml:"skill"`
+}
+
+// Skill is what a pack says about the AgentSkill packaged from it.
+//
+// Everything a skill can derive from the schemas is generated, and must stay
+// generated — a hand-written list of document types drifts. What cannot be
+// derived is the firm's own drafting knowledge: when to ask for a Heimatort,
+// which type fits which instruction, what a Notar has to verify before
+// signing. That belonged nowhere until now. It reached a packaged skill only
+// through `--notes` at packaging time, so the one thing only the firm knows
+// lived outside the repository that knows it, in whoever's shell ran the
+// command.
+type Skill struct {
+	// Notes is a Markdown file, relative to the pack root, appended to the
+	// generated instructions.
+	Notes string `yaml:"notes"`
+	// Description overrides the generated skill description — the one line an
+	// agent reads when deciding whether this skill applies at all.
+	Description string `yaml:"description"`
 }
 
 // Pack is a validated local profile revision.
@@ -124,7 +144,9 @@ func LoadPack(root string) (*Pack, error) {
 		if filepath.IsAbs(value) || value == "." || strings.HasPrefix(filepath.Clean(value), ".."+string(filepath.Separator)) || filepath.Clean(value) == ".." {
 			return nil, fmt.Errorf("%s: %s must be a relative path inside the pack", path, name)
 		}
-		info, err := os.Stat(filepath.Join(root, value))
+		// The path is checked above: relative, and inside a pack root the
+		// caller chose.
+		info, err := os.Stat(filepath.Join(root, value)) //nolint:gosec // validated relative path inside the pack
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s directory: %w", path, name, err)
 		}
@@ -132,7 +154,40 @@ func LoadPack(root string) (*Pack, error) {
 			return nil, fmt.Errorf("%s: %s path is not a directory", path, name)
 		}
 	}
+	if err := validateSkill(root, path, manifest.Skill); err != nil {
+		return nil, err
+	}
 	return &Pack{Root: root, Manifest: manifest}, nil
+}
+
+// validateSkill checks the notes file exists and stays inside the pack. A
+// missing one is an error at load rather than at packaging time: a pack that
+// promises drafting guidance and cannot produce it should fail where it is
+// validated, not in the one command that reads it.
+func validateSkill(root, path string, skill *Skill) error {
+	if skill == nil || skill.Notes == "" {
+		return nil
+	}
+	clean := filepath.Clean(skill.Notes)
+	if filepath.IsAbs(skill.Notes) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("%s: skill.notes must be a relative path inside the pack", path)
+	}
+	info, err := os.Stat(filepath.Join(root, clean)) //nolint:gosec // validated relative path inside the pack
+	if err != nil {
+		return fmt.Errorf("%s: skill.notes: %w", path, err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("%s: skill.notes is a directory, not a Markdown file", path)
+	}
+	return nil
+}
+
+// SkillNotes returns the absolute path of the pack's skill notes, or "".
+func (p *Pack) SkillNotes() string {
+	if p.Manifest.Skill == nil || p.Manifest.Skill.Notes == "" {
+		return ""
+	}
+	return filepath.Join(p.Root, filepath.Clean(p.Manifest.Skill.Notes))
 }
 
 // SchemaDir returns this pack's declared schema directory.
@@ -400,11 +455,36 @@ func writeYAML(path string, value any, mode os.FileMode) error {
 
 // Resolved is the schema/theme source selected for an invocation.
 type Resolved struct {
-	Root      string     `json:"root,omitempty"`
-	SchemaDir string     `json:"schema_dir"`
-	ThemeDir  string     `json:"theme_dir"`
-	Source    string     `json:"source"` // project-profile, legacy-project, pack-checkout, or user-default
+	Root      string `json:"root,omitempty"`
+	SchemaDir string `json:"schema_dir"`
+	ThemeDir  string `json:"theme_dir"`
+	// Source is env-profile, project-profile, legacy-project, pack-checkout or
+	// user-default.
+	Source    string     `json:"source"`
 	Reference *Reference `json:"reference,omitempty"`
+	// PackRoot is the pack directory the schemas and themes came from, empty
+	// for a legacy project whose directories are its own.
+	PackRoot string `json:"pack_root,omitempty"`
+	// PackID is that pack's declared id. It names what was resolved even when
+	// nothing pinned it — a checkout has no Reference, but it still has an
+	// identity, and a skill packaged from it should carry that name.
+	PackID string `json:"pack_id,omitempty"`
+	// Skill is what that pack says about the AgentSkill packaged from it.
+	Skill *Skill `json:"skill,omitempty"`
+}
+
+// fromPack describes a resolution that came from a pack manifest.
+func fromPack(pack *Pack, source string, ref *Reference) *Resolved {
+	return &Resolved{
+		Root:      pack.Root,
+		SchemaDir: pack.SchemaDir(),
+		ThemeDir:  pack.ThemeDir(),
+		Source:    source,
+		Reference: ref,
+		PackRoot:  pack.Root,
+		PackID:    pack.Manifest.ID,
+		Skill:     pack.Manifest.Skill,
+	}
 }
 
 // Provenance describes the configuration that produced a document, for the
@@ -467,10 +547,27 @@ func FindPack(start string) (*Pack, error) {
 // ErrNotFound signals that no pack manifest exists above the start path.
 var ErrNotFound = errors.New("profile pack not found")
 
-// Resolve finds a project binding, legacy project configuration, a pack
-// checkout, or the user default, in that order. It never fetches or updates a
-// profile.
+// EnvProfile is the environment variable naming a pack directory to use. It is
+// what a host sets when the documents it compiles live nowhere near the pack —
+// a packaged AgentSkill carries its profile beside itself and works in whatever
+// directory the agent was dropped into, so neither walking up from the document
+// nor the working directory can find it.
+const EnvProfile = "DOCC_PROFILE"
+
+// Resolve finds a pack named by the environment, a project binding, legacy
+// project configuration, a pack checkout, or the user default, in that order.
+// It never fetches or updates a profile.
 func Resolve(start string, paths Paths) (*Resolved, error) {
+	// The environment comes first because setting it is a deliberate act by
+	// whoever runs docc, second only to passing the directories outright.
+	if dir := os.Getenv(EnvProfile); dir != "" {
+		pack, err := LoadPack(dir)
+		if err != nil {
+			return nil, fmt.Errorf("%s=%s: %w", EnvProfile, dir, err)
+		}
+		return fromPack(pack, "env-profile", nil), nil
+	}
+
 	if proj, err := project.Resolve(start); err == nil {
 		binding, bindErr := ReadBinding(proj.Dir)
 		switch {
@@ -484,7 +581,11 @@ func Resolve(start string, paths Paths) (*Resolved, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &Resolved{Root: proj.Root, SchemaDir: pack.SchemaDir(), ThemeDir: pack.ThemeDir(), Source: "project-profile", Reference: &ref}, nil
+			resolved := fromPack(pack, "project-profile", &ref)
+			// The project is the root a person recognises; the pack lives in
+			// the immutable install directory.
+			resolved.Root = proj.Root
+			return resolved, nil
 		case !errors.Is(bindErr, ErrNotConfigured):
 			return nil, bindErr
 		}
@@ -503,12 +604,7 @@ func Resolve(start string, paths Paths) (*Resolved, error) {
 	// before the user default, because the pack you are working in is a more
 	// specific answer than the one you installed globally.
 	if pack, err := FindPack(start); err == nil {
-		return &Resolved{
-			Root:      pack.Root,
-			SchemaDir: pack.SchemaDir(),
-			ThemeDir:  pack.ThemeDir(),
-			Source:    "pack-checkout",
-		}, nil
+		return fromPack(pack, "pack-checkout", nil), nil
 	} else if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
@@ -524,7 +620,9 @@ func Resolve(start string, paths Paths) (*Resolved, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Resolved{SchemaDir: pack.SchemaDir(), ThemeDir: pack.ThemeDir(), Source: "user-default", Reference: cfg.Default}, nil
+	resolved := fromPack(pack, "user-default", cfg.Default)
+	resolved.Root = "" // an installed pack is nobody's project root
+	return resolved, nil
 }
 
 func loadInstalled(paths Paths, ref Reference) (*Pack, error) {

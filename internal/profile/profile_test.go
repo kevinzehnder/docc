@@ -249,3 +249,86 @@ func TestFindPackReportsABrokenManifest(t *testing.T) {
 		t.Fatalf("FindPack error = %v, want a load failure", err)
 	}
 }
+
+// A pack's own drafting guidance — the one thing only the firm knows — must
+// live in the repository that knows it, not in whoever's shell runs packaging.
+func TestLoadPackReadsSkillSection(t *testing.T) {
+	root := t.TempDir()
+	writePackCheckout(t, root, "firm")
+	write(t, filepath.Join(root, manifestName),
+		"format: 1\nid: firm\nschemas: schemas\nthemes: themes\n"+
+			"skill:\n  notes: docs/skill-notes.md\n  description: Draft firm deeds.\n")
+	write(t, filepath.Join(root, "docs", "skill-notes.md"), "## House rules\n")
+
+	pack, err := LoadPack(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pack.Manifest.Skill == nil || pack.Manifest.Skill.Description != "Draft firm deeds." {
+		t.Fatalf("Skill = %+v", pack.Manifest.Skill)
+	}
+	if got, want := pack.SkillNotes(), filepath.Join(root, "docs", "skill-notes.md"); got != want {
+		t.Errorf("SkillNotes = %q, want %q", got, want)
+	}
+}
+
+// A pack that promises guidance and cannot produce it fails where it is
+// validated, not in the one command that reads the file.
+func TestLoadPackRejectsUnusableSkillNotes(t *testing.T) {
+	for _, tc := range []struct{ name, notes, want string }{
+		{"missing file", "docs/skill-notes.md", "skill.notes"},
+		{"escaping path", "../elsewhere.md", "relative path"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			writePackCheckout(t, root, "firm")
+			write(t, filepath.Join(root, manifestName),
+				"format: 1\nid: firm\nschemas: schemas\nthemes: themes\nskill:\n  notes: "+tc.notes+"\n")
+			_, err := LoadPack(root)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("LoadPack error = %v, want one naming %q", err, tc.want)
+			}
+		})
+	}
+}
+
+// DOCC_PROFILE is for the case neither walking up nor the working directory can
+// answer: a packaged skill carrying its profile, compiling a document that
+// lives wherever the agent happens to be.
+func TestResolveEnvProfile(t *testing.T) {
+	paths := testPaths(t)
+	ref := installFixturePack(t, paths, "default", "fedcba9876543210fedcba9876543210fedcba98")
+	if err := SetDefault(paths, ref); err != nil {
+		t.Fatal(err)
+	}
+	packRoot := t.TempDir()
+	writePackCheckout(t, packRoot, "firm")
+	t.Setenv(EnvProfile, packRoot)
+
+	// A project binding right beside the document must not win: the
+	// environment is the more deliberate act.
+	work := t.TempDir()
+	if err := WriteProject(work, ref); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Resolve(filepath.Join(work, "letter.md"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != "env-profile" || got.SchemaDir != filepath.Join(packRoot, "schemas") {
+		t.Fatalf("Resolve = %+v, want the pack named by %s", got, EnvProfile)
+	}
+	if got.PackID != "firm" {
+		t.Errorf("PackID = %q, want firm", got.PackID)
+	}
+}
+
+// A DOCC_PROFILE that names nothing usable must say so. Falling back would
+// compile the document against schemas nobody chose.
+func TestResolveEnvProfileRejectsABadDirectory(t *testing.T) {
+	t.Setenv(EnvProfile, filepath.Join(t.TempDir(), "nowhere"))
+	_, err := Resolve(t.TempDir(), testPaths(t))
+	if err == nil || !strings.Contains(err.Error(), EnvProfile) {
+		t.Fatalf("Resolve error = %v, want one naming %s", err, EnvProfile)
+	}
+}

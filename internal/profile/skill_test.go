@@ -40,6 +40,7 @@ func TestPackageSkillLayout(t *testing.T) {
 	for _, rel := range []string{
 		"SKILL.md",
 		"probe.sh",
+		manifestName,
 		filepath.Join("config", "schemas"),
 		filepath.Join("config", "themes"),
 	} {
@@ -221,4 +222,84 @@ func TestZipSkillIsDeterministic(t *testing.T) {
 	if !sawDoc {
 		t.Error("archive does not contain SKILL.md")
 	}
+}
+
+// The packaged skill is a pack in its own right, which is what lets every
+// command in its instructions drop --schema-dir and --theme-dir: one
+// DOCC_PROFILE answers for both, and cannot be half-remembered.
+func TestPackagedSkillIsItsOwnPack(t *testing.T) {
+	result := packageCorpus(t, SkillOptions{Name: "firm"})
+
+	pack, err := LoadPack(result.Dir)
+	if err != nil {
+		t.Fatalf("the packaged skill does not load as a pack: %v", err)
+	}
+	if pack.Manifest.ID != "firm" {
+		t.Errorf("packaged id = %q, want firm", pack.Manifest.ID)
+	}
+	if pack.SchemaDir() != filepath.Join(result.Dir, "config", "schemas") ||
+		pack.ThemeDir() != filepath.Join(result.Dir, "config", "themes") {
+		t.Errorf("manifest names %s and %s", pack.SchemaDir(), pack.ThemeDir())
+	}
+
+	// Resolution through it is what the instructions tell an agent to do.
+	t.Setenv(EnvProfile, result.Dir)
+	resolved, err := Resolve(t.TempDir(), testPaths(t))
+	if err != nil {
+		t.Fatalf("Resolve through %s: %v", EnvProfile, err)
+	}
+	if resolved.Source != "env-profile" || resolved.SchemaDir != pack.SchemaDir() {
+		t.Errorf("Resolve = %+v, want the packaged skill", resolved)
+	}
+
+	doc := string(mustRead(t, filepath.Join(result.Dir, "SKILL.md")))
+	if strings.Contains(doc, "--schema-dir config/schemas") &&
+		!strings.Contains(doc, "The equivalent explicit form") {
+		t.Error("the instructions still repeat --schema-dir on their commands")
+	}
+	if !strings.Contains(doc, EnvProfile) {
+		t.Errorf("the instructions never mention %s", EnvProfile)
+	}
+}
+
+// The firm's own guidance and its own one-line description are the two things
+// the generator cannot derive, and they must survive into the skill.
+func TestPackageSkillCarriesPackProse(t *testing.T) {
+	dir := t.TempDir()
+	packNotes := filepath.Join(dir, "skill-notes.md")
+	hostNotes := filepath.Join(dir, "host-notes.md")
+	if err := os.WriteFile(packNotes, []byte("## House rules\n\nAsk for the Heimatort.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hostNotes, []byte("## This host\n\nAttach the .docx to the reply.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	result := packageCorpus(t, SkillOptions{
+		Notes:       []string{packNotes, hostNotes},
+		Description: "Draft and render Fake & Partner deeds.",
+	})
+
+	doc := string(mustRead(t, filepath.Join(result.Dir, "SKILL.md")))
+	// Both halves, in order: the firm knows the drafting rules, the packager
+	// knows the host.
+	firm := strings.Index(doc, "Ask for the Heimatort.")
+	host := strings.Index(doc, "Attach the .docx to the reply.")
+	if firm < 0 || host < 0 {
+		t.Errorf("notes missing from the instructions (firm=%d host=%d)", firm, host)
+	}
+	if firm > host {
+		t.Error("host notes came before the pack's own")
+	}
+	if !strings.Contains(doc, "description: Draft and render Fake & Partner deeds.") {
+		t.Errorf("the pack's description did not reach the frontmatter:\n%s", doc[:min(400, len(doc))])
+	}
+}
+
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path) //nolint:gosec // a path this test just wrote
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }

@@ -47,9 +47,10 @@ flag is worth retrying; a missing profile configuration is not.
 
 ### Which configuration am I using?
 
-Schemas and themes resolve from a project profile binding, a legacy local
-`.docc/schemas` + `.docc/themes` directory, the `docc-profile.yaml` of a pack
-checkout you are standing in, or the user's installed default profile pack. `docc doctor` reports the directories that resolved to, lists the
+Schemas and themes resolve from `DOCC_PROFILE` (a pack directory named by the
+environment), a project profile binding, a legacy local `.docc/schemas` +
+`.docc/themes` directory, the `docc-profile.yaml` of a pack checkout you are
+standing in, or the user's installed default profile pack. `docc doctor` reports the directories that resolved to, lists the
 types and themes it found, and checks every schema against the theme it names —
 that every mapped style exists, every interpolated field is declared, and every
 numbering definition resolves. Those checks otherwise run only inside a build, so
