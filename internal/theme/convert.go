@@ -160,10 +160,18 @@ func defaultIndent(level int) docx.Twips {
 	return docx.Twips(720 * (level + 1))
 }
 
+// alignName maps a theme's `align:` to Word's justification. An explicit
+// `left` is *not* the same as no alignment at all: a style based on a justified
+// one inherits the justification unless it says otherwise, so the only way to
+// left-align it is to emit `w:jc w:val="left"`. Folding the two together made
+// `align: left` a no-op — the very thing the theme reference recommends for
+// address blocks and party entries. `tabAlignName` below always got this right.
 func alignName(s string) string {
 	switch strings.ToLower(s) {
-	case "", "left":
+	case "":
 		return ""
+	case "left":
+		return string(docx.AlignLeft)
 	case "center", "centre":
 		return string(docx.AlignCenter)
 	case "right":
@@ -173,6 +181,19 @@ func alignName(s string) string {
 	default:
 		return s
 	}
+}
+
+// restartLevel maps a theme's `restart:` to w:lvlRestart. Unset means "leave
+// the element out", which is Word's own default and today's behaviour;
+// RestartNever is the only other value a theme can ask for, so the numbering
+// vocabulary stays two words rather than a level index a theme author would
+// have to reason about. validateNumbering rejects anything else.
+func restartLevel(s string) *int {
+	if strings.EqualFold(strings.TrimSpace(s), RestartNever) {
+		never := 0
+		return &never
+	}
+	return nil
 }
 
 func tabAlignName(s string) string {
@@ -193,6 +214,15 @@ func tabAlignName(s string) string {
 // MaxNumLevels is how many levels Word's numbering has. It is a fixed sequence,
 // not an open-ended tree.
 const MaxNumLevels = 9
+
+// The values a level's `restart:` takes.
+const (
+	// RestartAfterParent is Word's default: the level restarts whenever the
+	// level above it increments.
+	RestartAfterParent = "after-parent"
+	// RestartNever keeps one counter running across every parent.
+	RestartNever = "never"
+)
 
 // Flatten returns the definition's levels in order: the definition itself is
 // level 0 and Levels[i] is level i+1.
@@ -230,6 +260,7 @@ func (n NumFormat) AbstractNum() docx.AbstractNum {
 			Size:           f.Size.HalfPt(0),
 			Align:          docx.TabAlign(tabAlignName(f.Align)),
 			Suffix:         f.Suffix,
+			Restart:        restartLevel(f.Restart),
 			ParagraphStyle: f.Style,
 		})
 	}

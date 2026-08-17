@@ -197,6 +197,115 @@ func KnownChecks() []string {
 	return out
 }
 
+// divScopedChecks are the checks that filter the document's blocks by a `div:`
+// argument. They share one failure mode: when no block of that name exists the
+// loop body never runs, nothing is reported, and the exit code is
+// indistinguishable from a document that satisfied the rule. A Gründungsurkunde
+// whose `::: betraege` blocks were rewritten as prose passed a statutory-floor
+// check that never evaluated once.
+//
+// Two things address it, and they compose: `on_missing:` lets a rule say what
+// the absent case means, and UnguardedDivRules reports the pairing statically,
+// which is what catches the schema whose author never considered the question.
+var divScopedChecks = map[string]bool{
+	"div_items_match": true,
+	"amounts_balance": true,
+	"amount_at_least": true,
+}
+
+// UnguardedDivRules reports rules whose `div:` target nothing in the schema
+// makes mandatory: no `required_div` for the same block, and no `on_missing:`
+// saying the absence is deliberate. Such a rule reports nothing when its block
+// is missing, which reads as success.
+//
+// It is a schema-level finding, not a document-level one — `docc doctor` is
+// where it belongs, and a warning rather than an error, because the conditional
+// case is real: a Rechtsschrift arguing only a point of law offers no exhibits,
+// so its evidence rules have to stay silent. Such a rule says `on_missing:
+// ignore` and this stops mentioning it.
+func UnguardedDivRules(sc *schema.Schema) []string {
+	guarded := map[string]bool{}
+	for _, rule := range sc.Rules {
+		if rule.Check != "required_div" {
+			continue
+		}
+		if name, ok := rule.Args["div"].(string); ok {
+			guarded[name] = true
+		}
+	}
+
+	var out []string
+	for _, rule := range sc.Rules {
+		if !divScopedChecks[rule.Check] {
+			continue
+		}
+		name, ok := rule.Args["div"].(string)
+		if !ok || name == "" || guarded[name] {
+			continue
+		}
+		if mode, set := rule.Args["on_missing"].(string); set && strings.TrimSpace(mode) != "" {
+			continue
+		}
+		id := rule.ID
+		if id == "" {
+			id = rule.Check
+		}
+		out = append(out, fmt.Sprintf(
+			"rules: %s (%s) checks `::: %s`, which no `required_div` makes mandatory — "+
+				"a document without that block passes it without being checked; "+
+				"pair it with `required_div`, or say `on_missing: error` or `on_missing: ignore`",
+			rule.Check, id, name))
+	}
+	sort.Strings(out)
+	return out
+}
+
+// divsNamed returns the blocks a div-scoped rule applies to, and handles the
+// case where there are none according to the rule's `on_missing:`:
+//
+//	error   the block's absence is itself the finding
+//	ignore  the rule is conditional and stays silent (the default)
+//
+// The default is silence because a conditional rule must stay expressible; what
+// makes an unconsidered omission visible is UnguardedDivRules, at doctor time.
+func (c *ruleContext) divsNamed(name string) []*parse.Div {
+	var out []*parse.Div
+	for _, div := range c.File.Divs() {
+		if div.Name == name {
+			out = append(out, div)
+		}
+	}
+	if len(out) > 0 {
+		return out
+	}
+
+	mode, ok := c.argString("on_missing", false)
+	if !ok {
+		return nil
+	}
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "", "ignore":
+		return nil
+	case "error":
+		c.report(c.missingDivPos(),
+			fmt.Sprintf("add a `::: %s` block; this check has nothing to examine without one", name),
+			"document has no `::: %s` block, so %s checked nothing", name, c.ruleName())
+	default:
+		c.schemaErrorf("`on_missing` is either `error` or `ignore`",
+			"argument %q is %q", "on_missing", mode)
+	}
+	return nil
+}
+
+// missingDivPos is the line worth pointing at when a block is absent: the first
+// heading, since that is where the document begins to say things.
+func (c *ruleContext) missingDivPos() diag.Position {
+	if headings := c.File.Headings(); len(headings) > 0 {
+		return headings[0].Pos
+	}
+	return c.File.BodyPos(0)
+}
+
 func runRules(f *parse.File, sc *schema.Schema, m *Meta, ds *diag.List) {
 	for _, rule := range sc.Rules {
 		fn, ok := registry[rule.Check]
@@ -286,10 +395,7 @@ func checkDivItemsMatch(c *ruleContext) {
 		return
 	}
 
-	for _, div := range c.File.Divs() {
-		if div.Name != name {
-			continue
-		}
+	for _, div := range c.divsNamed(name) {
 		for _, item := range divListItems(c.File, div) {
 			if re.MatchString(item.Text) {
 				continue
@@ -499,8 +605,15 @@ func checkSpansAgree(c *ruleContext) {
 		if !watched[typ] {
 			continue
 		}
+		// A `.docc-field` blank is content the author is told to leave visible,
+		// exactly as checkNoBlankSpans has it. Comparing one against a filled
+		// occurrence makes `docc example --blank` — the skeleton this tool hands
+		// out — fail this tool's own check.
+		if span.HasClass(FieldSpanType) {
+			continue
+		}
 		value := normalizeSpanValue(span.LiteralText(c.File.BodySource))
-		if value == "" {
+		if isFillBlank(value) {
 			continue // a blank is no_blank_spans' business, not a disagreement
 		}
 		pos := c.File.BodyPos(span.Literal.Start)

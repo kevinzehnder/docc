@@ -20,6 +20,7 @@ import (
 	"github.com/kevinzehnder/docc/internal/emit"
 	"github.com/kevinzehnder/docc/internal/project"
 	"github.com/kevinzehnder/docc/internal/schema"
+	"github.com/kevinzehnder/docc/internal/sema"
 	"github.com/kevinzehnder/docc/internal/theme"
 )
 
@@ -154,6 +155,15 @@ func diagnose(cf commonFlags, start string) (*doctorReport, error) {
 			})
 		}
 
+		// A rule scoped to a block the schema never requires is worse than a
+		// mapping nothing reads: it reports success for a document it never
+		// examined.
+		for _, unguarded := range sema.UnguardedDivRules(sc) {
+			rep.Warnings = append(rep.Warnings, doctorProblem{
+				Type: sc.Type, Message: unguarded,
+			})
+		}
+
 		switch {
 		case sc.Theme == "":
 			// Not a defect. A base or check-only type deliberately has no theme.
@@ -235,7 +245,7 @@ func printDoctor(rep *doctorReport) {
 	}
 
 	if len(rep.Warnings) > 0 {
-		fmt.Printf("\n%d warning(s) — these render as if the mapping were absent:\n", len(rep.Warnings))
+		fmt.Printf("\n%d warning(s) — a build succeeds with these; --strict binds them:\n", len(rep.Warnings))
 		for _, w := range rep.Warnings {
 			fmt.Printf("  %s: %s\n", w.Type, w.Message)
 		}

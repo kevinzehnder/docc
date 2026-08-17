@@ -128,7 +128,7 @@ styles:
 
 | Key | Type | Meaning |
 |---|---|---|
-| `align` | string | `left` (default), `center` (or `centre`), `right`, `justify` (or `both`). |
+| `align` | string | `left`, `center` (or `centre`), `right`, `justify` (or `both`). Omitting it inherits from `based_on`; writing `left` overrides an inherited justification. |
 | `spacing` | map | `before`, `after` (lengths) and `line` (line height). |
 | `indent` | map | `left`, `right`, `first_line`, `hanging`, all lengths. |
 | `tabs` | list | Tab stops: `pos` (length), `align` (`left`, `center`, `right`, `decimal`), `leader`. |
@@ -142,7 +142,8 @@ styles:
 
 Left-align styles for content with manual line breaks or short lines (party
 entries, address blocks) even when the body justifies: Word stretches a justified
-line that ends in a manual break.
+line that ends in a manual break. `align: left` is emitted explicitly, so it
+overrides a justified `based_on` rather than deferring to it.
 
 ## `numbering`
 
@@ -158,6 +159,7 @@ A list definition, named by a schema's `render:` rule, by a `styles:` mapping fo
 | `font`, `size` | | The label's own typeface and size. A bullet glyph needs its font: `Symbol` for a filled bullet, `Courier New` for `o`. |
 | `align` | string | Alignment of the label itself. |
 | `suffix` | string | What follows the label: `tab` (default), `space` or `nothing`. Anything else makes Word offer to repair the file. |
+| `restart` | string | When this level's counter goes back to `start`: `after-parent` (default, and Word's) restarts it whenever the level above increments; `never` keeps one counter running across every parent. |
 | `style` | string | A paragraph style numbered items take, when the schema maps a list key to this definition rather than to a style. |
 | `levels` | list | The deeper levels, each the same shape. |
 
@@ -165,6 +167,21 @@ A list definition, named by a schema's `render:` rule, by a `styles:` mapping fo
 `levels[i]` is level `i+1`, capped at nine. An entry that declares `levels:` of
 its own is a theme author expecting a tree, and is rejected — the entries under
 `levels:` are already the deeper ones.
+
+`restart: never` is what a Stampa- und Lex-Friedrich-Erklärung needs: points 1
+to 4 under `A.)` and point 5 under `B.)`, one sequence across both parents.
+
+```yaml
+numbering:
+  Erklaerung:
+    format: upperLetter
+    text: "%1.)"
+    levels:
+      - { format: decimal, text: "%2.", restart: never }
+```
+
+Word honours this. LibreOffice 26.2 accepts the file but ignores the element and
+restarts the sub-level anyway, so check the numbering in Word before filing.
 
 Two lists sharing a definition share Word's abstract numbering, so they look
 alike; each top-level list takes its own instance, so they restart. Render

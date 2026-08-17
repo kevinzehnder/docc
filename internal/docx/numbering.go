@@ -58,7 +58,12 @@ type NumLevel struct {
 	Text string
 	// Start is the first number, defaulting to 1.
 	Start int
-	Align TabAlign
+	// Restart is the level whose increment resets this one, written as
+	// w:lvlRestart. Nil leaves it out, and Word's default applies: the level
+	// above resets this one. Zero means never — a sub-level that keeps counting
+	// across its parents, which is how a Stampa-Erklärung numbers its points.
+	Restart *int
+	Align   TabAlign
 	// Indent is the left indent of the text, and Hanging the distance the
 	// number hangs to its left.
 	Indent  Twips
@@ -205,6 +210,13 @@ func writeNumLevel(w *xw, lvl NumLevel) {
 		format = NumDecimal
 	}
 	w.empty("w:numFmt", a("w:val", string(format)))
+
+	// CT_Lvl's sequence is w:start, w:numFmt, w:lvlRestart, w:pStyle, … and
+	// Word offers to repair a file whose elements arrive out of order rather
+	// than reporting anything. This element belongs here and nowhere else.
+	if lvl.Restart != nil {
+		w.empty("w:lvlRestart", ai("w:val", *lvl.Restart))
+	}
 
 	if lvl.ParagraphStyle != "" {
 		w.empty("w:pStyle", a("w:val", lvl.ParagraphStyle))

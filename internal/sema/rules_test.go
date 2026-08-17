@@ -378,6 +378,24 @@ func TestSpansAgree(t *testing.T) {
 		{"line breaks are not disagreement", "[Motherstuhl]{.firma} und [Motherstuhl]{.firma}.", false},
 		// The reason the check is opt-in rather than automatic.
 		{"an unwatched type may differ", "[Anna]{.name} und [Peter]{.name}.", false},
+		// A blank is not a value, here as in no_blank_spans. `docc example
+		// --blank` hands out a skeleton full of these, and comparing one
+		// against a filled occurrence made the tool warn on its own output.
+		{
+			"a field blank beside a value",
+			"[____]{.firma .docc-field key=firma} und [Motherstuhl]{.firma}.",
+			false,
+		},
+		{
+			"a bare blank beside a value",
+			"[________]{.firma} und [Motherstuhl]{.firma}.",
+			false,
+		},
+		{
+			"two field blanks",
+			"[____]{.firma .docc-field key=firma} und [______]{.firma .docc-field key=firma}.",
+			false,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			src := "---\ndocc: 1\ndocument_type: deed\n---\n\n" + tc.body + "\n"
@@ -455,6 +473,83 @@ func TestAmountAtLeast(t *testing.T) {
 			}
 			if got != tc.want {
 				t.Errorf("below-minimum reported = %v, want %v\n%+v", got, tc.want, ds)
+			}
+		})
+	}
+}
+
+// A rule scoped to a block no document contains reports nothing, and nothing
+// is what a passing document looks like. This is the class the Gründungsurkunde
+// fell into: its Stammkapital rewritten as prose, and the Art. 773 floor never
+// evaluated once.
+func TestUnguardedDivRules(t *testing.T) {
+	amounts := schema.Rule{
+		ID: "X090", Check: "amounts_balance",
+		Args: map[string]any{"div": "betraege"},
+	}
+
+	t.Run("unpaired rule is reported", func(t *testing.T) {
+		sc := &schema.Schema{Type: "deed", Rules: []schema.Rule{amounts}}
+		got := UnguardedDivRules(sc)
+		if len(got) != 1 {
+			t.Fatalf("findings = %v, want one", got)
+		}
+		if !strings.Contains(got[0], "betraege") || !strings.Contains(got[0], "X090") {
+			t.Errorf("finding names neither the block nor the rule: %q", got[0])
+		}
+	})
+
+	t.Run("required_div guarantees the block", func(t *testing.T) {
+		sc := &schema.Schema{Type: "deed", Rules: []schema.Rule{
+			{ID: "X091", Check: "required_div", Args: map[string]any{"div": "betraege"}},
+			amounts,
+		}}
+		if got := UnguardedDivRules(sc); len(got) != 0 {
+			t.Errorf("findings = %v, want none", got)
+		}
+	})
+
+	// The conditional case has to stay expressible: a Rechtsschrift arguing
+	// only a point of law offers no exhibits.
+	t.Run("on_missing says the absence is deliberate", func(t *testing.T) {
+		rule := amounts
+		rule.Args = map[string]any{"div": "betraege", "on_missing": "ignore"}
+		sc := &schema.Schema{Type: "deed", Rules: []schema.Rule{rule}}
+		if got := UnguardedDivRules(sc); len(got) != 0 {
+			t.Errorf("findings = %v, want none", got)
+		}
+	})
+}
+
+// on_missing: error is the runtime half of the same fix — the rule itself says
+// that having nothing to check is the finding.
+func TestOnMissingDiv(t *testing.T) {
+	src := "---\ndocc: 1\ndocument_type: deed\n---\n\n# Kapital\n\nFr. 3'000.00 als Stammkapital.\n"
+
+	for _, tc := range []struct {
+		name  string
+		mode  any
+		codes []string
+	}{
+		{"unset stays silent", nil, nil},
+		{"ignore stays silent", "ignore", nil},
+		{"error reports the absent block", "error", []string{"X100"}},
+		{"an unknown mode is a schema error", "maybe", []string{"DOC009"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			args := map[string]any{"div": "betraege", "minimum": "Fr. 20'000.00"}
+			if tc.mode != nil {
+				args["on_missing"] = tc.mode
+			}
+			ds := run(t, src, schema.Rule{ID: "X100", Check: "amount_at_least", Args: args})
+			got := codes(ds)
+			if len(got) != len(tc.codes) {
+				t.Fatalf("codes = %v, want %v\n%s", got, tc.codes, messages(ds))
+			}
+			for i, want := range tc.codes {
+				if got[i] != want {
+					t.Fatalf("codes = %v, want %v\n%s", got, tc.codes, messages(ds))
+				}
 			}
 		})
 	}

@@ -15,6 +15,14 @@ func sample() *Document {
 	listID := num.AddList(DecimalList(3))
 	bulletID := num.AddList(BulletList(2))
 
+	// A sub-level that keeps counting across its parents — A.) 1. 2. B.) 3. —
+	// which is w:lvlRestart, an element only a real renderer proves acceptable.
+	never := 0
+	stampaID := num.AddList(AbstractNum{MultiLevelType: "multilevel", Levels: []NumLevel{
+		{Level: 0, Format: NumUpperLetter, Text: "%1.)", Indent: Mm(10), Hanging: Mm(10)},
+		{Level: 1, Format: NumDecimal, Text: "%2.", Restart: &never, Indent: Mm(20), Hanging: Mm(10)},
+	}})
+
 	return &Document{
 		Properties: Properties{Title: "Test", Creator: "docc"},
 		Section: Section{
@@ -67,6 +75,22 @@ func sample() *Document {
 			Paragraph{
 				Props: ParaProps{Numbering: &NumRef{ID: bulletID, Level: 0}},
 				Runs:  []Run{R("Ein Aufzählungspunkt")},
+			},
+			Paragraph{
+				Props: ParaProps{Numbering: &NumRef{ID: stampaID, Level: 0}},
+				Runs:  []Run{R("Stampa")},
+			},
+			Paragraph{
+				Props: ParaProps{Numbering: &NumRef{ID: stampaID, Level: 1}},
+				Runs:  []Run{R("Sacheinlagen und Sachübernahmen")},
+			},
+			Paragraph{
+				Props: ParaProps{Numbering: &NumRef{ID: stampaID, Level: 0}},
+				Runs:  []Run{R("Lex Friedrich")},
+			},
+			Paragraph{
+				Props: ParaProps{Numbering: &NumRef{ID: stampaID, Level: 1}},
+				Runs:  []Run{R("Erwerb von Grundstücken durch Personen im Ausland")},
 			},
 			Paragraph{
 				Props: ParaProps{Align: AlignJustify},
@@ -270,6 +294,35 @@ func TestNumLevelLabelProperties(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %s in:\n%s", want, got)
 		}
+	}
+}
+
+// A sub-level that keeps counting across its parents — 1–4 under A.), then 5
+// under B.). Word's default restarts it, so saying otherwise needs the element,
+// and CT_Lvl fixes where it goes: after w:numFmt and before w:pStyle. Out of
+// order, Word offers to repair the file rather than reporting anything.
+func TestNumLevelRestart(t *testing.T) {
+	never := 0
+	n := Numbering{}
+	n.AddList(AbstractNum{Levels: []NumLevel{
+		{Level: 0, Format: NumUpperLetter, Text: "%1.)"},
+		{Level: 1, Format: NumDecimal, Text: "%2.", Restart: &never, ParagraphStyle: "Standard"},
+	}})
+	got := string((&Document{Numbering: n}).writeNumbering())
+
+	if !strings.Contains(got, `<w:lvlRestart w:val="0"/>`) {
+		t.Fatalf("missing w:lvlRestart:\n%s", got)
+	}
+	after := strings.Index(got, `<w:lvlRestart w:val="0"/>`)
+	numFmt := strings.LastIndex(got[:after], "<w:numFmt")
+	pStyle := strings.Index(got[after:], "<w:pStyle")
+	if numFmt < 0 || pStyle < 0 {
+		t.Fatalf("w:lvlRestart is not between w:numFmt and w:pStyle:\n%s", got)
+	}
+
+	// The default stays today's behaviour: no element at all.
+	if first := got[:after]; strings.Count(first, "<w:lvlRestart") != 0 {
+		t.Errorf("level 0 declared no restart but got one:\n%s", first)
 	}
 }
 

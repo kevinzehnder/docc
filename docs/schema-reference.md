@@ -283,17 +283,39 @@ without provoking it.
 | Check | Args | What it reports |
 |---|---|---|
 | `no_placeholder_text` | `pattern` (regexp, defaults to bracketed prose) | Template placeholders left in the document. A `[FILL IN]` that reaches a filed brief. |
-| `div_items_match` | `div` (required), `pattern` (required regexp) | A list item inside `::: <div>` that does not match the shape. The cheap way to enforce a per-line format. |
+| `div_items_match` | `div` (required), `pattern` (required regexp), `on_missing` (optional) | A list item inside `::: <div>` that does not match the shape. The cheap way to enforce a per-line format. |
 | `cross_reference` | `div` (required), `pattern` (required regexp, capture group 1 is the key), `list_field` (required), `label` (defaults to `list_field`) | A citation in a block that does not index into a frontmatter list. |
 | `required_div` | `div` (required), `anchor_heading` (optional) | A required semantic block is absent. The optional heading anchors the diagnostic where the missing content belongs. |
 | `no_empty_sections` | — | A heading with no content. A heading whose next heading is deeper is a container and is exempt. |
 | `spans_agree` | `spans` (required list of span type names) | Two occurrences of one span type that do not say the same thing. Opt-in per type, because some are supposed to differ — a Kaufvertrag's `.name` spans are the Verkäufer and the Käufer. The types a schema watches here are also the ones compared **across** documents when several are checked in one `docc check` invocation, reported as `DOC029`. |
 | `no_blank_spans` | — | A semantic span left as a blank — `[____]{.heimatort}`. A span carrying `.docc-field` is exempt, because there a blank is content; any other span is a fact the document claims to state. |
-| `amount_at_least` | `div` (required), `minimum` (required, written as an amount: `"Fr. 20'000.00"`) | A money block whose total — its `[= …]` item, or the sum of its items — falls below a floor the document type declares. This is the error every other check accepts: a figure transcribed wrongly but transcribed the same way everywhere, so nothing in the document contradicts anything else in it. |
-| `amounts_balance` | `div` (required) | Money that does not add up: items whose sum contradicts a `[= …]` total, or a block with `total-of=<id>` whose items do not settle that block's total. |
+| `amount_at_least` | `div` (required), `minimum` (required, written as an amount: `"Fr. 20'000.00"`), `on_missing` (optional) | A money block whose total — its `[= …]` item, or the sum of its items — falls below a floor the document type declares. This is the error every other check accepts: a figure transcribed wrongly but transcribed the same way everywhere, so nothing in the document contradicts anything else in it. |
+| `amounts_balance` | `div` (required), `on_missing` (optional) | Money that does not add up: items whose sum contradicts a `[= …]` total, or a block with `total-of=<id>` whose items do not settle that block's total. |
 
 Adding a check is Go: implement it in `internal/sema/rules.go` and register it.
 Schemas then select it by name and supply their own code, severity and wording.
+
+### A rule scoped to a block that is not there
+
+`div_items_match`, `amounts_balance` and `amount_at_least` examine one named
+block. When no block of that name exists there is nothing to examine, and a
+check that examined nothing exits exactly like one that passed — a
+Gründungsurkunde whose `::: betraege` blocks were rewritten as prose built
+clean, its statutory-capital floor never evaluated once.
+
+Say which you mean:
+
+- **Pair it with `required_div`.** The block is mandatory, so the rule always
+  has something to check. This is the usual answer.
+- **`args: { on_missing: error }`.** The rule itself reports the absent block,
+  under its own code.
+- **`args: { on_missing: ignore }`.** The rule is genuinely conditional — a
+  Rechtsschrift arguing only a point of law offers no exhibits — and an absent
+  block is not a finding.
+
+`docc doctor` warns about a div-scoped rule that does none of the three, since
+the schema has not said what an absent block means. `--strict` makes that
+warning bind.
 
 ## `render`
 

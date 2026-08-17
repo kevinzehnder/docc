@@ -202,6 +202,12 @@ func validateNumbering(th *theme.Theme) error {
 			default:
 				bad = append(bad, fmt.Sprintf("%s: unknown suffix %q — use tab, space or nothing", where, lvl.Suffix))
 			}
+			switch strings.ToLower(lvl.Restart) {
+			case "", theme.RestartAfterParent, theme.RestartNever:
+			default:
+				bad = append(bad, fmt.Sprintf("%s: unknown restart %q — use %s or %s",
+					where, lvl.Restart, theme.RestartAfterParent, theme.RestartNever))
+			}
 			if i > 0 && len(lvl.Levels) > 0 {
 				bad = append(bad, fmt.Sprintf(
 					"%s: declares levels of its own; `levels:` is a flat list, so move them up beside it", where))
@@ -818,6 +824,10 @@ func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 		e.labelledDiv(d, out, depth, style, labelStyle)
 		return
 	}
+	if fieldStyle := e.style("div." + d.Name + ".field"); fieldStyle != "" {
+		e.fieldDiv(d, out, depth, style, fieldStyle)
+		return
+	}
 
 	var inner []docx.Block
 	e.blocks(d.Blocks, &inner, depth)
@@ -860,6 +870,83 @@ func (e *emitter) labelledDiv(d ir.Div, out *[]docx.Block, depth int, style, lab
 				continue
 			}
 			*out = append(*out, blk)
+		}
+	}
+}
+
+// fieldDiv renders a form: a label in its own column and the value beside it.
+// It is labelledDiv with the emission order reversed — tab, label, tab, then
+// the item's rich remainder — which is what a Swiss registry form looks like
+// and what no block pattern could produce before.
+//
+// The order is the whole change. splitEvidenceLabel already returns a plain
+// string for the bracket and rich inlines for the rest, which is exactly the
+// right way round here: a form label is plain ("Firma:") and a form value
+// carries the spans the checks anchor on. Asking authors to write the value in
+// the bracket instead would truncate it at its first `]` and take every
+// `[…]{.firma}` with it.
+//
+// Reaching this from the body rather than from furniture is the point: the
+// content stays in the document, so `no_blank_spans`, `spans_agree`,
+// `required_spans` and every div-scoped rule keep applying to it.
+func (e *emitter) fieldDiv(d ir.Div, out *[]docx.Block, depth int, style, fieldStyle string) {
+	for _, block := range d.Blocks {
+		if list, ok := block.(ir.List); ok && !list.Ordered {
+			e.fieldList(list, out, depth, style, fieldStyle)
+			continue
+		}
+
+		var inner []docx.Block
+		e.blockTo(block, &inner, depth)
+		for _, blk := range inner {
+			if p, ok := blk.(docx.Paragraph); ok {
+				p.Props.Style = style
+				*out = append(*out, p)
+				continue
+			}
+			*out = append(*out, blk)
+		}
+	}
+}
+
+// fieldList renders one form row per list item. The row carries no list
+// numbering: a form is not a bulleted list, and the columns come from the tab
+// stops and hanging indent of the row style, exactly as the amount pattern
+// takes its columns from Betragszeile.
+func (e *emitter) fieldList(list ir.List, out *[]docx.Block, depth int, style, fieldStyle string) {
+	for _, item := range list.Items {
+		first := true
+		for _, block := range item.Blocks {
+			if para, ok := block.(ir.Para); ok && first {
+				if label, description, labelled := splitEvidenceLabel(para.Inlines); labelled {
+					runs := []docx.Run{{Items: []docx.Inline{docx.Tab{}}}}
+					runs = append(runs, docx.Run{
+						Props: docx.RunProps{Style: fieldStyle},
+						Items: []docx.Inline{docx.Text(label)},
+					})
+					runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+					runs = append(runs, e.runs(description, docx.RunProps{})...)
+					*out = append(*out, docx.Paragraph{
+						Props: docx.ParaProps{Style: style},
+						Runs:  runs,
+					})
+					first = false
+					continue
+				}
+			}
+
+			var inner []docx.Block
+			e.blockTo(block, &inner, depth)
+			for _, blk := range inner {
+				p, isPara := blk.(docx.Paragraph)
+				if !isPara {
+					*out = append(*out, blk)
+					continue
+				}
+				p.Props.Style = style
+				*out = append(*out, p)
+			}
+			first = false
 		}
 	}
 }
@@ -1012,10 +1099,15 @@ func (e *emitter) amountDiv(d ir.Div, out *[]docx.Block, depth int, style, amoun
 				}
 				*out = append(*out, docx.Paragraph{Props: props2, Runs: runs})
 
-				// The amount in words, when the theme asks for it. It is
+				// The amount in words, when the schema asks for it. It is
 				// rendered from the figure rather than authored, so the two
 				// cannot disagree.
-				wordsStyle := e.style("div."+d.Name+".words", "div."+d.Name)
+				//
+				// No fallback to `div.<name>`: with one, the gloss appeared
+				// wherever the block itself was styled, so a document type that
+				// inherits a deed's theme could not switch it off. A deed is
+				// read aloud and wants it; a registry form does not.
+				wordsStyle := e.style("div." + d.Name + ".words")
 				if e.theme.Formats.AmountWords == "" || wordsStyle == "" {
 					continue
 				}

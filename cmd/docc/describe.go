@@ -124,8 +124,9 @@ type describedBlock struct {
 	RequiredSpans []string           `json:"required_spans,omitempty"`
 	// Syntax is one valid opening line to imitate.
 	Syntax string `json:"syntax"`
-	// Pattern is how the block renders — "plain", "labelled", "amount" or
-	// "ruled" — selected by which `div.<name>.*` style the schema maps. It is
+	// Pattern is how the block renders — "plain", "labelled", "field",
+	// "amount" or "ruled" — selected by which `div.<name>.*` style the schema
+	// maps. It is
 	// not declared anywhere in the block's own definition, which is exactly why
 	// it is worth reporting.
 	Pattern string `json:"pattern,omitempty"`

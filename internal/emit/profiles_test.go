@@ -100,14 +100,19 @@ func TestStarterProfile(t *testing.T) {
 			// a valid draft: a blank is content, not missing content. If this
 			// fails, the starting point the tool offers is one the tool
 			// rejects.
+			//
+			// Warnings count. `docc check --strict` is what a pack's CI runs,
+			// so a warning on the skeleton is a failing build for whoever
+			// starts from it — and asserting only HasErrors() is how a
+			// `spans_agree` warning on every blank stayed invisible here.
 			skeleton := sema.BlankFields(sc.Example)
 			f, parseDiags := parse.Parse(name+" skeleton", []byte(skeleton))
 			res := sema.Check(f, schemas, parseDiags, "")
-			if res.Diagnostics.HasErrors() {
+			if len(res.Diagnostics) > 0 {
 				for _, d := range res.Diagnostics {
-					t.Errorf("skeleton: %s: %s", d.Code, d.Message)
+					t.Errorf("skeleton: %s[%s]: %s", d.Severity, d.Code, d.Message)
 				}
-				t.Fatal("`example --blank` does not pass `check`")
+				t.Fatal("`example --blank` does not pass `check --strict`")
 			}
 		})
 	}

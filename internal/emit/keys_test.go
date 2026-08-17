@@ -156,6 +156,7 @@ func TestBlockPattern(t *testing.T) {
 	}{
 		{"", "plain"},
 		{"div.beweis.label", "labelled"},
+		{"div.beweis.field", "field"},
 		{"div.beweis.line", "ruled"},
 		{"div.beweis.amount", "amount"},
 	}

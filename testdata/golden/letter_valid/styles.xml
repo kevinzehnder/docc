@@ -28,6 +28,7 @@
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0" w:line="288" w:lineRule="auto"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr>
 <w:sz w:val="20"/>
@@ -95,6 +96,7 @@
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0" w:line="288" w:lineRule="auto"/>
+<w:jc w:val="left"/>
 </w:pPr>
 <w:rPr>
 <w:b/>
