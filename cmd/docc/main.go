@@ -41,7 +41,7 @@ usage:
   docc example [flags] <type>       print a compact valid document of a type
   docc themes [flags]               list available themes
   docc explain [flags] [CODE]       describe a diagnostic code, or list them all
-  docc version
+  docc version                      print the version (also --version)
 
 Flags may appear before or after the positional arguments. Use "--" to end flag
 parsing when a file name begins with a dash.
@@ -198,7 +198,10 @@ func run(args []string) int {
 		return cmdThemes(rest)
 	case "explain":
 		return cmdExplain(rest)
-	case "version":
+	// `--version` is what a CI step or a Makefile reaches for first, and every
+	// other tool on the PATH answers it. `-v` is deliberately absent: it reads
+	// as "verbose" often enough that answering it with a version is a trap.
+	case "version", "--version":
 		fmt.Println("docc", buildVersion)
 		return 0
 	case "-h", "--help", "help":

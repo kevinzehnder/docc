@@ -2,6 +2,7 @@ package profile
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -153,3 +154,98 @@ func gitTest(t *testing.T, dir string, args ...string) {
 }
 
 func projectDirName() string { return ".docc" }
+
+// writePackCheckout lays out a pack repository: the manifest at its root and
+// the two directories it names.
+func writePackCheckout(t *testing.T, root, id string) {
+	t.Helper()
+	write(t, filepath.Join(root, manifestName), "format: 1\nid: "+id+"\nschemas: schemas\nthemes: themes\n")
+	for _, dir := range []string{"schemas", "themes"} {
+		if err := os.MkdirAll(filepath.Join(root, dir), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// A pack repository has no .docc — its schemas and themes are the product, not
+// one project's local configuration — so every command in a pack checkout used
+// to need --schema-dir and --theme-dir. The manifest already names both.
+func TestResolvePackCheckout(t *testing.T) {
+	paths := testPaths(t)
+	root := t.TempDir()
+	writePackCheckout(t, root, "firm")
+
+	// From a file several directories down, the way authoring actually happens.
+	got, err := Resolve(filepath.Join(root, "documents", "gruendung", "urkunde.md"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != "pack-checkout" {
+		t.Fatalf("Source = %q, want pack-checkout (%+v)", got.Source, got)
+	}
+	if got.Root != root || got.SchemaDir != filepath.Join(root, "schemas") || got.ThemeDir != filepath.Join(root, "themes") {
+		t.Errorf("Resolve = %+v, want the pack's own directories", got)
+	}
+	// Nothing is pinned: you are working on the pack, not consuming a revision
+	// of it, so there is no commit to record in a built document.
+	if got.Reference != nil {
+		t.Errorf("Reference = %+v, want none for a checkout", got.Reference)
+	}
+}
+
+// A .docc binding is an explicit statement about which profile applies. A pack
+// that happens to sit above it does not get to override that.
+func TestResolveProjectBindingBeatsEnclosingPack(t *testing.T) {
+	paths := testPaths(t)
+	ref := installFixturePack(t, paths, "firm", "0123456789abcdef0123456789abcdef01234567")
+
+	root := t.TempDir()
+	writePackCheckout(t, root, "other")
+	project := filepath.Join(root, "matters", "meier")
+	if err := os.MkdirAll(project, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteProject(project, ref); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := Resolve(filepath.Join(project, "letter.md"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != "project-profile" {
+		t.Fatalf("Source = %q, want project-profile (%+v)", got.Source, got)
+	}
+}
+
+// The pack you are working in is a more specific answer than the one you
+// installed globally.
+func TestResolvePackCheckoutBeatsUserDefault(t *testing.T) {
+	paths := testPaths(t)
+	ref := installFixturePack(t, paths, "default", "fedcba9876543210fedcba9876543210fedcba98")
+	if err := SetDefault(paths, ref); err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	writePackCheckout(t, root, "firm")
+
+	got, err := Resolve(filepath.Join(root, "schemas"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != "pack-checkout" {
+		t.Fatalf("Source = %q, want pack-checkout (%+v)", got.Source, got)
+	}
+}
+
+// A manifest that says "this is a pack" and then fails to load must not be
+// walked past: resolving some other configuration instead is how a document
+// gets checked against schemas nobody chose.
+func TestFindPackReportsABrokenManifest(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, manifestName), "format: 1\nid: firm\nschemas: schemas\n")
+	_, err := FindPack(filepath.Join(root, "documents"))
+	if err == nil || errors.Is(err, ErrNotFound) {
+		t.Fatalf("FindPack error = %v, want a load failure", err)
+	}
+}

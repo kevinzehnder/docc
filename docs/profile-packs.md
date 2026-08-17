@@ -101,8 +101,23 @@ Schema and theme resolution has one shared precedence order:
 2. A nearest project `.docc/profile.yaml` plus its lockfile.
 3. Existing local `.docc/schemas` and `.docc/themes` (legacy and custom
    projects).
-4. The user's configured default pack.
-5. A configuration error with an installation hint.
+4. A nearest `docc-profile.yaml` — you are standing inside a pack checkout.
+5. The user's configured default pack.
+6. A configuration error with an installation hint.
+
+Step 4 is what makes a pack repository usable from inside itself. A pack has no
+`.docc`: its schemas and themes are the product, not one project's local
+configuration, so working in a checkout used to mean passing `--schema-dir` and
+`--theme-dir` to every command. The manifest already names both directories, so
+nothing extra is written down. It sits below the project forms — a binding is an
+explicit statement about which profile applies, and a pack that happens to sit
+above it does not override that — and above the user default, because the pack
+you are editing is a more specific answer than the one you installed globally.
+
+Nothing is pinned by a checkout: you are working *on* the pack rather than
+consuming a revision of it, so a document built this way records no commit.
+`docc doctor` names which of these answered, as `pack-checkout`,
+`project-profile`, `legacy-project` or `user-default`.
 
 Installed packs are never merged. Selecting one pack avoids collisions between
 document-type and theme names and makes the source of every render clear.
