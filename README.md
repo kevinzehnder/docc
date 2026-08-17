@@ -6,15 +6,10 @@
 `docc` compiles Markdown into Word documents, and refuses to compile the ones
 that don't match their document type.
 
-It's a small thing I wrote for myself and use for my own work. It is not a
-product, there is no company behind it, and I'm not trying to convince anyone to
-adopt it. It's here because it's easier to keep it in the open than to keep it
-in a folder.
-
 [![go](https://img.shields.io/badge/go-1.25-00ADD8?logo=go&logoColor=white)](go.mod)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-## The problem I had
+## Description
 
 The documents I produce — deeds, contracts, letters to authorities, filings —
 all come out of Word templates. Someone opens the `.dotx` on the shared drive,
