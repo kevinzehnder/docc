@@ -21,23 +21,6 @@
         "name": "Kevin Zehnder",
         "email": "kevin.zehnder@jlmy.ch"
       }
-    },
-    {
-      "name": "docc-bundled",
-      "source": {
-        "source": "archive",
-        "url": "https://github.com/kevinzehnder/docc/releases/latest/download/docc-claude-plugin.zip"
-      },
-      "description": "The same skill with the compiler bundled: the latest release, for a machine with no Go toolchain and no docc on PATH.",
-      "category": "documents",
-      "keywords": ["docx", "markdown", "documents", "schema", "legal"],
-      "license": "MIT",
-      "homepage": "https://github.com/kevinzehnder/docc/blob/master/docs/publishing-agent-skill.md",
-      "repository": "https://github.com/kevinzehnder/docc",
-      "author": {
-        "name": "Kevin Zehnder",
-        "email": "kevin.zehnder@jlmy.ch"
-      }
     }
   ]
 }

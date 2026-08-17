@@ -13,12 +13,10 @@ mkdir -p "$out"
 
 DOCC_DIST_DIR="$out" "$root/scripts/package-agent-skills.sh" "$version" >/dev/null
 
-# Attached twice on purpose. The versioned name is for a human reading the
-# release page; the bare one is what
-# /releases/latest/download/docc-claude-plugin.zip resolves to, which is the
-# stable URL the marketplace's archive entry names. A versioned URL there would
-# have to be rewritten and committed on every release.
-cp "$out/docc-claude-plugin-$version.zip" "$out/docc-claude-plugin.zip"
+# No unversioned copy of the plugin zip is attached. It existed only to give an
+# `archive` marketplace entry a stable /releases/latest/download URL, and this
+# repository is private, so nothing unauthenticated can read a release asset —
+# see docs/publishing-agent-skill.md. Restore the copy together with the entry.
 
 sh "$root/cowork/assemble.sh" >/dev/null
 cp "$root/cowork/docc-cowork-skill.zip" "$out/docc-cowork-skill-$version.zip"

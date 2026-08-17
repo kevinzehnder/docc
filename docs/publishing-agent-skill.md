@@ -9,13 +9,34 @@ The repository is its own plugin marketplace, so a Claude Code user needs no
 archive and no release:
 
 ```sh
-/plugin marketplace add kevinzehnder/docc
+/plugin marketplace add https://github.com/kevinzehnder/docc.git
 /plugin install docc@docc
 ```
 
-The desktop app's **Add marketplace** dialog takes the same `owner/repo`.
+**Give the full HTTPS URL, not the `kevinzehnder/docc` shorthand.** This
+repository is private, and the shorthand clones over SSH: that works in a
+terminal with a loaded key, and fails in the desktop app, which has no agent to
+reach and suppresses the interactive prompt — so the dialog reports only that the
+marketplace could not be added. The `.git` suffix matters too; without it the URL
+is read as a link to a hosted `marketplace.json`, and relative plugin sources
+like this one's `"./"` cannot resolve. `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` makes
+the shorthand clone over HTTPS if you prefer it.
+
 Third-party marketplaces have auto-update off by default — turn it on in
-`/plugin` → **Marketplaces**, or the dialog's sync toggle.
+`/plugin` → **Marketplaces**, or the dialog's sync toggle. Private repository
+plus HTTPS costs something there: the background refresh disables git credential
+helpers, so its `git pull` cannot authenticate and falls back to re-cloning the
+marketplace, which can time out as the repository grows. Two things make it
+predictable:
+
+```sh
+gh auth setup-git                                        # the re-clone can authenticate
+export CLAUDE_CODE_PLUGIN_KEEP_MARKETPLACE_ON_FAILURE=1  # keep the clone instead of deleting it
+```
+
+An SSH remote avoids this entirely — a key in `ssh-agent` authenticates
+background pulls the same as foreground ones. It is the better remote for a
+private marketplace wherever the agent is actually reachable.
 
 Three details in `.claude-plugin/marketplace.json` make this work:
 
@@ -40,42 +61,43 @@ go install github.com/kevinzehnder/docc/cmd/docc@latest   # or: task install
 
 `skills/docc/scripts/run-docc.sh` prefers a bundled binary, then falls back to
 `PATH`, and reports a missing runtime rather than downloading one. A host with
-neither Go nor an installed `docc` wants the `docc-bundled` entry below.
+neither Go nor an installed `docc` needs a packaged archive instead.
 
-## Installing the bundled build from a release
+## Why the marketplace has no bundled entry
 
-The same marketplace carries a second entry for a machine with no Go toolchain:
+An [`archive`](https://code.claude.com/docs/en/plugin-marketplaces#zip-archives)
+entry pointing at `releases/latest/download/docc-claude-plugin.zip` would install
+the compiler along with the skill, needing no Go toolchain. It was tried, and it
+cannot work while this repository is private: an archive source downloads over
+plain HTTPS with no credentials, and GitHub answers an unauthenticated request
+for a private repository's release asset with **404**, not 401. v0.5.0 attached
+that asset and the install still failed on 404 — the asset existed, the
+visibility was the cause.
 
-```sh
-/plugin install docc-bundled@docc
-```
+Restoring the entry therefore takes three things together: the repository turned
+public, the entry back in `.claude-plugin/marketplace.json`, and the unversioned
+copy back in `scripts/release-artifacts.sh` so the stable URL resolves. Leave a
+version and digest off the entry and the downloaded file's own hash is the
+version, so publishing a release is the update with nothing to rewrite here;
+pinning `sha256` buys an integrity check at the price of a commit per release.
 
-Its source is an
-[`archive`](https://code.claude.com/docs/en/plugin-marketplaces#zip-archives)
-pointing at `releases/latest/download/docc-claude-plugin.zip` — a *stable* URL,
-which is why `scripts/release-artifacts.sh` attaches the plugin zip under a bare
-name as well as a versioned one. The entry pins neither a `version` nor a
-`sha256`, so the downloaded file's own digest is the version: publish a release
-and every installation sees an update, with nothing to rewrite here. Pinning the
-digest instead would buy an integrity check at the price of a commit to this file
-per release.
+Two costs come with such an entry, and the second falls on the git entry above as
+well: nothing verifies the download beyond HTTPS, and archive sources need Claude
+Code v2.1.224 or later — on v2.1.120 through v2.1.223 that entry fails to
+install, and before v2.1.120 the whole marketplace fails to load. Without it, the
+marketplace loads on any version.
 
-Two costs come with the entry, and both fall on the git entry above as well:
-
-- Archive sources need Claude Code v2.1.224 or later. On v2.1.120 through
-  v2.1.223 this entry fails to install; before v2.1.120 the whole marketplace
-  fails to load.
-- Nothing verifies the download beyond HTTPS.
+Until then, a machine with no Go toolchain takes a packaged archive by hand.
 
 ## Releasing
 
 `goreleaser release` on a `v*` tag is the only job that creates the GitHub
 release. It builds all six targets, and its before-hook runs
-`scripts/release-artifacts.sh`, which produces the agent-skill archives, the
-Cowork skill and the unversioned plugin zip into `build/release/` for
-`release.extra_files` to attach. `release-agent-skills.yml` verifies the same
-archives on pull requests but no longer publishes: when both workflows created
-the release on one tag, whichever lost the race took the other's assets down.
+`scripts/release-artifacts.sh`, which produces the agent-skill archives and the
+Cowork skill into `build/release/` for `release.extra_files` to attach.
+`release-agent-skills.yml` verifies the same archives on pull requests but no
+longer publishes: when both workflows created the release on one tag, whichever
+lost the race took the other's assets down.
 
 Check a config change without publishing anything:
 
@@ -106,9 +128,10 @@ no network or Go installation. Local agents on other platforms fall back to a
 `docc` executable on `PATH`. Packaging injects the version into the copied
 manifests, which is why the committed ones carry none.
 
-`docc-claude-plugin-<version>.zip` is also what the `docc-bundled` entry
-installs: `.claude-plugin/plugin.json` at the top of the archive, `skills/docc/`
-beside it, which is the layout an archive source expects.
+`docc-claude-plugin-<version>.zip` already has the layout an archive source
+expects — `.claude-plugin/plugin.json` at the top, `skills/docc/` beside it — so
+it is the file a bundled marketplace entry would install if this repository ever
+turns public.
 
 A manual `release-agent-skills.yml` run produces the archives as downloadable CI
 artifacts without publishing. Test representative prompts in clean Claude/Cowork
