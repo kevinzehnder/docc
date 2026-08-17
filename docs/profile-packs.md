@@ -185,6 +185,11 @@ and `.docc/themes` entries are for — see
 
 ## Shipping a pack as an AgentSkill
 
+docc itself ships no agent skill, and `docc init` installs none: an agent skill
+belongs to whoever distributes a profile, and a pack has to be usable without
+one. This command is for that distributor. A pack repository may carry a skill;
+it does not have to.
+
 `docc profile package` writes the resolved profile as an AgentSkill directory:
 
 ```text
@@ -207,10 +212,11 @@ still work and are documented beside it.
 
 `SKILL.md` is **generated**, not carried alongside the pack. A hand-written
 skill file drifts from the types it claims to document, and the drift is only
-discovered by whoever tries to use it — the repository's own Cowork skill had
-renamed a type, dropped the block and span declarations and shipped no
-examples before this command existed. The type table, the example commands and
-the frontmatter description all come from the schemas.
+discovered by whoever tries to use it: the hand-maintained skills this
+repository used to ship had renamed a type, dropped the block and span
+declarations, shipped no examples, and documented a `--json` `kind` that never
+existed. The type table, the example commands and the frontmatter description
+all come from the schemas.
 
 The compiler's own contract is generated too, because it is the half that does
 *not* come from the schemas and is therefore the half a generator silently

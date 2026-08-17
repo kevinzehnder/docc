@@ -4,7 +4,6 @@ version: "3"
 includes:
   core: ./taskfiles/core.yaml
   test: ./taskfiles/test.yaml
-  skill: ./taskfiles/skill.yaml
 
 tasks:
   default:
@@ -50,21 +49,6 @@ tasks:
     desc: run unit tests
     cmds:
       - task: test:unit
-
-  release:skill:
-    desc: assemble, verify, and checksum the Cowork skill ZIP
-    cmds:
-      - task: skill:release
-
-  agent:package:
-    desc: build publishable Agent Skill archives (plain, Claude plugin, Codex plugin)
-    cmds:
-      - ./scripts/package-agent-skills.sh
-
-  agent:test:
-    desc: build and verify the Agent Skill archives
-    cmds:
-      - ./scripts/test-agent-packages.sh
 
   hooks:install:
     desc: install local git hooks from .githooks

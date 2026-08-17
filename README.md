@@ -125,7 +125,6 @@ them, and the language server stays quiet.
 | [Theme reference](docs/theme-reference.md) | Every key a theme may set, and what it cannot do |
 | [Profile packs](docs/profile-packs.md) | Git-managed schemas and themes, trust policy, AgentSkill packaging |
 | [Building profiles](docs/building-profiles.md) | Deriving a profile from an existing Word document |
-| [Agent Skill](docs/publishing-agent-skill.md) | Installing docc into Claude, as a marketplace plugin or a packaged skill |
 | [Projects](docs/projects.md) | Configuration layout and discovery |
 | [Editor integration](docs/editors.md) | Language server setup |
 | [Development](docs/development.md) | Building, testing, and the `.docx` writer's rules |

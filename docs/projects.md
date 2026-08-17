@@ -50,8 +50,8 @@ revision.
 `docc init [directory]` remains the offline option for a standalone generic
 starter. It creates `.docc/` with a generic letter and a Swiss-legal
 starter schema/theme, plus compiling examples in `examples/docc/`. It never
-overwrites an existing starter configuration, example directory, or installed
-skill, and it creates nothing at all when it refuses. `--dry-run` lists the
+overwrites an existing starter configuration or example directory, and it
+creates nothing at all when it refuses. `--dry-run` lists the
 files it would write and touches nothing. What it installs is yours to edit — a
 starting point, not a managed install.
 
@@ -72,12 +72,16 @@ actual conventions before using it for production documents.
 
 ### Agent skill
 
-No LLM is required to use `docc`. For agents, this repository ships a portable
-[Agent Skill](../skills/docc/SKILL.md) that describes the validation-and-build
-workflow. `docc init` also installs it at `.agents/skills/docc/SKILL.md`, which
-Pi discovers in a trusted project. Other harnesses can copy that directory or
-load the skill file directly; the project's `.docc` configuration remains the
-authoritative contract.
+No LLM is required to use `docc`, and `docc` ships no agent skill. `init`
+installs a profile and its examples; nothing else. A skill describes a *profile*
+— its document types, their fields, the house rules for filling them in — so it
+belongs to whoever distributes that profile, and a pack has to be usable without
+one.
+
+`docc profile package` writes one from a pack when its distributor wants it; see
+[Shipping a pack as an AgentSkill](profile-packs.md#shipping-a-pack-as-an-agentskill).
+Whether a pack repository carries a skill is its own decision. Either way the
+project's `.docc` configuration remains the authoritative contract.
 
 This split means changing a letterhead is a file edit, not a compiler release,
 and one engine serves projects whose document conventions have nothing in common.

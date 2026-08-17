@@ -91,9 +91,9 @@ flags:
 	initHelp = `docc init [flags] [directory]
 
 Create a standalone starter project: .docc/ with a letter and a legal document
-type, sample documents, and an agent skill. Refuses to overwrite an existing
-configuration. The result is yours to edit — it is a starting point, not a
-managed install. For a Git-managed profile, use "docc profile use" instead.
+type, plus sample documents. Refuses to overwrite an existing configuration.
+The result is yours to edit — it is a starting point, not a managed install.
+For a Git-managed profile, use "docc profile use" instead.
 
 flags:
 `

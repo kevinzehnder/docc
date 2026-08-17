@@ -59,12 +59,25 @@ func TestInitCreatesWorkingStarter(t *testing.T) {
 		}
 	}
 
-	skill, err := os.ReadFile(filepath.Join(root, ".agents", "skills", "docc", "SKILL.md"))
+	// `docc init` installs the default pack and its examples, and nothing else.
+	// An agent skill is not the compiler's business: it belongs to whoever
+	// distributes a profile, and a pack has to be usable without one.
+	//
+	// Naming the whole set rather than the absences also pins the rename of the
+	// shipped `docc/` directory, which used to leave an empty `docc/` behind
+	// beside the real `.docc/` on every init.
+	entries, err := os.ReadDir(root)
 	if err != nil {
-		t.Fatalf("read installed skill: %v", err)
+		t.Fatal(err)
 	}
-	if !strings.Contains(string(skill), "name: docc") {
-		t.Fatal("installed skill has no docc frontmatter")
+	var got []string
+	for _, e := range entries {
+		got = append(got, e.Name())
+	}
+	slices.Sort(got)
+	want := []string{".docc", "examples"}
+	if !slices.Equal(got, want) {
+		t.Errorf("init created %v at the project root, want exactly %v", got, want)
 	}
 }
 

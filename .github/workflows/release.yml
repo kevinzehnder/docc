@@ -33,15 +33,9 @@ jobs:
           sudo apt-get install -y --no-install-recommends libreoffice-writer
           go test -tags roundtrip -run LibreOffice ./internal/docx/ -v
 
-      # The archives an install actually resolves, checked before one is
-      # published rather than after someone reports it.
-      - name: verify agent skill packages
-        run: ./scripts/test-agent-packages.sh
-
-      # goreleaser is the only job that creates the release: it builds every
-      # target and attaches the skill archives its before-hook produced. When a
-      # second workflow also created the release on the same tag, whichever lost
-      # the race took the other's assets down with it.
+      # goreleaser is the only job that creates the release. When a second
+      # workflow also created the release on the same tag, whichever lost the
+      # race took the other's assets down with it.
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"

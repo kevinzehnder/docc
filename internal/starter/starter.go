@@ -17,10 +17,9 @@ import (
 var files embed.FS
 
 const (
-	assetRoot       = "files"
-	configRoot      = "docc"
-	examplesDir     = "examples/docc"
-	starterSkillDir = ".agents/skills/docc"
+	assetRoot   = "files"
+	configRoot  = "docc"
+	examplesDir = "examples/docc"
 )
 
 // Plan reports the files Init would create beneath dir, in walk order, after
@@ -70,7 +69,7 @@ func Init(dir string) error {
 
 // checkVacant reports whether any directory the starter owns already exists.
 func checkVacant(dir string) error {
-	for _, path := range []string{filepath.Join(dir, ".docc"), filepath.Join(dir, examplesDir), filepath.Join(dir, starterSkillDir)} {
+	for _, path := range []string{filepath.Join(dir, ".docc"), filepath.Join(dir, examplesDir)} {
 		if _, err := os.Lstat(path); err == nil {
 			return fmt.Errorf("refusing to overwrite existing %s", path)
 		} else if !errors.Is(err, os.ErrNotExist) {
@@ -80,17 +79,18 @@ func checkVacant(dir string) error {
 	return nil
 }
 
-// target maps an embedded asset path to its destination beneath dir. The two
-// leading directories are renamed on the way out: the configuration is shipped
-// as `docc/` and installed as `.docc/`, likewise `agents/` as `.agents/`,
-// because an embed pattern cannot match a dot-directory.
+// target maps an embedded asset path to its destination beneath dir. The
+// configuration is shipped as `docc/` and installed as `.docc/`, because an
+// embed pattern cannot match a dot-directory.
+//
+// The rename has to match the directory entry itself, not only what is inside
+// it. Matching `docc/` alone left the walk's own entry for `docc` unrenamed, so
+// every `docc init` also created an empty `docc/` beside the real `.docc/` —
+// invisible to `--dry-run`, which skips directories and so never reported it.
 func target(dir, path string) string {
 	rel := strings.TrimPrefix(path, assetRoot+"/")
-	switch {
-	case strings.HasPrefix(rel, configRoot+"/"):
-		rel = filepath.Join(".docc", strings.TrimPrefix(rel, configRoot+"/"))
-	case strings.HasPrefix(rel, "agents/"):
-		rel = filepath.Join(".agents", strings.TrimPrefix(rel, "agents/"))
+	if rel == configRoot || strings.HasPrefix(rel, configRoot+"/") {
+		rel = "." + rel
 	}
 	return filepath.Join(dir, filepath.FromSlash(rel))
 }

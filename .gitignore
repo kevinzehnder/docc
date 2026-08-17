@@ -3,7 +3,6 @@ bin/
 tmp/
 temp/
 dist/
-build/
 *.exe
 *.exe~
 
