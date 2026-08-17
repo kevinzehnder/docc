@@ -354,6 +354,97 @@ inherited spacing quirks, the highlighted placeholders themselves).
 - Commit schema, theme and assets together, with the source template's name
   in the schema's header comment so the lineage is findable.
 
+## 9. Ship it as a pack repository
+
+A profile written under `.docc/` belongs to one project. A *pack* is the same
+two directories in a Git repository of their own, so every project and every
+colleague resolves an identical, pinned revision. docc hosts no packs and
+ships nobody's: an organisation keeps its own, the way it keeps the letterhead
+it derived them from.
+
+```text
+kanzlei-profiles/
+  docc-profile.yaml
+  schemas/   ch_urkunde_kaufvertrag.yaml, _base.yaml, ...
+  themes/    ch_urkunde_kaufvertrag.yaml, urkunde-wappen.png, ...
+```
+
+```bash
+git init kanzlei-profiles && cd kanzlei-profiles
+mv ~/project/.docc/schemas ~/project/.docc/themes .
+cat > docc-profile.yaml <<'YAML'
+format: 1
+id: example-kanzlei
+name: Example Kanzlei profiles
+schemas: schemas
+themes: themes
+YAML
+```
+
+`id` is stable and filesystem-safe: it names the directory revisions install
+into, and every existing binding checks against it, so renaming it later breaks
+them all. `schemas` and `themes` are relative paths inside the repository —
+nothing outside it can be named.
+
+Keep client material out, by the rule of step 7, which matters more here
+because a pack is the artefact that gets shared:
+
+```gitignore
+output/
+assets/
+*.docx
+*.pdf
+```
+
+Theme assets are the exception. The crest is referenced by `themes/`, so it is
+committed with them.
+
+Guard the repository in CI with the two checks the profile already has to pass,
+against a pinned `docc` release:
+
+```bash
+docc profile use "$PWD" --project /tmp/verify   # validates every schema/theme pair
+docc example <type> | docc check                # once per renderable type
+```
+
+The first is not a formality: installing a pack runs `emit.Validate` over every
+renderable type, so a revision whose schemas and themes disagree fails at
+`install` and never becomes selectable. Catching it in the pack's own CI is
+the difference between one broken push and every colleague's next build.
+
+### Consuming it
+
+`docc profile use` writes a project binding and lockfile that belong in Git
+beside the documents; `docc profile install --default` records a machine-wide
+fallback for loose drafting. Both clone into
+`$XDG_DATA_HOME/docc/profiles/<id>/<commit>/`, immutable and with the Git
+metadata removed. `docs/profile-packs.md` is the reference for the commands,
+the trust policy, and the provenance every rendered file carries.
+
+### While you are still editing the pack
+
+`source` is passed to `git clone`, so a **local path is a valid source**:
+
+```bash
+docc profile use ~/git/kanzlei-profiles --project .
+```
+
+That clones the committed `HEAD`. Working-tree edits stay invisible until you
+commit and `docc profile update` — right for a build that has to be
+reproducible, tiresome for the render-and-compare loop of step 7. For that
+loop, point at the working tree itself through the legacy project
+configuration, which resolves symlinks:
+
+```bash
+mkdir -p .docc
+ln -s ~/git/kanzlei-profiles/schemas .docc/schemas
+ln -s ~/git/kanzlei-profiles/themes  .docc/themes
+```
+
+An edit then lands in the next `docc build`. Nothing is pinned, which is why
+this is a development arrangement and not one to commit: replace it with a
+binding before the project is shared or filed.
+
 ## Worked example
 
 The `ch_urkunde_kaufvertrag` profile is the reference run of this guide.
