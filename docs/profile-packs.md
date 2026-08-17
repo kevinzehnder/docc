@@ -128,6 +128,13 @@ reviewed and committed. `status` reports the selected source, ref and commit. It
 when the source ref now resolves to another commit. `check` and `build` must
 not fetch, clone or update.
 
+A `REPOSITORY` is whatever `git clone` accepts, a local path included, which is
+how a pack is tested before it is pushed. The clone still takes the committed
+revision: an uncommitted edit in that working tree is not part of any installed
+pack. Authoring against a live working tree is what the legacy `.docc/schemas`
+and `.docc/themes` entries are for — see
+[Building profiles](building-profiles.md).
+
 ## Shipping a pack as an AgentSkill
 
 `docc profile package` writes the resolved profile as an AgentSkill directory:

@@ -55,7 +55,18 @@ for integration work only; do not use it as a production distribution path.
 
 ## Configuration note
 
-`config/` currently holds the generic `docc init` starter (letter + legal).
-Swap it for a firm's real `.docc` schemas + themes to produce that firm's
-documents. The skill points `docc` at it with `--schema-dir config/schemas`
-and `--theme-dir config/themes`.
+`config/` holds the generic `docc init` starter (letter + legal), so a clone of
+this repository builds a shareable artifact. The skill points `docc` at it with
+`--schema-dir config/schemas` and `--theme-dir config/themes`.
+
+To ship an organisation's real document types, point `assemble.sh` at a profile
+pack — a checkout with `schemas/` and `themes/` — instead of editing `config/`:
+
+```sh
+DOCC_PROFILE=~/git/kanzlei-profiles sh cowork/assemble.sh
+```
+
+That regenerates everything from the pack and writes it to the git-ignored
+`build/`, leaving the tracked generic skill untouched. A firm's letterhead
+belongs in its own repository, never in this one; see
+[Building profiles](../docs/building-profiles.md) for how to make that pack.

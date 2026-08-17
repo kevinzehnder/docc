@@ -36,6 +36,8 @@ go.work.sum
 output/
 
 # ── Reference material (real client documents, never committed) ──────────────
+# Drafting against real documents happens in the profile pack repository now.
+# The entry stays as a backstop: a stray render here must never reach history.
 assets/
 
 # ── A local profile binding ──────────────────────────────────────────────────
