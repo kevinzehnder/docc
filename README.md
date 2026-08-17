@@ -140,8 +140,10 @@ and the language server stays quiet.
 
 ## Status
 
-Pre-1.0. I use it daily on real documents, which is the only testing it has had
-beyond its own suite.
+Pre-1.0, and written for my own work. I use it daily on real documents, which
+is the only testing it has had beyond its own suite. There is no company behind
+it and no roadmap beyond what I need next; it's public because that is easier
+than keeping it in a folder.
 
 Working: `check`, `build`, `doctor`, `lsp`, `init`, `describe`, `example`,
 `explain`, the `.docx` writer, schema and theme inheritance, profile packs with
