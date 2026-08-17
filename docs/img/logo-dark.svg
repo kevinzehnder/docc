@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="docc">
   <title>docc</title>
-  <g fill="none" stroke="#16233D" stroke-width="6.5" stroke-linejoin="round">
+  <g fill="none" stroke="#E6EDF7" stroke-width="6.5" stroke-linejoin="round">
     <rect x="27" y="15" width="74" height="98" rx="10"/>
   </g>
   <g>
     <rect x="42" y="34" width="44" height="7" rx="3.5" fill="#8A97AD"/>
     <rect x="42" y="50" width="31" height="7" rx="3.5" fill="#8A97AD"/>
-    <rect x="42" y="66" width="37" height="7" rx="3.5" fill="#D9821A"/>
+    <rect x="42" y="66" width="37" height="7" rx="3.5" fill="#F0A742"/>
   </g>
-  <g fill="none" stroke="#D9821A" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+  <g fill="none" stroke="#F0A742" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M42 92 L48 84 L54 92"/>
     <path d="M60 92 L66 84 L72 92"/>
     <path d="M78 92 L84 84 L90 92"/>
