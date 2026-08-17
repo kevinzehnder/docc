@@ -25,6 +25,14 @@ can be reverted once the fix lands. **The numbers are stable identifiers** —
 | 9 | **A label-left block pattern for the body** | capability | `emit` | ½ d | **done** |
 | 10 | `docc --version` is not accepted, only `docc version` | papercut | `cmd/docc` | 10 min | open |
 | 11 | A pack checkout needs `--schema-dir`/`--theme-dir` on every command | papercut | `project` | ½ d | open |
+| 12 | `.field` gives nested and continuation paragraphs the row style | papercut | `emit` | 1 h | open |
+
+**Adopted in the pack.** All six landed changes are now in use: `on_missing:
+ignore` on `legal`'s conditional evidence rule, both theme workarounds reverted,
+`restart: never` on the Stampa numbering, and the Anmeldung rebuilt as a
+`::: feld` form — which took it from two pages to one. `docc doctor --strict` and
+all fifteen types pass, and `docc example --blank` is now warning-free, which it
+was not before change 3. Change 12 below was found while doing that.
 
 **What landed (unreleased, on `master` after v0.2.0):** 1, 2, 3, 6, 8 and 9 —
 the whole suggested order down to change 8. Each item's section below carries a
@@ -683,6 +691,52 @@ the reason to want either.
 | 4 | `docs/authoring.md:126` | "What a theme cannot change" lists table borders and even columns as fixed. | still true; change 4 is open |
 | 6 | `docs/authoring.md` | `.words` is described as opt-in; make it true rather than rewriting the sentence. | **done** — it is true now |
 | 8, 9 | `docs/theme-reference.md`, `docs/schema-reference.md` | New `NumFormat` field; new `div.<name>.field` style key and its rendering pattern. | **done**, plus `docs/building-profiles.md` (the field pattern's tab-stop geometry) and `docs/schema-reference.md` (`on_missing`, for change 1) |
+
+## 12. `.field` gives nested and continuation paragraphs the row style
+
+**`internal/emit/emit.go`** — `fieldList`, found while adopting change 9
+
+Raised after using `.field` for real. It is small and it is not urgent; the pack
+has a workaround that is arguably better structure anyway.
+
+`fieldList` labels an item's first paragraph and then, for every later block in
+the same item, sets `p.Props.Style = style` — the row style. That is right for
+a plain continuation paragraph, but the row style is the one carrying
+`hanging: <value column>`, so a continuation's *first* line starts back at the
+margin instead of in the value column. It also hits a nested block: a
+`::: betraege` inside a form row checks correctly — the div is found, the amount
+rules run — but renders at the margin with its own style discarded.
+
+Concretely, this does not work as it reads:
+
+```markdown
+::: feld
+- [Stammkapital:] wie folgt eingeteilt:
+
+  ::: betraege {#stammkapital}
+  - [Fr. 20'000.00] 20 Stammanteile zu je Fr. 1'000.00
+  - [= Fr. 20'000.00] Ausmachend das Stammkapital von
+  :::
+:::
+```
+
+### Two workarounds, both fine
+
+A multi-line value needs no nesting at all: a hard line break (`\`) keeps it in
+one paragraph, and the row's hanging indent puts every line after the break in
+the value column. That is how the pack sets its Belege row.
+
+A nested *block* has to move to the top level instead, which means splitting the
+form into two `feld` blocks with the block between them. The pack does that for
+`betraege` and `person`, and it keeps every check — so change 9 delivered what it
+promised; this is only about where the source may sit.
+
+### Fix
+
+Give continuation and nested paragraphs their own key — `div.<name>.field.continued`
+— falling back to the row style when unmapped, so today's behaviour is the
+default. A nested block keeping its own mapped style would be better still, but
+that is a broader question about how nested divs inherit.
 
 ## Suggested order
 
