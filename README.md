@@ -28,7 +28,21 @@ None of these are hard problems. They are all things a machine can check. Word
 doesn't check them because a template is a starting point, not a contract —
 it will happily produce a document that is wrong.
 
-So the documents got a type, and the type got a checker:
+Drafting in Markdown and converting doesn't help. The conversion is never quite
+right, so you fix it in Word, and now the Word file is the real document and the
+Markdown is a draft you throw away. A template engine fixes the drift, but it
+takes the document away from you: the prose ends up split between a data file
+and a form with holes in it, and what I need to do with a draft is read it.
+
+Then models got good enough to draft, which moved the hard part. Writing is
+fast; getting a specific, correct output is not. "Parties in this order, amounts
+spelled out under the figures, the retention clause, the certification on its
+own page" is a hundred small constraints, and a model will satisfy ninety-eight
+of them. Re-reading every section to find the other two gives back everything it
+saved. Instructions in a prompt are a request; I wanted a check.
+
+So the constraints moved out of the prompt and into a schema the document is
+compiled against, and the document stayed prose:
 
 ```
 docs/klage_mueller.md:14:13: error[DOC010]: field `case_ref` has malformed value "ZG2026000"
@@ -59,8 +73,7 @@ docc lsp                     # the same checks in the editor, while typing
 **The source is Markdown.** Ordinary Markdown with YAML frontmatter — no macros,
 no XML, no special editor. It diffs, so I can review a change to a document the
 way I review a change to code. It also means a language model can draft one
-without being taught a format first, which is most of why I bothered: drafting
-got cheap, and checking is the part that didn't.
+without being taught a format first.
 
 **It writes the `.docx` itself.** No Word, no template file, no LibreOffice in
 the loop. The writer builds the archive with the Go standard library and nothing
