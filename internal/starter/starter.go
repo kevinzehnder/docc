@@ -89,7 +89,7 @@ func Init(dir string) error {
 		return fmt.Errorf("create project directory: %w", err)
 	}
 	for _, src := range sources() {
-		if err := copyTree(src.fsys, src.root, dir); err != nil {
+		if err := CopyTree(src.fsys, src.root, dir); err != nil {
 			return err
 		}
 	}
@@ -112,7 +112,15 @@ func checkVacant(dir string) error {
 }
 
 // target maps an embedded asset path to its destination beneath dir.
+//
+// The root itself maps to dir. Without that case a tree rooted at `files`
+// created an empty `files/` directory in every project `docc init` touched:
+// the prefix strip only fires on `files/…`, so the root walked through as
+// itself.
 func target(dir, root, path string) string {
+	if path == root {
+		return dir
+	}
 	rel := path
 	if root != "." {
 		rel = strings.TrimPrefix(path, root+"/")
@@ -120,7 +128,15 @@ func target(dir, root, path string) string {
 	return filepath.Join(dir, filepath.FromSlash(rel))
 }
 
-func copyTree(fsys fs.FS, root, dir string) error {
+// CopyTree writes an embedded asset tree to dir. It is exported because the
+// profile store extracts the same embedded pack the same way when it
+// materializes the builtin profile, and two copies of a file-writing loop is
+// two sets of permissions and error wrapping to keep in step.
+//
+// Every destination refuses to overwrite (O_EXCL): the caller has either
+// checked the target is vacant, as Init does, or is writing into a fresh
+// temporary directory, as the profile store does.
+func CopyTree(fsys fs.FS, root, dir string) error {
 	return fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr

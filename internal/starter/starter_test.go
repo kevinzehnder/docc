@@ -63,6 +63,29 @@ func TestInitCreatesWorkingStarter(t *testing.T) {
 
 // The scaffold is a real pack checkout: the ordinary walk-up resolution finds
 // its manifest, with no init-specific resolution path left anywhere.
+// A checkout carries the pack, the examples and nothing else. `files` is the
+// embed root of this package's assets, an implementation detail that has no
+// business appearing in the user's project.
+func TestInitCreatesNoStrayDirectories(t *testing.T) {
+	root := t.TempDir()
+	if err := starter.Init(root); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, e := range entries {
+		got = append(got, e.Name())
+	}
+	slices.Sort(got)
+	want := []string{"README.md", "docc-profile.yaml", "examples", "schemas", "themes"}
+	if !slices.Equal(got, want) {
+		t.Errorf("checkout contains %v, want %v", got, want)
+	}
+}
+
 func TestInitResolvesAsPackCheckout(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv(profile.EnvProfile, "")

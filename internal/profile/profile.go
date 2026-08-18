@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 	"github.com/kevinzehnder/docc/internal/emit"
 	"github.com/kevinzehnder/docc/internal/project"
 	"github.com/kevinzehnder/docc/internal/schema"
+	"github.com/kevinzehnder/docc/internal/starter"
 	"github.com/kevinzehnder/docc/internal/theme"
 )
 
@@ -642,25 +642,7 @@ func extractBuiltin(dir string) error {
 		return err
 	}
 	defer func() { _ = os.RemoveAll(tmp) }()
-	fsys := defaultpack.FS()
-	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		// The walk is over embed.FS; every path below is compiled in.
-		dest := filepath.Join(tmp, filepath.FromSlash(path))
-		if d.IsDir() {
-			//nolint:gosec // G122: dest is derived from a compiled-in embed.FS path.
-			return os.MkdirAll(dest, 0o750)
-		}
-		data, err := fs.ReadFile(fsys, path)
-		if err != nil {
-			return err
-		}
-		//nolint:gosec // G122: dest is derived from a compiled-in embed.FS path.
-		return os.WriteFile(dest, data, 0o600)
-	})
-	if err != nil {
+	if err := starter.CopyTree(defaultpack.FS(), ".", tmp); err != nil {
 		return err
 	}
 	if err := os.Rename(tmp, dir); err != nil {
