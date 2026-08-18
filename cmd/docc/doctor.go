@@ -151,6 +151,14 @@ func diagnose(cf commonFlags, start string) (*doctorReport, error) {
 			rep.Themes = append(rep.Themes, doctorTheme{
 				Name: th.Name, Description: th.Description, Styles: len(th.Styles),
 			})
+			// The theme-side twin of an unread style key: a flag no line can
+			// act on. It renders exactly as if it were absent, so nothing else
+			// would ever mention it.
+			for _, inert := range emit.InertFurnitureFlags(th) {
+				rep.Warnings = append(rep.Warnings, doctorProblem{
+					Theme: th.Name, Message: inert,
+				})
+			}
 		}
 	}
 
@@ -261,7 +269,14 @@ func printDoctor(rep *doctorReport) {
 	if len(rep.Warnings) > 0 {
 		fmt.Printf("\n%d warning(s) — a build succeeds with these; --strict binds them:\n", len(rep.Warnings))
 		for _, w := range rep.Warnings {
-			fmt.Printf("  %s: %s\n", w.Type, w.Message)
+			// A finding about a theme names the theme; one about a document
+			// type names the type. Printing an empty label either way would
+			// leave the reader guessing which file to open.
+			label := w.Type
+			if label == "" {
+				label = "theme " + w.Theme
+			}
+			fmt.Printf("  %s: %s\n", label, w.Message)
 		}
 	}
 

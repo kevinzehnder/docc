@@ -113,9 +113,15 @@ renumbers itself when an entry is added:
 
 ```yaml
 epilogue:
-  - { style: BeilagenTitel, text: "Beilagen", omit_if_empty: false, page_break: true }
+  - { style: BeilagenTitel, text: "Beilagen", if_nonempty: beilagen, page_break: true }
   - { style: BeilagenItem, text: "{{ item }}", repeat: beilagen, numbering: Beilagenverzeichnis }
 ```
+
+The heading needs `if_nonempty`, not `omit_if_empty`: it interpolates nothing,
+so it has no placeholder to come up empty and would otherwise print over an
+empty list. The items below it need nothing — a `repeat` over an empty list
+emits no paragraphs — but the heading cannot know that, so it is told the field
+to watch.
 
 Pair it with a `cross_reference` rule over the same list and the index is
 checked as well as generated: a Beilage cited in the body but missing from the
@@ -317,7 +323,7 @@ on it.
 | `repeat` | string | — | A list field, emitting one paragraph per element. Inside the text, `{{ item }}` is the element. |
 | `if_nonempty` | string | — | Emits the line only when the named field has a value — for a heading that must disappear along with the empty list it introduces. |
 | `numbering` | string | — | A definition from `numbering:`, giving the line a Word list number. Lines naming the same definition within one block of furniture share an instance, so a `repeat` comes out 1., 2., 3. The label is Word numbering, not text: it renumbers itself, and a cross-reference check can still read the underlying list. |
-| `omit_if_empty` | bool | `true` | Drops the line when every field it interpolates is empty. |
+| `omit_if_empty` | bool | `true` | Drops the line when every field it interpolates is empty. It asks about **placeholders**, so it cannot reach a line of fixed text: with nothing to be empty, neither `true` nor `false` changes anything, and `docc doctor` warns that the flag is inert. Use `if_nonempty` for a literal line that must disappear with an empty list. |
 | `page_break` | bool | `false` | Starts a new page before this line. |
 | `section_break` | bool | `false` | Ends the section after this line and starts the next on a new page. This is what activates `page.continuation_margins`. |
 | `tabs` | list | — | Tab stops for this line, e.g. a right-aligned date. |
@@ -333,7 +339,7 @@ on it.
 | `color` | colour | — | |
 | `tab` | bool | `false` | A tab stop before the text. |
 | `break` | bool | `false` | A line break before the text. |
-| `omit_if_empty` | bool | `true` | Drops just this run when its interpolation is empty, leaving the rest of the line intact. |
+| `omit_if_empty` | bool | `true` | Drops just this run when its interpolation is empty, leaving the rest of the line intact. Inert on a literal run, for the same reason, and warned about the same way — a literal run goes only with the line around it. |
 
 ## Inheritance
 
