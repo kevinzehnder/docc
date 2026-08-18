@@ -46,8 +46,19 @@ archives:
       - LICENSE
       - README.md
 
+  # Bare binaries under the names every release before goreleaser carried
+  # (docc-v0.4.0-linux-amd64, …). The jlmy-profiles CI downloads exactly this
+  # asset and verifies it against SHA256SUMS; renaming it breaks the pack's
+  # pinned-release path.
+  - id: binaries
+    formats:
+      - binary
+    name_template: "docc-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+
 checksum:
-  name_template: checksums.txt
+  # The historical name. Consumers (jlmy-profiles release.yml) fetch the file
+  # by this name to verify the binary they downloaded.
+  name_template: SHA256SUMS
 
 changelog:
   use: github-native
