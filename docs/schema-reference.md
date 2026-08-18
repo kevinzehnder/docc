@@ -184,9 +184,11 @@ A block with no `#id` is fine unless a span references it. Ids must be unique
 across the document (`DOC034`), because `ref=` resolves against them.
 
 **How a block renders** is decided by the style map, not here. See the
-[style map](authoring.md#the-style-map) — mapping `div.<name>.amount`, `.line` or
-`.label` selects a rendering pattern, and `docc describe` reports which one a
-block ended up with.
+[style map](authoring.md#the-style-map) — mapping `div.<name>.amount`, `.line`,
+`.label` or `.field` selects a rendering pattern, and `docc describe` reports
+which one a block ended up with. Map exactly one: two are a contradiction rather
+than a combination, since only the first would take effect, so the pair is
+rejected before anything is rendered.
 
 ## `spans`
 
@@ -270,7 +272,7 @@ rules:
 | `severity` | string | `error` | `error` or `warning`. |
 | `message` | string | the check's own | Overrides the diagnostic's message. |
 | `hint` | string | the check's own | Overrides the hint. Write it as an instruction. |
-| `args` | map | — | Check-specific configuration; see below. |
+| `args` | map | — | Check-specific configuration; see below. An argument the named check does not read is `DOC009`, so a mistyped key fails rather than going quietly unused. |
 
 A code a schema defines is resolved by `docc explain <CODE>`, which searches the
 project's types for the rule that declares it and reports the check it selects,

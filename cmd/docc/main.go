@@ -965,7 +965,7 @@ var explanations = map[string]string{
 	"DOC006": "a field has the wrong scalar type. Numbers that must keep leading zeros, such as Swiss postal codes, have to be quoted.",
 	"DOC007": "a date field is not an ISO date (YYYY-MM-DD).",
 	"DOC008": "an enum field holds a value the schema does not allow.",
-	"DOC009": "the schema itself is wrong: an unknown field type, an invalid pattern, or an unregistered check.",
+	"DOC009": "the schema itself is wrong: an unknown field type, an invalid pattern, an unregistered check, or a rule argument the check does not read.",
 	"DOC010": "a string field does not match the pattern its schema declares.",
 	"DOC011": "the frontmatter declares a field the schema does not know. Usually a typo.",
 	"DOC012": "the document type could not be determined from the frontmatter.",

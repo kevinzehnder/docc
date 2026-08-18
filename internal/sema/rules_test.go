@@ -62,6 +62,66 @@ func TestMissingArgIsSchemaError(t *testing.T) {
 	}
 }
 
+// The mirror of TestMissingArgIsSchemaError: an argument the check never reads
+// is just as much a schema defect, and used to be silent. `anchour_heading`
+// passes every loader — `args:` is the one map yaml.Strict() cannot see into —
+// and the rule then anchors somewhere the author never chose.
+func TestUnknownArgIsSchemaError(t *testing.T) {
+	ds := run(t, evidenceDoc, schema.Rule{
+		ID:    "X001",
+		Check: "required_div",
+		Args:  map[string]any{"div": "evidence", "anchour_heading": "Facts"},
+	})
+	if got := codes(ds); len(got) != 1 || got[0] != "DOC009" {
+		t.Fatalf("codes = %v, want [DOC009]\n%s", got, messages(ds))
+	}
+	if !strings.Contains(ds[0].Message, `"anchour_heading"`) {
+		t.Errorf("message does not name the argument: %q", ds[0].Message)
+	}
+	if !strings.Contains(ds[0].Hint, "anchor_heading") {
+		t.Errorf("hint does not list what the check reads: %q", ds[0].Hint)
+	}
+}
+
+// A check with no arguments at all says so, rather than listing nothing.
+func TestUnknownArgOnArglessCheck(t *testing.T) {
+	ds := run(t, evidenceDoc, schema.Rule{
+		ID:    "X002",
+		Check: "no_empty_sections",
+		Args:  map[string]any{"div": "evidence"},
+	})
+	if got := codes(ds); len(got) != 1 || got[0] != "DOC009" {
+		t.Fatalf("codes = %v, want [DOC009]\n%s", got, messages(ds))
+	}
+	if !strings.Contains(ds[0].Hint, "takes no arguments") {
+		t.Errorf("hint = %q", ds[0].Hint)
+	}
+}
+
+// Every registered check needs a description and an argument list beside it,
+// because both are read as documentation: `docc describe` prints the first and
+// the schema author is told the second when they mistype a key.
+func TestRegistryTablesCoverEveryCheck(t *testing.T) {
+	for name := range registry {
+		if checkDescriptions[name] == "" {
+			t.Errorf("check %q has no entry in checkDescriptions", name)
+		}
+		if _, ok := checkArgs[name]; !ok {
+			t.Errorf("check %q has no entry in checkArgs", name)
+		}
+	}
+	for name := range checkArgs {
+		if _, ok := registry[name]; !ok {
+			t.Errorf("checkArgs names %q, which is not a registered check", name)
+		}
+	}
+	for name := range checkDescriptions {
+		if _, ok := registry[name]; !ok {
+			t.Errorf("checkDescriptions names %q, which is not a registered check", name)
+		}
+	}
+}
+
 func TestRequiredDivReportsAtConfiguredHeading(t *testing.T) {
 	src := `---
 document_type: test

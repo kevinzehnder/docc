@@ -65,6 +65,27 @@ func (c *ruleContext) ruleName() string {
 	return c.Rule.Check
 }
 
+// validateArgs reports arguments the selected check never reads. The rule still
+// runs afterwards: a schema with one typo should see the rest of its
+// diagnostics in the same pass, the way every other check collects rather than
+// stops.
+func (c *ruleContext) validateArgs() {
+	known, registered := checkArgs[c.Rule.Check]
+	if !registered {
+		return // an unregistered check was already reported as DOC009
+	}
+	for _, name := range sortedMapKeys(c.Rule.Args) {
+		if slices.Contains(known, name) {
+			continue
+		}
+		hint := fmt.Sprintf("%s takes no arguments", c.Rule.Check)
+		if len(known) > 0 {
+			hint = fmt.Sprintf("%s reads: %s", c.Rule.Check, strings.Join(known, ", "))
+		}
+		c.schemaErrorf(hint, "unknown argument %q", name)
+	}
+}
+
 // argString returns a string argument. A missing or non-string argument is a
 // schema error, not a silent skip: a rule that does not do what its author
 // wrote is worse than one that refuses to run.
@@ -181,6 +202,26 @@ var checkDescriptions = map[string]string{
 	"no_empty_sections":   "a heading with no content before the next one. A heading whose next heading is deeper is a container and is exempt.",
 	"amount_at_least":     "a money block whose total is below a floor the document type declares — a figure transcribed wrongly but consistently, which every other check accepts.",
 	"amounts_balance":     "money that does not add up: items contradicting a `[= …]` total, or a block whose `total-of` does not settle.",
+}
+
+// checkArgs lists the arguments each check reads. It exists because `args:` is
+// the one free-form map in docc — every other loader is yaml.Strict(), so a
+// misspelled key fails at the file that wrote it, while `anchour_heading:` was
+// simply ignored and the rule quietly anchored somewhere else.
+//
+// Keep it in step with the `c.arg…` calls in each check. An argument missing
+// here is reported to the schema author as a typo, so adding a knob to a check
+// means adding it here too.
+var checkArgs = map[string][]string{
+	"no_placeholder_text": {"pattern"},
+	"div_items_match":     {"div", "on_missing", "pattern"},
+	"cross_reference":     {"div", "label", "list_field", "pattern"},
+	"required_div":        {"anchor_heading", "div"},
+	"no_blank_spans":      nil,
+	"spans_agree":         {"spans"},
+	"no_empty_sections":   nil,
+	"amounts_balance":     {"div", "on_missing"},
+	"amount_at_least":     {"div", "minimum", "on_missing"},
 }
 
 // DescribeCheck returns a one-line description of a registered check, or "" for
@@ -315,7 +356,9 @@ func runRules(f *parse.File, sc *schema.Schema, m *Meta, ds *diag.List) {
 				"schema %q selects unknown check %q", sc.Type, rule.Check)
 			continue
 		}
-		fn(&ruleContext{File: f, Schema: sc, Meta: m, Rule: rule, Diags: ds})
+		c := &ruleContext{File: f, Schema: sc, Meta: m, Rule: rule, Diags: ds}
+		c.validateArgs()
+		fn(c)
 	}
 }
 
