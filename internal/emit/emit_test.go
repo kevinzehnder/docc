@@ -103,6 +103,40 @@ func TestValidateCatchesUnknownStyle(t *testing.T) {
 	}
 }
 
+// Two pattern keys on one block is a contradiction, not a combination: emit.div
+// takes the first it finds and the other renders nothing. It validated, it
+// rendered, and it did nothing — so the author blamed the theme.
+func TestValidateRejectsTwoBlockPatterns(t *testing.T) {
+	sc := testSchema()
+	sc.Styles["div.evidence.field"] = "Feldname" // already selects .label
+
+	err := Validate(sc, testTheme())
+	if err == nil {
+		t.Fatal("expected an error for a block selecting two rendering patterns")
+	}
+	for _, want := range []string{"div.evidence.label", "div.evidence.field"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error should name %s, got: %v", want, err)
+		}
+	}
+}
+
+// One pattern key plus its dependent keys is the normal case and must stay
+// valid: `.total` and `.words` decorate amount rendering, they do not select
+// a second pattern.
+func TestValidateAcceptsAmountBlockWithTotalAndWords(t *testing.T) {
+	sc := testSchema()
+	sc.Styles["div.betraege"] = "Standard"
+	sc.Styles["div.betraege.amount"] = "Firma"
+	sc.Styles["div.betraege.total"] = "Standard"
+	sc.Styles["div.betraege.total.amount"] = "Firma"
+	sc.Styles["div.betraege.words"] = "Standard"
+
+	if err := Validate(sc, testTheme()); err != nil {
+		t.Fatalf("an amount block with its total and words keys should be valid: %v", err)
+	}
+}
+
 func TestValidateAcceptsMappingToListDefinition(t *testing.T) {
 	if err := Validate(testSchema(), testTheme()); err != nil {
 		t.Fatalf("ordered_list -> Nummerierung should be valid: %v", err)

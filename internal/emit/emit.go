@@ -118,6 +118,9 @@ func Validate(sc *schema.Schema, th *theme.Theme) error {
 	if err := validateSpanStyles(sc); err != nil {
 		errs = append(errs, err)
 	}
+	if err := validateBlockPatterns(sc); err != nil {
+		errs = append(errs, err)
+	}
 	if err := validateNumbering(th); err != nil {
 		errs = append(errs, err)
 	}
@@ -240,6 +243,33 @@ func validateNumbering(th *theme.Theme) error {
 // validateSpanStyles checks that every `span.<type>` style key names a span
 // type the schema declares. A style mapped to a type nobody can write is a
 // typo that would otherwise show up as text that is silently not styled.
+// validateBlockPatterns rejects a block whose style map selects more than one
+// rendering pattern. emit.div dispatches on the first key it finds, so the
+// others render nothing at all — a mapping that validates, renders, and does
+// nothing, which is the failure the style vocabulary exists to prevent.
+//
+// This is the only place that can see it: which pattern a block uses is not
+// declared anywhere, it is a consequence of which key the schema set.
+func validateBlockPatterns(sc *schema.Schema) error {
+	names := map[string]bool{}
+	for key := range sc.Styles {
+		if strings.HasPrefix(key, "div.") {
+			names[blockName(key)] = true
+		}
+	}
+	var errs []error
+	for _, name := range sortedKeys(names) {
+		keys := PatternKeys(sc, name)
+		if len(keys) < 2 {
+			continue
+		}
+		errs = append(errs, fmt.Errorf(
+			"schema %q: block %q selects %d rendering patterns (%s); only %s takes effect — map one",
+			sc.Type, name, len(keys), strings.Join(keys, ", "), keys[0]))
+	}
+	return errors.Join(errs...)
+}
+
 func validateSpanStyles(sc *schema.Schema) error {
 	if len(sc.Spans) == 0 {
 		return nil

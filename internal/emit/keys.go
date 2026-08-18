@@ -73,20 +73,22 @@ func StyleKeys(sc *schema.Schema) []StyleKey {
 }
 
 // blockSuffixes are the keys a declared block brings into existence beyond
-// `div.<name>` itself, each with what it does. The first four select a
-// rendering pattern; mapping none renders every paragraph in `div.<name>`.
+// `div.<name>` itself, each with what it does. An entry naming a pattern
+// selects that rendering; mapping none renders every paragraph in `div.<name>`.
+// They are listed in the order emit.div dispatches on them, which is what makes
+// two of them a contradiction rather than a merge.
 //
 // Keep this in step with the `e.style("div."+d.Name+...)` lookups in emit.go. A
 // suffix missing here makes `docc doctor` call a working mapping unread, which
 // is worse than saying nothing.
-var blockSuffixes = []struct{ suffix, purpose, fallback string }{
-	{".amount", "selects amount rendering; styles the amount column", ""},
-	{".line", "selects ruled rendering; styles the rule", ""},
-	{".label", "selects labelled rendering; styles the tabbed label", ""},
-	{".field", "selects field rendering — label first, then the value; styles the label column", ""},
-	{".total", "styles the total row of amount rendering", ""},
-	{".total.amount", "styles the amount cell of that total row", ""},
-	{".words", "adds the amount spelled out in words; needs the theme's `formats.amount_words` as well", ""},
+var blockSuffixes = []struct{ suffix, purpose, fallback, pattern string }{
+	{".amount", "selects amount rendering; styles the amount column", "", "amount"},
+	{".line", "selects ruled rendering; styles the rule", "", "ruled"},
+	{".label", "selects labelled rendering; styles the tabbed label", "", "labelled"},
+	{".field", "selects field rendering — label first, then the value; styles the label column", "", "field"},
+	{".total", "styles the total row of amount rendering", "", ""},
+	{".total.amount", "styles the amount cell of that total row", "", ""},
+	{".words", "adds the amount spelled out in words; needs the theme's `formats.amount_words` as well", "", ""},
 }
 
 // blockKeys reports the keys one declared block brings into existence.
@@ -179,22 +181,29 @@ func fixedHint(key string) string {
 // BlockPattern reports how a `::: <name>` block renders, given what the schema
 // maps for it. The pattern is not declared in the block's own definition — it
 // is a consequence of which style key is set — so nothing else can report it.
-//
-// The order matches the dispatch in emit.div; mapping two of them silently
-// picks the first.
 func BlockPattern(sc *schema.Schema, name string) string {
-	switch {
-	case sc.Styles["div."+name+".amount"] != "":
-		return "amount"
-	case sc.Styles["div."+name+".line"] != "":
-		return "ruled"
-	case sc.Styles["div."+name+".label"] != "":
-		return "labelled"
-	case sc.Styles["div."+name+".field"] != "":
-		return "field"
-	default:
-		return "plain"
+	for _, s := range blockSuffixes {
+		if s.pattern != "" && sc.Styles["div."+name+s.suffix] != "" {
+			return s.pattern
+		}
 	}
+	return "plain"
+}
+
+// PatternKeys reports the pattern-selecting keys a schema maps for one block,
+// in the order emit.div dispatches on them. More than one is a contradiction:
+// the first wins and the rest render nothing, which is why Validate rejects it.
+func PatternKeys(sc *schema.Schema, name string) []string {
+	var out []string
+	for _, s := range blockSuffixes {
+		if s.pattern == "" {
+			continue
+		}
+		if key := "div." + name + s.suffix; sc.Styles[key] != "" {
+			out = append(out, key)
+		}
+	}
+	return out
 }
 
 // FixedFormat is a construct the emitter formats itself, with no style map entry

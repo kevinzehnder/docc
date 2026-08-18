@@ -109,9 +109,10 @@ the pattern is a consequence of the style map, not something the block declares:
 | `div.<name>.label` | labelled rendering; styles the tabbed label |
 | `div.<name>.field` | field rendering — label first, then the value; styles the label column |
 
-They are tried in the order `.amount`, `.line`, `.label`, `.field`; mapping two
-silently takes the first. `docc describe` reports which pattern each block ended
-up with.
+Map exactly one of `.amount`, `.line`, `.label` and `.field` per block. They are
+tried in that order and only the first takes effect, so mapping two is rejected
+rather than resolved. `docc describe` reports which pattern each block ended up
+with.
 
 ### What a theme cannot change
 
