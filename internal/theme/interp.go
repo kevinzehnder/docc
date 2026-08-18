@@ -11,6 +11,39 @@ import (
 // fieldRe matches a {{ field.path }} placeholder.
 var fieldRe = regexp.MustCompile(`\{\{\s*([a-zA-Z_][a-zA-Z0-9_.]*)\s*\}\}`)
 
+// Reserved placeholders expand to a Word field instead of metadata. A page
+// number cannot be text: the document is edited after docc built it, and the
+// number would then be wrong. Expand substitutes a control byte, which the
+// emitter splits the line on the same way it splits on a tab.
+//
+// The bytes are control characters precisely because no author types one, and
+// the XML writer drops any that escapes this far rather than emitting an
+// invalid part.
+const (
+	// FieldPage marks {{ page }} — the current page number.
+	FieldPage = "\x01"
+	// FieldPages marks {{ pages }} — the total page count.
+	FieldPages = "\x02"
+)
+
+// reservedFields are the placeholder names that are fields, not schema fields.
+var reservedFields = map[string]string{
+	"page":  FieldPage,
+	"pages": FieldPages,
+}
+
+// HasMetaPlaceholder reports whether text interpolates at least one metadata
+// field. A reserved page placeholder does not count: it always has a value, so
+// it can never be the empty interpolation that drops a line.
+func HasMetaPlaceholder(text string) bool {
+	for _, m := range fieldRe.FindAllStringSubmatch(text, -1) {
+		if _, reserved := reservedFields[strings.TrimSpace(m[1])]; !reserved {
+			return true
+		}
+	}
+	return false
+}
+
 // Interp is the result of expanding a furniture line's text.
 type Interp struct {
 	// Text is the expanded string.
@@ -54,6 +87,13 @@ func (t *Theme) Expand(text string, meta map[string]any) Interp {
 	out := fieldRe.ReplaceAllStringFunc(text, func(match string) string {
 		path := strings.TrimSpace(fieldRe.FindStringSubmatch(match)[1])
 		refs++
+
+		if marker, reserved := reservedFields[path]; reserved {
+			// A field always has a value, so it counts as a filled reference:
+			// a footer that is nothing but a page number must not be dropped
+			// as an empty line.
+			return marker
+		}
 
 		value, found := lookup(meta, path)
 		if !found {
@@ -278,6 +318,9 @@ func (t *Theme) FieldRefs() []FieldRef {
 				for _, m := range fieldRe.FindAllStringSubmatch(text, -1) {
 					path := strings.TrimSpace(m[1])
 					if l.Repeat != "" && (path == item || strings.HasPrefix(path, item+".")) {
+						continue
+					}
+					if _, reserved := reservedFields[path]; reserved {
 						continue
 					}
 					add(path)

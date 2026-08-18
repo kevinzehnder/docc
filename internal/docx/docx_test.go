@@ -50,7 +50,15 @@ func sample() *Document {
 			{Type: HFFirst, Blocks: []Block{P("Standard", "Letterhead")}},
 		},
 		Footers: []HeaderFooter{
-			{Type: HFDefault, Blocks: []Block{P("Standard", "Page footer")}},
+			{Type: HFDefault, Blocks: []Block{Paragraph{
+				Props: ParaProps{Style: "Standard"},
+				Runs: []Run{
+					R("Seite "),
+					{Field: FieldPage, Items: []Inline{Text("1")}},
+					R(" von "),
+					{Field: FieldNumPages, Items: []Inline{Text("1")}},
+				},
+			}}},
 		},
 		Body: []Block{
 			Paragraph{
@@ -245,6 +253,25 @@ func TestHeaderFooterRelationshipsResolve(t *testing.T) {
 
 // Two lists created with AddList must not share a numId, or the second
 // continues the first's numbering instead of restarting.
+// A page number is a field, not text: the file is edited after docc wrote it.
+// w:fldSimple is a sibling of w:r inside the paragraph — nesting it in the run
+// makes Word offer to repair the document instead of showing a number.
+func TestPageFieldWrapsRun(t *testing.T) {
+	data, err := sample().Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	footer := partOf(t, data, "word/footer1.xml")
+
+	want := `<w:fldSimple w:instr=" PAGE "><w:r><w:t xml:space="preserve">1</w:t></w:r></w:fldSimple>`
+	if !strings.Contains(footer, want) {
+		t.Errorf("footer1.xml missing page field:\n%s", footer)
+	}
+	if !strings.Contains(footer, `<w:fldSimple w:instr=" NUMPAGES ">`) {
+		t.Errorf("footer1.xml missing page count field:\n%s", footer)
+	}
+}
+
 func TestListsGetDistinctNumIDs(t *testing.T) {
 	n := Numbering{}
 	first := n.AddList(DecimalList(1))

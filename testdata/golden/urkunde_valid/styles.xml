@@ -140,6 +140,20 @@
 <w:u w:val="single"/>
 </w:rPr>
 </w:style>
+<w:style w:type="paragraph" w:styleId="Seitenzahl">
+<w:name w:val="Page number"/>
+<w:basedOn w:val="Standard"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:before="0" w:after="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:color w:val="666666"/>
+<w:sz w:val="16"/>
+<w:szCs w:val="16"/>
+</w:rPr>
+</w:style>
 <w:style w:type="paragraph" w:styleId="Standard" w:default="1">
 <w:name w:val="Standard"/>
 <w:qFormat/>

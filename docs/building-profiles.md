@@ -400,13 +400,13 @@ Expect to hit engine limits; sort each into one of three bins:
   it, or grow the engine — and when you live without it, record the decision
   as a comment at the top of the theme, because a theme that silently lacks
   page numbers looks like an oversight to the next reader. The deed run hit
-  this twice and answered it differently each time: there is still no dynamic
-  `PAGE` field, so the theme documents that it has no running page numbers;
-  but spans reached the emitter carrying no type at all, which made the house
-  convention for a party name impossible to express, so `span.<type>` styles
-  were added instead. The test is whether the gap is a *document-type* fact
-  the engine should be able to state. Numbering pages is layout the theme can
-  live without; making an annotation legible is what annotating is for.
+  this twice and answered it differently each time: spans reached the emitter
+  carrying no type at all, which made the house convention for a party name
+  impossible to express, so `span.<type>` styles were added; running page
+  numbers were first lived without and documented as absent, then added as the
+  reserved `{{ page }}` and `{{ pages }}` placeholders once a second profile
+  wanted them. The test is whether the gap is a *document-type* fact the engine
+  should be able to state — and how many profiles will restate the workaround.
 
 Stop iterating at *faithful*, not *pixel-identical*. The profile replaces the
 template; it does not have to reproduce its accidents (Word's default fonts,

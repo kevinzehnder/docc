@@ -8,7 +8,9 @@
 # a heading, and amounts spelled out from their figures. A change that only
 # this theme catches is the reason it exists.
 #
-# It has no page numbers because the writer has no dynamic PAGE field yet.
+# Its footer carries the running page number. `page.title_page` is what keeps
+# it off page one: with no `footer: first:` declared, the first page has no
+# footer at all, which is how a deed is set.
 name: example-urkunde
 description: Notarial deed — crest header, clause outline, amount columns, ruled signatures.
 
@@ -287,6 +289,14 @@ styles:
     align: center
     spacing: { before: 0mm, after: 0mm }
 
+  Seitenzahl:
+    name: Page number
+    based_on: Standard
+    align: center
+    size: 8pt
+    color: "666666"
+    spacing: { before: 0mm, after: 0mm }
+
 numbering:
   # The deed outline: I. Vertragsparteien / 1. Verkäuferschaft / 1.1. — the
   # labels come from Word's numbering, never from the source.
@@ -335,6 +345,12 @@ numbering:
         style: Aufzaehlung
 
 # The crest sits on the first sheet only.
+# {{ page }} and {{ pages }} are the two reserved placeholders: they expand to
+# Word fields, not to text, so the numbers stay right after the file is edited.
+footer:
+  default:
+    - { style: Seitenzahl, text: "Seite {{ page }} von {{ pages }}" }
+
 header:
   first:
     - style: WappenZeile

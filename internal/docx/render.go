@@ -304,6 +304,12 @@ func writeBorder(w *xw, name string, b *Border) {
 // ---------------------------------------------------------------------------
 
 func (r Run) write(w *xw, d *Document) {
+	// A field wraps the run: w:fldSimple is a sibling of w:r inside the
+	// paragraph, not something a run can contain.
+	if r.Field != "" {
+		w.open("w:fldSimple", a("w:instr", r.Field))
+		defer w.close("w:fldSimple")
+	}
 	w.open("w:r")
 	writeRunProps(w, r.Props, true)
 	for _, item := range r.Items {

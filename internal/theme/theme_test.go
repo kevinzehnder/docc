@@ -452,6 +452,30 @@ func TestThemeFields(t *testing.T) {
 	}
 }
 
+// {{ page }} and {{ pages }} are fields Word computes, not metadata. They must
+// not reach Fields(), or emit.Validate would demand a schema declare a field
+// named "page" — and they must not count as empty, or a footer consisting of
+// nothing but a page number would be dropped as a blank line.
+func TestReservedPageFields(t *testing.T) {
+	th := &Theme{Footer: map[string][]Line{
+		"default": {{Text: "Seite {{ page }} von {{ pages }}"}},
+	}}
+	if fields := th.Fields(); len(fields) != 0 {
+		t.Errorf("Fields() = %v, want none: page and pages are not schema fields", fields)
+	}
+
+	got := th.Expand("Seite {{ page }} von {{ pages }}", nil)
+	if want := "Seite " + FieldPage + " von " + FieldPages; got.Text != want {
+		t.Errorf("Expand() = %q, want %q", got.Text, want)
+	}
+	if got.AllEmpty {
+		t.Error("AllEmpty = true; a page number is content, so the line stays")
+	}
+	if len(got.Missing) != 0 {
+		t.Errorf("Missing = %v, want none", got.Missing)
+	}
+}
+
 // FieldRefs carries the region each reference occurs in, which is what lets a
 // contract say where a field ends up — and, by its absence, that a field is
 // metadata the theme never prints.

@@ -992,6 +992,7 @@
 </w:p>
 <w:sectPr>
 <w:headerReference w:type="first" r:id="rId4"/>
+<w:footerReference w:type="default" r:id="rId5"/>
 <w:pgSz w:w="11906" w:h="16838"/>
 <w:pgMar w:top="1984" w:right="1247" w:bottom="1984" w:left="1701" w:header="680" w:footer="680" w:gutter="0"/>
 <w:cols w:space="708"/>

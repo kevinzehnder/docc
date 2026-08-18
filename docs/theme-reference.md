@@ -313,6 +313,27 @@ renders** — a typo in an address block would otherwise expand to nothing, and 
 line whose fields are all empty is dropped, so the letter would post with no city
 on it.
 
+Two placeholders are reserved and expand to a Word field rather than to
+metadata: `{{ page }}` is the page number and `{{ pages }}` the page count. They
+are fields because the file is edited after docc built it, and a number written
+as text would be wrong by then. Neither needs a schema field to back it.
+
+```yaml
+page:
+  title_page: true          # page one has no footer, because none is declared
+
+footer:
+  default:
+    - { style: Seitenzahl, text: "Seite {{ page }} von {{ pages }}" }
+```
+
+Both are placeholders in ordinary text, so the surrounding characters are
+literal and the look is the line's `style:` — `text: "- {{ page }} -"` gives the
+centred dash form.
+
+`{{ pages }}` is the whole document's page count, not the section's — a document
+whose numbering restarts at a section break still counts to the end.
+
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `style` | string | — | A style id from `styles:`. |

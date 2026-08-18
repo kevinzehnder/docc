@@ -1600,7 +1600,7 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int,
 		p.Runs = append(p.Runs, docx.Run{Items: []docx.Inline{drawing}})
 	}
 	if expanded.Text != "" {
-		p.Runs = append(p.Runs, furnitureRuns(expanded.Text)...)
+		p.Runs = append(p.Runs, furnitureRuns(expanded.Text, docx.RunProps{})...)
 	}
 	e.applySectionBreak(line, &p)
 
@@ -1659,7 +1659,7 @@ func (e *emitter) furnitureRunLine(line theme.Line, meta map[string]any, numID i
 			p.Runs = append(p.Runs, docx.Run{Props: props, Items: []docx.Inline{docx.Tab{}}})
 		}
 		if expanded.Text != "" {
-			p.Runs = append(p.Runs, docx.Run{Props: props, Items: []docx.Inline{docx.Text(expanded.Text)}})
+			p.Runs = append(p.Runs, furnitureRuns(expanded.Text, props)...)
 			anyText = true
 		}
 	}
@@ -1695,19 +1695,39 @@ func lookupMeta(meta map[string]any, path string) (any, bool) {
 	return cur, true
 }
 
-// furnitureRuns splits a furniture line on tab markers so a right-aligned date
-// can share a paragraph with left-aligned text.
-func furnitureRuns(text string) []docx.Run {
-	parts := strings.Split(text, "\t")
+// furnitureRuns splits an expanded furniture line into runs at the markers a
+// run cannot carry as text: a tab, so a right-aligned date shares a paragraph
+// with left-aligned text, and the reserved page placeholders, which become
+// Word fields.
+func furnitureRuns(text string, props docx.RunProps) []docx.Run {
 	var out []docx.Run
-	for i, part := range parts {
-		if i > 0 {
-			out = append(out, docx.Run{Items: []docx.Inline{docx.Tab{}}})
-		}
-		if part != "" {
-			out = append(out, docx.Run{Items: []docx.Inline{docx.Text(part)}})
+	var lit strings.Builder
+
+	flush := func() {
+		if lit.Len() > 0 {
+			out = append(out, docx.Run{Props: props, Items: []docx.Inline{docx.Text(lit.String())}})
+			lit.Reset()
 		}
 	}
+
+	for _, r := range text {
+		var run docx.Run
+		switch string(r) {
+		case "\t":
+			run = docx.Run{Props: props, Items: []docx.Inline{docx.Tab{}}}
+		case theme.FieldPage:
+			// The cached result is what a viewer shows before it recalculates.
+			run = docx.Run{Props: props, Field: docx.FieldPage, Items: []docx.Inline{docx.Text("1")}}
+		case theme.FieldPages:
+			run = docx.Run{Props: props, Field: docx.FieldNumPages, Items: []docx.Inline{docx.Text("1")}}
+		default:
+			lit.WriteRune(r)
+			continue
+		}
+		flush()
+		out = append(out, run)
+	}
+	flush()
 	return out
 }
 

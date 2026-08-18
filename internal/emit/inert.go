@@ -83,7 +83,7 @@ func inertLineReason(line theme.Line) string {
 		return "`omit_if_empty` never applies to a line carrying an image"
 	}
 	if len(line.Runs) == 0 {
-		if strings.Contains(line.Text, "{{") {
+		if theme.HasMetaPlaceholder(line.Text) {
 			return ""
 		}
 		return "`omit_if_empty` has no placeholder to be empty on a line of fixed text"
@@ -92,7 +92,7 @@ func inertLineReason(line theme.Line) string {
 	// when it produced no text at all. Literal runs that do produce text make
 	// both impossible.
 	for _, r := range line.Runs {
-		if strings.Contains(r.Text, "{{") {
+		if theme.HasMetaPlaceholder(r.Text) {
 			return ""
 		}
 	}

@@ -294,7 +294,19 @@ type RunProps struct {
 type Run struct {
 	Props RunProps
 	Items []Inline
+	// Field makes the run the result of a Word field instruction rather than
+	// literal text. A page number has to be one: the document is edited after
+	// docc built it, and a number written as text would be wrong by then.
+	// Items are the cached result, which is what a viewer shows until the
+	// field is recalculated — so a field run still needs text.
+	Field string
 }
+
+// Field instructions understood by the furniture placeholders.
+const (
+	FieldPage     = " PAGE "
+	FieldNumPages = " NUMPAGES "
+)
 
 // Inline is content inside a run: text, a tab, a break, or a drawing.
 type Inline interface {
