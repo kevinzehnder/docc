@@ -655,6 +655,11 @@ func checkSpansAgree(c *ruleContext) {
 		// exactly as checkNoBlankSpans has it. Comparing one against a filled
 		// occurrence makes `docc example --blank` — the skeleton this tool hands
 		// out — fail this tool's own check.
+		// The blank case below is what `docc example --blank` needs; this
+		// exemption additionally keeps a *filled* blank out of the comparison,
+		// which is narrower than it needs to be and is left alone only because
+		// nothing has shown it costs coverage: the field layer is anchored by
+		// span_matches_field, which does check filled blanks.
 		if span.HasClass(FieldSpanType) {
 			continue
 		}
@@ -742,13 +747,15 @@ func checkSpanMatchesField(c *ruleContext) {
 		if span.SpanType() != typ {
 			continue
 		}
-		// A blank the author was told to leave visible is not a disagreement,
-		// exactly as in checkSpansAgree: `docc example --blank` must not fail
-		// this tool's own check.
-		if span.HasClass(FieldSpanType) {
-			continue
-		}
 		value := normalizeSpanValue(span.LiteralText(c.File.BodySource))
+		// A blank the author was told to leave visible is not a disagreement:
+		// `docc example --blank` must not fail this tool's own check. That is
+		// the whole exemption a `.docc-field` needs, and deliberately not more.
+		// A blank carrying a span type is checked as soon as it is *filled*,
+		// because a filled hole is an asserted value like any other — and a
+		// pack that writes its Firma as `[…]{.firma .docc-field key=firma}`,
+		// which is how you say "the body must state it", would otherwise have
+		// the one occurrence that matters exempted from the anchor.
 		if isFillBlank(value) {
 			continue // a blank is no_blank_spans' business
 		}

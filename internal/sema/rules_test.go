@@ -667,7 +667,8 @@ func TestSpanMatchesFieldReportsMissingAnchor(t *testing.T) {
 }
 
 // A blank the author was told to leave visible is not a disagreement, or
-// `docc example --blank` would fail this tool's own check.
+// `docc example --blank` would fail this tool's own check. A *filled* one is
+// checked like anything else — see TestSpanMatchesFieldChecksFilledBlanks.
 func TestSpanMatchesFieldIgnoresFieldBlanks(t *testing.T) {
 	src := `---
 document_type: test
@@ -686,5 +687,32 @@ Die Käuferschaft, [Anna Muster-Berger]{.name}, und [____]{.name .docc-field key
 	})
 	if len(ds) != 0 {
 		t.Fatalf("expected no diagnostics, got:\n%s", messages(ds))
+	}
+}
+
+// Writing the value as a blank is how a pack says "the body must state this",
+// and it is exactly the occurrence worth anchoring: the Firma of a GmbH is
+// `[Muster Bau]{.firma .docc-field key=firma}` in the deed's own prose. An
+// exemption for the marker would have skipped five of the seven occurrences in
+// the firm's dossier and left the anchor checking the decoration.
+func TestSpanMatchesFieldChecksFilledBlanks(t *testing.T) {
+	src := `---
+document_type: test
+gesellschaft:
+  firma: Muster Bau
+---
+
+Unter der Firma [Muster Bua]{.firma .docc-field key=firma} besteht eine GmbH.
+`
+	ds := run(t, src, schema.Rule{
+		ID:    "X013",
+		Check: "span_matches_field",
+		Args:  map[string]any{"span": "firma", "field": "gesellschaft.firma"},
+	})
+	if got := codes(ds); len(got) != 1 || got[0] != "X013" {
+		t.Fatalf("codes = %v, want [X013]\n%s", got, messages(ds))
+	}
+	if !strings.Contains(ds[0].Message, `"Muster Bua"`) {
+		t.Errorf("message does not quote the typo: %q", ds[0].Message)
 	}
 }
