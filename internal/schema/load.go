@@ -2,7 +2,6 @@ package schema
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -173,36 +172,6 @@ func merge(parent, child *Schema) *Schema {
 
 func isYAML(name string) bool {
 	return strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml")
-}
-
-// LoadFS is Load against an fs.FS, used for the schemas embedded in the binary.
-func LoadFS(fsys fs.FS, dir string) (*Set, error) {
-	entries, err := fs.ReadDir(fsys, dir)
-	if err != nil {
-		return nil, fmt.Errorf("read embedded schema dir: %w", err)
-	}
-	raw := map[string]*Schema{}
-	for _, e := range entries {
-		if e.IsDir() || !isYAML(e.Name()) {
-			continue
-		}
-		b, err := fs.ReadFile(fsys, filepath.Join(dir, e.Name()))
-		if err != nil {
-			return nil, err
-		}
-		var sc Schema
-		if err := yaml.UnmarshalWithOptions(b, &sc, yaml.Strict()); err != nil {
-			return nil, fmt.Errorf("%s: %w", e.Name(), err)
-		}
-		raw[sc.Type] = &sc
-	}
-	resolved := map[string]*Schema{}
-	for name := range raw {
-		if _, err := resolve(name, raw, resolved, nil); err != nil {
-			return nil, err
-		}
-	}
-	return &Set{byType: resolved}, nil
 }
 
 func sortedKeys[T any](m map[string]T) []string {

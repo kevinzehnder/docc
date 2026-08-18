@@ -1,0 +1,14 @@
+urkunde_spans.md:24:70: error[KFV042]: span `.heimatort` is a blank, not a value
+   | 
+24 | Herr [Beat Beispiel]{.name}, geb. [1. Mai 1990]{.geburtsdatum}, von [____]{.heimatort},
+   |                                                                      ^^^^ write the value, or leave the position out until it is known
+urkunde_spans.md:43:3: warning[KFV043]: total 300.00 is below the minimum of 1'000.00 this document type requires
+   | 
+43 | - [= Fr. 300.00] Ausmachend den Kaufpreis von
+   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ raise the amount, or check that this block is the one the floor applies to
+urkunde_spans.md:49:10: error[KFV041]: `.uid` says "CHE-123.456.798" here but "CHE-123.456.789" on line 17
+   | 
+49 | UID-Nr. [CHE-123.456.798]{.uid}. Die Kosten dieses Vertrags werden von den
+   |          ^^^^^^^^^^^^^^^ make them the same, or use a different span type if they are different things
+
+2 errors, 1 warning

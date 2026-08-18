@@ -250,50 +250,8 @@ func TestFindPackReportsABrokenManifest(t *testing.T) {
 	}
 }
 
-// A pack's own drafting guidance — the one thing only the firm knows — must
-// live in the repository that knows it, not in whoever's shell runs packaging.
-func TestLoadPackReadsSkillSection(t *testing.T) {
-	root := t.TempDir()
-	writePackCheckout(t, root, "firm")
-	write(t, filepath.Join(root, manifestName),
-		"format: 1\nid: firm\nschemas: schemas\nthemes: themes\n"+
-			"skill:\n  notes: docs/skill-notes.md\n  description: Draft firm deeds.\n")
-	write(t, filepath.Join(root, "docs", "skill-notes.md"), "## House rules\n")
-
-	pack, err := LoadPack(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pack.Manifest.Skill == nil || pack.Manifest.Skill.Description != "Draft firm deeds." {
-		t.Fatalf("Skill = %+v", pack.Manifest.Skill)
-	}
-	if got, want := pack.SkillNotes(), filepath.Join(root, "docs", "skill-notes.md"); got != want {
-		t.Errorf("SkillNotes = %q, want %q", got, want)
-	}
-}
-
-// A pack that promises guidance and cannot produce it fails where it is
-// validated, not in the one command that reads the file.
-func TestLoadPackRejectsUnusableSkillNotes(t *testing.T) {
-	for _, tc := range []struct{ name, notes, want string }{
-		{"missing file", "docs/skill-notes.md", "skill.notes"},
-		{"escaping path", "../elsewhere.md", "relative path"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			root := t.TempDir()
-			writePackCheckout(t, root, "firm")
-			write(t, filepath.Join(root, manifestName),
-				"format: 1\nid: firm\nschemas: schemas\nthemes: themes\nskill:\n  notes: "+tc.notes+"\n")
-			_, err := LoadPack(root)
-			if err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("LoadPack error = %v, want one naming %q", err, tc.want)
-			}
-		})
-	}
-}
-
-// DOCC_PROFILE is for the case neither walking up nor the working directory can
-// answer: a packaged skill carrying its profile, compiling a document that
+// DOCC_PROFILE is for the case neither walking up nor the working directory
+// can answer: a host carrying a pack beside itself, compiling a document that
 // lives wherever the agent happens to be.
 func TestResolveEnvProfile(t *testing.T) {
 	paths := testPaths(t)
@@ -330,5 +288,63 @@ func TestResolveEnvProfileRejectsABadDirectory(t *testing.T) {
 	_, err := Resolve(t.TempDir(), testPaths(t))
 	if err == nil || !strings.Contains(err.Error(), EnvProfile) {
 		t.Fatalf("Resolve error = %v, want one naming %s", err, EnvProfile)
+	}
+}
+
+// Nothing configured anywhere resolves the starter pack embedded in the
+// binary: docc works out of the box, and the materialized copy is reused.
+func TestResolveFallsBackToBuiltin(t *testing.T) {
+	t.Setenv(EnvProfile, "")
+	paths := testPaths(t)
+
+	got, err := Resolve(filepath.Join(t.TempDir(), "letter.md"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != "builtin" || got.PackID != "starter" {
+		t.Fatalf("Resolve = %+v, want builtin starter", got)
+	}
+	if _, err := os.Stat(got.SchemaDir); err != nil {
+		t.Fatalf("materialized schema dir: %v", err)
+	}
+
+	// The second resolution must reuse the extraction, not fail over it.
+	again, err := Resolve(filepath.Join(t.TempDir(), "letter.md"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.SchemaDir != got.SchemaDir {
+		t.Errorf("second Resolve = %q, want the same materialized pack %q", again.SchemaDir, got.SchemaDir)
+	}
+}
+
+// A user default still beats the builtin fallback.
+func TestResolveDefaultBeatsBuiltin(t *testing.T) {
+	t.Setenv(EnvProfile, "")
+	paths := testPaths(t)
+	ref := installFixturePack(t, paths, "default", "fedcba9876543210fedcba9876543210fedcba98")
+	if err := SetDefault(paths, ref); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Resolve(filepath.Join(t.TempDir(), "letter.md"), paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != "user-default" {
+		t.Fatalf("Source = %q, want user-default", got.Source)
+	}
+}
+
+// The legacy layout — bare schemas under .docc, no manifest — fails loudly
+// rather than silently compiling against the builtin starter pack.
+func TestResolveRejectsLegacyLayout(t *testing.T) {
+	t.Setenv(EnvProfile, "")
+	paths := testPaths(t)
+	root := t.TempDir()
+	write(t, filepath.Join(root, ".docc", "schemas", "memo.yaml"), "type: memo\ndescription: A memo.\n")
+
+	_, err := Resolve(filepath.Join(root, "memo.md"), paths)
+	if err == nil || !strings.Contains(err.Error(), "legacy layout") {
+		t.Fatalf("Resolve error = %v, want legacy-layout refusal", err)
 	}
 }

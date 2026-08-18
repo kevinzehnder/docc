@@ -80,14 +80,15 @@ house style by accident, because the document never contains it.
 holding both. Projects pin it with a lockfile, so a build is reproducible and
 works offline, and every rendered file records which profile and commit produced
 it. Changing an address or a font is one edit in one place. Optionally, installs
-can be made to require a signature from a key you named.
+can be made to require a signature from a key you named. A generic starter pack
+is embedded in the binary, so an unconfigured docc works out of the box.
 
 ## Quick start
 
 ```bash
 go install github.com/kevinzehnder/docc/cmd/docc@latest
 
-docc init                    # a standalone starter project in this directory
+docc init                    # copy the built-in starter pack here, ready to edit
 docc types                   # what document types exist
 docc example ch_letter > brief.md
 docc check brief.md          # validate, with positions and hints
@@ -118,14 +119,13 @@ them, and the language server stays quiet.
 
 | | |
 |---|---|
+| [Philosophy](docs/philosophy.md) | What docc is, what it refuses to be, and where it is going |
 | [Quick reference](docs/cli.md) | Every command, its flags, exit codes, the JSON contract |
 | [Authoring guide](docs/authoring.md) | The narrative: document types, blocks, spans, body rules |
 | [Schema reference](docs/schema-reference.md) | Every key a document type may declare |
-| [Theming guide](docs/theming.md) | Styles, numbering, letterhead furniture, house-style inheritance |
-| [Theme reference](docs/theme-reference.md) | Every key a theme may set, and what it cannot do |
-| [Profile packs](docs/profile-packs.md) | Git-managed schemas and themes, trust policy, AgentSkill packaging |
+| [Theme reference](docs/theme-reference.md) | How a theme works, and every key it may set |
+| [Profile packs](docs/profile-packs.md) | Git-managed schemas and themes, trust policy, provenance |
 | [Building profiles](docs/building-profiles.md) | Deriving a profile from an existing Word document |
-| [Agent Skill](docs/publishing-agent-skill.md) | Installing docc into Claude, as a marketplace plugin or a packaged skill |
 | [Projects](docs/projects.md) | Configuration layout and discovery |
 | [Editor integration](docs/editors.md) | Language server setup |
 | [Development](docs/development.md) | Building, testing, and the `.docx` writer's rules |
@@ -139,14 +139,14 @@ than keeping it in a folder.
 
 Working: `check`, `build`, `doctor`, `lsp`, `init`, `describe`, `example`,
 `explain`, the `.docx` writer, schema and theme inheritance, profile packs with
-lockfiles and an optional signature policy, provenance stamped into every
-output, and `docc profile package`.
+lockfiles and an optional signature policy, an embedded starter pack, and
+provenance stamped into every output.
 
 `.docx` is the supported output; `--to pdf` is a convenience export that shells
 out to LibreOffice. Diagnostic codes are stable and won't be renumbered.
 Everything else may still move.
 
-Rough edges and planned work are in [docs/next-steps.md](docs/next-steps.md).
+Scope and planned work are in [docs/philosophy.md](docs/philosophy.md).
 Issues and patches are welcome, but I make no promises about response time.
 
 ## Contributing

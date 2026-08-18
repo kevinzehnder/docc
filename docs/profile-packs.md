@@ -13,9 +13,10 @@ docc profile use ssh://git.example.ch/kanzlei/docc-profiles.git --project . --re
 docc build docs/brief.md
 ```
 
-`docc init` remains available for an offline, standalone configuration that a
-user intends to edit locally. It is not the recommended way to consume an
-organisation's approved conventions.
+`docc init` scaffolds an editable pack checkout from the starter pack built
+into docc, and an unconfigured docc resolves that embedded pack directly. Both
+are starting points; a managed `docc profile use` binding is the way to consume
+an organisation's approved conventions.
 
 ## Pack layout
 
@@ -31,8 +32,6 @@ docc-profiles/
     letter.yaml
     legal.yaml
     logo.png
-  docs/
-    skill-notes.md
   examples/
 ```
 
@@ -44,39 +43,17 @@ id: example-kanzlei
 name: Example Kanzlei profiles
 schemas: schemas
 themes: themes
-
-# Optional: what an AgentSkill packaged from this pack should say.
-skill:
-  description: >-
-    Draft and render Example Kanzlei deeds, letters and briefs.
-    Use for any client-facing document of the firm.
-  notes: docs/skill-notes.md
 ```
 
 `id` is a stable, filesystem-safe identifier. `schemas` and `themes` are
-relative paths inside the repository.
+relative paths inside the repository. The manifest is parsed strictly: an
+unknown key is a load error, not a warning.
 
-### `skill:` — the firm's own drafting guidance
-
-Everything an AgentSkill can derive from the schemas is generated, and stays
-generated: a hand-written list of document types drifts from the types the pack
-declares, and nobody notices until someone uses it. What cannot be derived is
-the firm's knowledge — when to ask for a Heimatort rather than infer it, which
-type fits which instruction, what has to be verified before signing.
-
-`skill.notes` is a Markdown file inside the pack, appended to the generated
-instructions. `skill.description` replaces the generated one-line description,
-which is what an agent reads when deciding whether this skill applies at all.
-Both are validated at load: a pack that promises notes it does not carry fails
-where it is validated, not in the one command that reads the file.
-
-Without them the prose has to be handed to `docc profile package --notes` by
-whoever runs it, so the one thing only the firm knows lives outside the
-repository that knows it. Compatibility is verified by the profile
-repository's CI against supported `docc` releases; a machine-enforced range can
-be added once the public release versioning policy is in place. A pack contains
-data and assets only:
-`docc` never executes a script supplied by a profile repository.
+Compatibility is verified by the profile repository's CI against supported
+`docc` releases. A pack contains data and assets only: `docc` never executes a
+script supplied by a profile repository. Anything else a pack repository wants
+to ship — agent instructions, packaging scripts, CI — is its own business and
+invisible to docc.
 
 ## Local state and XDG directories
 
@@ -116,9 +93,9 @@ silently follows a branch, so it remains reproducible and works offline. An
 explicit update resolves a newer commit and changes the committed lockfile for
 review.
 
-A user may also configure one default pack. That makes a new directory usable
-without `docc init`; a project binding still wins and should be used for shared
-or filed work.
+A user may also configure one default pack; a project binding still wins and
+should be used for shared or filed work. With nothing configured at all, docc
+falls back to the starter pack embedded in the binary.
 
 ## Resolution order
 
@@ -126,19 +103,22 @@ Schema and theme resolution has one shared precedence order:
 
 1. Explicit `--schema-dir` and `--theme-dir` flags.
 2. `DOCC_PROFILE`, naming a pack directory. It is for the case neither walking
-   up nor the working directory can answer: a packaged AgentSkill carries its
-   profile beside itself and compiles documents that live wherever the agent
-   happens to be. A value that names no usable pack is an error, never a
-   fallback — compiling against schemas nobody chose is the failure this whole
-   order exists to prevent.
+   up nor the working directory can answer: a host carrying a pack beside
+   itself, compiling documents that live wherever the agent happens to be. A
+   value that names no usable pack is an error, never a fallback — compiling
+   against schemas nobody chose is the failure this whole order exists to
+   prevent.
 3. A nearest project `.docc/profile.yaml` plus its lockfile.
-4. Existing local `.docc/schemas` and `.docc/themes` (legacy and custom
-   projects).
-5. A nearest `docc-profile.yaml` — you are standing inside a pack checkout.
-6. The user's configured default pack.
-7. A configuration error with an installation hint.
+4. A nearest `docc-profile.yaml` — you are standing inside a pack checkout.
+5. The user's configured default pack.
+6. The starter pack embedded in the binary (`builtin`), so an unconfigured
+   docc still works.
 
-Step 5 is what makes a pack repository usable from inside itself. A pack has no
+The legacy layout — bare `.docc/schemas` without a manifest — is no longer
+resolved. It fails with an error naming the fix, because silently falling back
+to the builtin pack would compile the document against schemas nobody chose.
+
+Step 4 is what makes a pack repository usable from inside itself. A pack has no
 `.docc`: its schemas and themes are the product, not one project's local
 configuration, so working in a checkout used to mean passing `--schema-dir` and
 `--theme-dir` to every command. The manifest already names both directories, so
@@ -149,8 +129,8 @@ you are editing is a more specific answer than the one you installed globally.
 
 Nothing is pinned by a checkout: you are working *on* the pack rather than
 consuming a revision of it, so a document built this way records no commit.
-`docc doctor` names which of these answered, as `env-profile`, `pack-checkout`,
-`project-profile`, `legacy-project` or `user-default`.
+`docc doctor` names which of these answered, as `env-profile`,
+`project-profile`, `pack-checkout`, `user-default` or `builtin`.
 
 Installed packs are never merged. Selecting one pack avoids collisions between
 document-type and theme names and makes the source of every render clear.
@@ -164,7 +144,6 @@ docc profile install [--ref REF] [--default] REPOSITORY
 docc profile use [--ref REF] [--project DIR] REPOSITORY
 docc profile update [--project DIR]
 docc profile status [--project DIR] [--check-remote]
-docc profile package [--out DIR] [--with-binary PATH] [--zip PATH]
 ```
 
 `install` clones and validates a revision under the XDG data directory.
@@ -179,68 +158,9 @@ not fetch, clone or update.
 A `REPOSITORY` is whatever `git clone` accepts, a local path included, which is
 how a pack is tested before it is pushed. The clone still takes the committed
 revision: an uncommitted edit in that working tree is not part of any installed
-pack. Authoring against a live working tree is what the legacy `.docc/schemas`
-and `.docc/themes` entries are for — see
+pack. Authoring against a live working tree is what pack-checkout resolution is
+for: stand inside the checkout, and its manifest answers — see
 [Building profiles](building-profiles.md).
-
-## Shipping a pack as an AgentSkill
-
-`docc profile package` writes the resolved profile as an AgentSkill directory:
-
-```text
-<id>-skill/
-  SKILL.md            generated from the schemas
-  docc-profile.yaml   generated; makes the skill a pack in its own right
-  config/schemas/     copied verbatim
-  config/themes/      copied verbatim, assets included
-  examples/           one document per renderable type
-  probe.sh            generated self-test
-  bin/                only with --with-binary
-```
-
-The generated manifest is what lets the instructions say `docc check
-document.md` instead of repeating `--schema-dir config/schemas --theme-dir
-config/themes` on every line — two flags an agent can forget separately, and
-does. `SKILL.md` tells it to set `DOCC_PROFILE` to the skill's own directory,
-which works from whatever directory the document lives in; the explicit flags
-still work and are documented beside it.
-
-`SKILL.md` is **generated**, not carried alongside the pack. A hand-written
-skill file drifts from the types it claims to document, and the drift is only
-discovered by whoever tries to use it — the repository's own Cowork skill had
-renamed a type, dropped the block and span declarations and shipped no
-examples before this command existed. The type table, the example commands and
-the frontmatter description all come from the schemas.
-
-The hand-written part comes from the pack's own `skill:` block — its notes file
-and its description — so the firm's drafting guidance lives beside the schemas
-it describes. `--notes FILE` appends *after* it rather than replacing it: the
-two are different halves that both belong, since a pack knows when to ask for a
-Heimatort and only the person packaging knows how a particular host hands a
-file back.
-
-Examples come from each schema's `example:` field, so a shipped example cannot
-fall out of step with its type. Packaging validates every schema/theme pair
-first: a profile that cannot render is refused on the machine that can still
-fix it, rather than inside someone else's VM.
-
-Two modes:
-
-- **Configuration only (default)** — no `bin/`; the skill expects `docc` on
-  PATH. Right for internal rollout where the binary is installed once. The
-  artifact stays small, architecture neutral, and free of a docc version pinned
-  inside every consumer's copy.
-- **`--with-binary PATH`** — bundles an executable for sandboxed hosts with no
-  install step. Architecture specific, so the bundled build must match the host.
-
-`--zip` writes the archive with the skill nested at its root, which is what the
-skill format requires. Timestamps are fixed, so the same profile packages to
-the same bytes.
-
-For private distribution the pack repository doubles as its own marketplace: a
-CI job on tag runs `docc profile package` and publishes the payload. The pack
-repository stays the single source of truth, SSH stays the transport, and
-nothing new is hosted.
 
 ## Trust policy
 
@@ -285,7 +205,7 @@ which Word shows under File > Info > Properties > Advanced:
 
 | Property | Value |
 | --- | --- |
-| `docc-config` | `project-profile`, `legacy-project` or `user-default` |
+| `docc-config` | the resolution source, e.g. `project-profile`, `user-default` or `builtin` |
 | `docc-profile` | the pack id |
 | `docc-profile-source` | the pack's Git source |
 | `docc-profile-ref` | the requested ref, when there is one |
@@ -304,16 +224,5 @@ no local path reaches a document that leaves the building.
   then checking every schema/theme pair before it is accepted.
 - A revision refused by the trust policy is never moved into the profile store,
   so a later install cannot find it already present and skip verification.
-- Local `.docc/schemas` and a managed profile binding are ambiguous and are
-  rejected rather than merged.
-
-## Delivery sequence
-
-1. ~~Manifest, XDG paths, project binding/lock, resolver, and the local Git
-   install/use/update/status workflow.~~ Done.
-2. Integrate profile provenance into `docc doctor`, JSON output and LSP. The
-   build already stamps it into the output.
-3. ~~Add optional organisation trust policy (for example, signed-tag checks).~~
-   Done.
-4. Publish a separately versioned `docc-profiles` repository containing the
-   generic defaults, examples and its own compatibility/rendering CI.
+- A managed profile binding beside leftover local `.docc/schemas` is ambiguous
+  and rejected rather than merged.

@@ -1,4 +1,5 @@
-// Package starter installs docc's generic starter project.
+// Package starter scaffolds an editable checkout of the built-in starter
+// profile pack, plus sample documents.
 package starter
 
 import (
@@ -9,23 +10,41 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kevinzehnder/docc/internal/defaultpack"
 )
 
-// files contains the configuration and sample documents installed by Init.
+// files contains the sample documents installed beside the pack checkout.
 //
 //go:embed all:files
 var files embed.FS
 
 const (
-	assetRoot       = "files"
-	configRoot      = "docc"
-	examplesDir     = "examples/docc"
-	starterSkillDir = ".agents/skills/docc"
+	assetRoot   = "files"
+	examplesDir = "examples"
 )
 
+// sources lists the trees Init writes: the built-in pack at the target root,
+// and this package's own examples. Both are embedded, so the file lists are
+// compiled in rather than observed.
+func sources() []struct {
+	fsys fs.FS
+	root string
+	dest string
+} {
+	return []struct {
+		fsys fs.FS
+		root string
+		dest string
+	}{
+		{defaultpack.FS(), ".", "."},
+		{files, assetRoot, "."},
+	}
+}
+
 // Plan reports the files Init would create beneath dir, in walk order, after
-// checking that none of the directories it owns already exists. It touches
-// nothing, so `docc init --dry-run` is safe to run anywhere.
+// checking that none of the paths it owns already exists. It touches nothing,
+// so `docc init --dry-run` is safe to run anywhere.
 func Plan(dir string) ([]string, error) {
 	if dir == "" {
 		dir = "."
@@ -35,24 +54,28 @@ func Plan(dir string) ([]string, error) {
 	}
 
 	var planned []string
-	err := fs.WalkDir(files, assetRoot, func(path string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if path == assetRoot || d.IsDir() {
+	for _, src := range sources() {
+		err := fs.WalkDir(src.fsys, src.root, func(path string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if d.IsDir() {
+				return nil
+			}
+			planned = append(planned, target(dir, src.root, path))
 			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
-		planned = append(planned, target(dir, path))
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
 	return planned, nil
 }
 
-// Init creates a .docc configuration and sample documents beneath dir. It
-// refuses to overwrite an existing configuration or starter-example directory.
+// Init creates an editable profile-pack checkout beneath dir — manifest,
+// schemas, themes — plus sample documents. The result resolves like any other
+// pack checkout: through its docc-profile.yaml. Init refuses to overwrite an
+// existing pack or examples directory.
 func Init(dir string) error {
 	if dir == "" {
 		dir = "."
@@ -65,12 +88,20 @@ func Init(dir string) error {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("create project directory: %w", err)
 	}
-	return copyTree(dir)
+	for _, src := range sources() {
+		if err := copyTree(src.fsys, src.root, dir); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// checkVacant reports whether any directory the starter owns already exists.
+// checkVacant reports whether any path the starter owns already exists. A
+// `.docc` binding in the target would silently shadow the checkout in
+// resolution order, so it counts as occupied too.
 func checkVacant(dir string) error {
-	for _, path := range []string{filepath.Join(dir, ".docc"), filepath.Join(dir, examplesDir), filepath.Join(dir, starterSkillDir)} {
+	for _, name := range []string{"docc-profile.yaml", "schemas", "themes", examplesDir, ".docc"} {
+		path := filepath.Join(dir, name)
 		if _, err := os.Lstat(path); err == nil {
 			return fmt.Errorf("refusing to overwrite existing %s", path)
 		} else if !errors.Is(err, os.ErrNotExist) {
@@ -80,34 +111,25 @@ func checkVacant(dir string) error {
 	return nil
 }
 
-// target maps an embedded asset path to its destination beneath dir. The two
-// leading directories are renamed on the way out: the configuration is shipped
-// as `docc/` and installed as `.docc/`, likewise `agents/` as `.agents/`,
-// because an embed pattern cannot match a dot-directory.
-func target(dir, path string) string {
-	rel := strings.TrimPrefix(path, assetRoot+"/")
-	switch {
-	case strings.HasPrefix(rel, configRoot+"/"):
-		rel = filepath.Join(".docc", strings.TrimPrefix(rel, configRoot+"/"))
-	case strings.HasPrefix(rel, "agents/"):
-		rel = filepath.Join(".agents", strings.TrimPrefix(rel, "agents/"))
+// target maps an embedded asset path to its destination beneath dir.
+func target(dir, root, path string) string {
+	rel := path
+	if root != "." {
+		rel = strings.TrimPrefix(path, root+"/")
 	}
 	return filepath.Join(dir, filepath.FromSlash(rel))
 }
 
-func copyTree(dir string) error {
-	return fs.WalkDir(files, assetRoot, func(path string, d fs.DirEntry, walkErr error) error {
+func copyTree(fsys fs.FS, root, dir string) error {
+	return fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		if path == assetRoot {
-			return nil
-		}
 
-		// The walk is over the embedded asset tree, not the filesystem, so the
+		// The walk is over an embedded asset tree, not the filesystem, so the
 		// paths below are compiled in rather than observed — there is nothing
 		// for a symlink to race.
-		dest := target(dir, path)
+		dest := target(dir, root, path)
 		if d.IsDir() {
 			//nolint:gosec // G122: the walk is over embed.FS; dest is derived from a compiled-in path.
 			if err := os.MkdirAll(dest, 0o750); err != nil {
@@ -116,7 +138,7 @@ func copyTree(dir string) error {
 			return nil
 		}
 
-		data, err := files.ReadFile(path)
+		data, err := fs.ReadFile(fsys, path)
 		if err != nil {
 			return err
 		}

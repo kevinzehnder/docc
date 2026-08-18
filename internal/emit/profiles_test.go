@@ -11,8 +11,9 @@ import (
 	"github.com/kevinzehnder/docc/internal/theme"
 )
 
-// TestStarterProfile exercises the profile `docc init` writes and the Cowork
-// skill bundles, which testdata/ does not cover at all.
+// TestStarterProfile exercises the starter pack embedded in the binary — the
+// profile `docc init` copies out and every unconfigured docc resolves — which
+// testdata/ does not cover at all.
 //
 // The two corpora answer different questions and neither substitutes for the
 // other. testdata/ is the engine's regression suite: small fixtures chosen to
@@ -23,14 +24,15 @@ import (
 //
 // This ran against the firm's own .docc/ until that moved to its own private
 // pack repository, which now runs the same assertions in its own CI against a
-// pinned docc release. The engine and the documents are versioned separately;
-// so is the proof that each still works.
+// pinned docc release. What remains here is the starter pack embedded in the
+// binary: the pack every unconfigured docc resolves, so it must always
+// validate and build.
 //
 // It asserts what `docc doctor --strict` asserts, plus the two properties a
 // profile's example is supposed to guarantee forever: it validates, and it
 // builds.
 func TestStarterProfile(t *testing.T) {
-	root := filepath.Join("..", "starter", "files", "docc")
+	root := filepath.Join("..", "defaultpack", "files")
 
 	schemas, err := schema.Load(filepath.Join(root, "schemas"))
 	if err != nil {
@@ -44,7 +46,7 @@ func TestStarterProfile(t *testing.T) {
 
 	types := schemas.Types()
 	if len(types) == 0 {
-		t.Fatal("no document types in .docc/schemas")
+		t.Fatal("no document types in the embedded starter pack")
 	}
 
 	for _, name := range types {

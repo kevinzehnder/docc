@@ -8,7 +8,6 @@ package lsp
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -236,10 +235,11 @@ func (s *Server) publish(uri string) error {
 // check keeps the LSP adapter independent of command-line flag parsing while
 // sharing the compiler's parser, schema loader, and semantic passes.
 //
-// A document that is not actually a docc document — no .docc project, no
-// schemas directory yet, or no `docc: <version>` marker in frontmatter — is
-// silently ignored. The LSP must stay quiet beside regular markdown files;
-// the checker only speaks when a file opts in via the docc marker.
+// A document that is not actually a docc document — no `docc: <version>`
+// marker in frontmatter — is silently ignored. The LSP must stay quiet beside
+// regular markdown files; the checker only speaks when a file opts in via the
+// docc marker. Resolution always answers something (the builtin starter pack
+// at worst), so the marker is the gate.
 func check(path string, source []byte, options Options) (diag.List, error) {
 	schemaDir := options.SchemaDir
 	if schemaDir == "" {
@@ -249,14 +249,11 @@ func check(path string, source []byte, options Options) (diag.List, error) {
 		}
 		resolved, err := profile.Resolve(path, paths)
 		if err != nil {
-			if errors.Is(err, profile.ErrNotConfigured) {
-				return nil, nil // ordinary Markdown outside a configured profile stays quiet
-			}
 			return nil, err
 		}
 		schemaDir = resolved.SchemaDir
 	}
-	// A legacy .docc directory without schemas is a valid editing state: the
+	// A resolved directory without schemas is a valid editing state: the
 	// project simply has no document types yet. Stay quiet instead of erroring.
 	if _, err := os.Stat(schemaDir); err != nil {
 		return nil, nil

@@ -6,14 +6,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/goccy/go-yaml"
+	"github.com/kevinzehnder/docc/internal/defaultpack"
 	"github.com/kevinzehnder/docc/internal/docx"
+	"github.com/kevinzehnder/docc/internal/emit"
 	"github.com/kevinzehnder/docc/internal/project"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/theme"
@@ -88,26 +92,6 @@ type Manifest struct {
 	Name    string `yaml:"name"`
 	Schemas string `yaml:"schemas"`
 	Themes  string `yaml:"themes"`
-	Skill   *Skill `yaml:"skill"`
-}
-
-// Skill is what a pack says about the AgentSkill packaged from it.
-//
-// Everything a skill can derive from the schemas is generated, and must stay
-// generated — a hand-written list of document types drifts. What cannot be
-// derived is the firm's own drafting knowledge: when to ask for a Heimatort,
-// which type fits which instruction, what a Notar has to verify before
-// signing. That belonged nowhere until now. It reached a packaged skill only
-// through `--notes` at packaging time, so the one thing only the firm knows
-// lived outside the repository that knows it, in whoever's shell ran the
-// command.
-type Skill struct {
-	// Notes is a Markdown file, relative to the pack root, appended to the
-	// generated instructions.
-	Notes string `yaml:"notes"`
-	// Description overrides the generated skill description — the one line an
-	// agent reads when deciding whether this skill applies at all.
-	Description string `yaml:"description"`
 }
 
 // Pack is a validated local profile revision.
@@ -154,40 +138,7 @@ func LoadPack(root string) (*Pack, error) {
 			return nil, fmt.Errorf("%s: %s path is not a directory", path, name)
 		}
 	}
-	if err := validateSkill(root, path, manifest.Skill); err != nil {
-		return nil, err
-	}
 	return &Pack{Root: root, Manifest: manifest}, nil
-}
-
-// validateSkill checks the notes file exists and stays inside the pack. A
-// missing one is an error at load rather than at packaging time: a pack that
-// promises drafting guidance and cannot produce it should fail where it is
-// validated, not in the one command that reads it.
-func validateSkill(root, path string, skill *Skill) error {
-	if skill == nil || skill.Notes == "" {
-		return nil
-	}
-	clean := filepath.Clean(skill.Notes)
-	if filepath.IsAbs(skill.Notes) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
-		return fmt.Errorf("%s: skill.notes must be a relative path inside the pack", path)
-	}
-	info, err := os.Stat(filepath.Join(root, clean)) //nolint:gosec // validated relative path inside the pack
-	if err != nil {
-		return fmt.Errorf("%s: skill.notes: %w", path, err)
-	}
-	if info.IsDir() {
-		return fmt.Errorf("%s: skill.notes is a directory, not a Markdown file", path)
-	}
-	return nil
-}
-
-// SkillNotes returns the absolute path of the pack's skill notes, or "".
-func (p *Pack) SkillNotes() string {
-	if p.Manifest.Skill == nil || p.Manifest.Skill.Notes == "" {
-		return ""
-	}
-	return filepath.Join(p.Root, filepath.Clean(p.Manifest.Skill.Notes))
 }
 
 // SchemaDir returns this pack's declared schema directory.
@@ -209,6 +160,31 @@ func (p *Pack) Validate() error {
 	}
 	_, err = checkPairs(schemas, themes)
 	return err
+}
+
+// checkPairs validates every renderable schema/theme pair and returns the
+// sorted renderable type names.
+func checkPairs(schemas *schema.Set, themes *theme.Set) ([]string, error) {
+	var renderable []string
+	for _, typ := range schemas.Types() {
+		sc, err := schemas.Get(typ)
+		if err != nil {
+			return nil, err
+		}
+		if sc.Theme == "" {
+			continue
+		}
+		th, err := themes.Get(sc.Theme)
+		if err != nil {
+			return nil, fmt.Errorf("schema %q: %w", sc.Type, err)
+		}
+		if err := emit.Validate(sc, th); err != nil {
+			return nil, fmt.Errorf("schema %q and theme %q: %w", sc.Type, th.Name, err)
+		}
+		renderable = append(renderable, typ)
+	}
+	sort.Strings(renderable)
+	return renderable, nil
 }
 
 // Reference is a Git source plus the exact revision currently selected.
@@ -458,19 +434,16 @@ type Resolved struct {
 	Root      string `json:"root,omitempty"`
 	SchemaDir string `json:"schema_dir"`
 	ThemeDir  string `json:"theme_dir"`
-	// Source is env-profile, project-profile, legacy-project, pack-checkout or
-	// user-default.
+	// Source is env-profile, project-profile, pack-checkout, user-default or
+	// builtin.
 	Source    string     `json:"source"`
 	Reference *Reference `json:"reference,omitempty"`
-	// PackRoot is the pack directory the schemas and themes came from, empty
-	// for a legacy project whose directories are its own.
+	// PackRoot is the pack directory the schemas and themes came from.
 	PackRoot string `json:"pack_root,omitempty"`
 	// PackID is that pack's declared id. It names what was resolved even when
 	// nothing pinned it — a checkout has no Reference, but it still has an
-	// identity, and a skill packaged from it should carry that name.
+	// identity.
 	PackID string `json:"pack_id,omitempty"`
-	// Skill is what that pack says about the AgentSkill packaged from it.
-	Skill *Skill `json:"skill,omitempty"`
 }
 
 // fromPack describes a resolution that came from a pack manifest.
@@ -483,7 +456,6 @@ func fromPack(pack *Pack, source string, ref *Reference) *Resolved {
 		Reference: ref,
 		PackRoot:  pack.Root,
 		PackID:    pack.Manifest.ID,
-		Skill:     pack.Manifest.Skill,
 	}
 }
 
@@ -548,15 +520,15 @@ func FindPack(start string) (*Pack, error) {
 var ErrNotFound = errors.New("profile pack not found")
 
 // EnvProfile is the environment variable naming a pack directory to use. It is
-// what a host sets when the documents it compiles live nowhere near the pack —
-// a packaged AgentSkill carries its profile beside itself and works in whatever
-// directory the agent was dropped into, so neither walking up from the document
-// nor the working directory can find it.
+// what a host sets when the documents it compiles live nowhere near the pack,
+// so neither walking up from the document nor the working directory can find
+// it.
 const EnvProfile = "DOCC_PROFILE"
 
-// Resolve finds a pack named by the environment, a project binding, legacy
-// project configuration, a pack checkout, or the user default, in that order.
-// It never fetches or updates a profile.
+// Resolve finds a pack named by the environment, a project binding, a pack
+// checkout, the user default, or — when nothing is configured — the starter
+// pack embedded in the binary, in that order. It never fetches or updates a
+// profile.
 func Resolve(start string, paths Paths) (*Resolved, error) {
 	// The environment comes first because setting it is a deliberate act by
 	// whoever runs docc, second only to passing the directories outright.
@@ -589,9 +561,13 @@ func Resolve(start string, paths Paths) (*Resolved, error) {
 		case !errors.Is(bindErr, ErrNotConfigured):
 			return nil, bindErr
 		}
+		// The legacy layout — bare schemas/themes under .docc, no manifest —
+		// is no longer resolved. Failing loudly beats silently compiling the
+		// document against the builtin starter pack instead of the schemas
+		// sitting right there.
 		for _, dir := range []string{proj.SchemaDir(), proj.ThemeDir()} {
 			if _, err := os.Stat(dir); err == nil {
-				return &Resolved{Root: proj.Root, SchemaDir: proj.SchemaDir(), ThemeDir: proj.ThemeDir(), Source: "legacy-project"}, nil
+				return nil, fmt.Errorf("%s uses the removed legacy layout (.docc/schemas): move the schemas and themes up beside a docc-profile.yaml, or bind a pack with `docc profile use`", proj.Dir)
 			}
 		}
 	} else if !errors.Is(err, project.ErrNotFound) {
@@ -610,19 +586,91 @@ func Resolve(start string, paths Paths) (*Resolved, error) {
 	}
 
 	cfg, err := requireDefault(paths)
-	if err != nil {
-		if errors.Is(err, ErrNotConfigured) {
-			return nil, fmt.Errorf("%w: run `docc profile use <repository> --project .`, or `docc profile install --default <repository>`", ErrNotConfigured)
+	switch {
+	case err == nil:
+		pack, err := loadInstalled(paths, *cfg.Default)
+		if err != nil {
+			return nil, err
 		}
+		resolved := fromPack(pack, "user-default", cfg.Default)
+		resolved.Root = "" // an installed pack is nobody's project root
+		return resolved, nil
+	case errors.Is(err, ErrNotConfigured):
+		// Nothing is configured anywhere: fall back to the starter pack
+		// embedded in the binary, so docc works out of the box.
+		pack, err := builtinPack(paths)
+		if err != nil {
+			return nil, err
+		}
+		resolved := fromPack(pack, "builtin", nil)
+		resolved.Root = "" // the embedded pack is nobody's project root
+		return resolved, nil
+	default:
 		return nil, err
 	}
-	pack, err := loadInstalled(paths, *cfg.Default)
+}
+
+// builtinPack materializes the embedded starter pack into the profile store
+// and loads it like any installed revision. The directory is content-addressed
+// by the pack's hash, so a new docc release with changed starter content lands
+// in a fresh directory and an unchanged one reuses the old extraction.
+func builtinPack(paths Paths) (*Pack, error) {
+	dir, err := paths.PackDir(defaultpack.ID, defaultpack.Hash())
 	if err != nil {
 		return nil, err
 	}
-	resolved := fromPack(pack, "user-default", cfg.Default)
-	resolved.Root = "" // an installed pack is nobody's project root
-	return resolved, nil
+	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+		if err := extractBuiltin(dir); err != nil {
+			return nil, fmt.Errorf("materialize builtin profile: %w", err)
+		}
+	} else if err != nil {
+		return nil, err
+	}
+	return LoadPack(dir)
+}
+
+// extractBuiltin writes the embedded pack to dir via a temporary sibling and a
+// rename, the same idempotent pattern Install uses: a torn extraction never
+// becomes resolvable, and two racing processes both end with a complete pack.
+func extractBuiltin(dir string) error {
+	parent := filepath.Dir(dir)
+	if err := os.MkdirAll(parent, 0o750); err != nil {
+		return err
+	}
+	tmp, err := os.MkdirTemp(parent, "builtin-*")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(tmp) }()
+	fsys := defaultpack.FS()
+	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		// The walk is over embed.FS; every path below is compiled in.
+		dest := filepath.Join(tmp, filepath.FromSlash(path))
+		if d.IsDir() {
+			//nolint:gosec // G122: dest is derived from a compiled-in embed.FS path.
+			return os.MkdirAll(dest, 0o750)
+		}
+		data, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return err
+		}
+		//nolint:gosec // G122: dest is derived from a compiled-in embed.FS path.
+		return os.WriteFile(dest, data, 0o600)
+	})
+	if err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, dir); err != nil {
+		// Another process finished first; its extraction is just as good.
+		if _, statErr := os.Stat(dir); statErr == nil {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func loadInstalled(paths Paths, ref Reference) (*Pack, error) {

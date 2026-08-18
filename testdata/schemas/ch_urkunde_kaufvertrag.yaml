@@ -234,6 +234,31 @@ rules:
     check: no_empty_sections
     severity: warning
 
+  # A company's UID must read the same everywhere it is restated. Names and
+  # Grundbuch designations are deliberately unwatched: `.name` differs between
+  # parties and `.grundbuch` between the parcels of one deed, by design.
+  - id: KFV041
+    check: spans_agree
+    severity: error
+    args:
+      spans: [uid]
+
+  # A semantic span left as a blank is a fact the deed claims to state but
+  # does not. Handwritten `.docc-field` blanks are content and stay exempt.
+  - id: KFV042
+    check: no_blank_spans
+    severity: error
+
+  # A plausibility floor: a figure transcribed wrongly but consistently
+  # balances perfectly, and this is the only check that notices. The floor is
+  # low because it applies to every totaled money block, side costs included.
+  - id: KFV043
+    check: amount_at_least
+    severity: warning
+    args:
+      div: betraege
+      minimum: "Fr. 1'000.00"
+
 # A compact valid deed, shown by `docc example ch_urkunde_kaufvertrag`.
 # `TestSchemaExamplesCompile` keeps it honest.
 example: |

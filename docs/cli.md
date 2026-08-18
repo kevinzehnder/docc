@@ -8,7 +8,7 @@ docc profile use <repository>     # install a Git-managed pack and bind this pro
 docc profile install --default <repository> # install a user-wide default pack
 docc profile status               # show the resolved local profile revision
 docc profile status --check-remote # explicitly check whether its ref advanced
-docc init                         # create a standalone generic starter in this directory
+docc init                         # copy the built-in starter pack out as an editable checkout
 docc init --dry-run               # list what it would create, without writing
 docc doctor                       # which schemas and themes are in effect, and are they sound
 docc check docs/klage.md          # validate
@@ -48,9 +48,9 @@ flag is worth retrying; a missing profile configuration is not.
 ### Which configuration am I using?
 
 Schemas and themes resolve from `DOCC_PROFILE` (a pack directory named by the
-environment), a project profile binding, a legacy local `.docc/schemas` +
-`.docc/themes` directory, the `docc-profile.yaml` of a pack checkout you are
-standing in, or the user's installed default profile pack. `docc doctor` reports the directories that resolved to, lists the
+environment), a project profile binding, the `docc-profile.yaml` of a pack
+checkout you are standing in, the user's installed default profile pack, or —
+with nothing configured — the starter pack embedded in the binary. `docc doctor` reports the directories that resolved to, lists the
 types and themes it found, and checks every schema against the theme it names —
 that every mapped style exists, every interpolated field is declared, and every
 numbering definition resolves. Those checks otherwise run only inside a build, so
@@ -60,9 +60,8 @@ document for it.
 ```
 $ docc doctor
 configuration:
-  project root   /srv/kanzlei
-  schemas        /srv/kanzlei/.docc/schemas  (legacy-project)
-  themes         /srv/kanzlei/.docc/themes  (legacy-project)
+  schemas        /srv/kanzlei/schemas  (pack-checkout)
+  themes         /srv/kanzlei/themes  (pack-checkout)
 
 document types:
   base       check-only  declares no theme, cannot be built
@@ -72,7 +71,7 @@ document types:
 
 `.docx` is the supported compiler output. `--to pdf` remains a
 compatibility-only export for environments that provide LibreOffice (`soffice`).
-AgentSkill hosts should build DOCX and use their own document/PDF capability
+Hosts driving docc should build DOCX and use their own document/PDF capability
 when a user requests a PDF.
 
 ### JSON contract

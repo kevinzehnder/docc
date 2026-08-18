@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -45,17 +44,6 @@ is offline unless --check-remote asks Git whether the selected ref has advanced.
 
 flags:
 `
-	profilePackageHelp = `docc profile package [--project DIR] [--out DIR] [--with-binary PATH] [--zip PATH]
-
-Write an AgentSkill directory for the profile resolved from DIR: its schemas and
-themes verbatim under config/, one example per renderable type, and a SKILL.md
-generated from the schemas so the instructions cannot drift from the contract.
-
-Without --with-binary the skill carries configuration only and expects docc on
-PATH, which keeps it small and architecture neutral.
-
-flags:
-`
 )
 
 func cmdProfile(args []string) int {
@@ -72,8 +60,6 @@ func cmdProfile(args []string) int {
 		return cmdProfileUpdate(args[1:])
 	case "status":
 		return cmdProfileStatus(args[1:])
-	case "package":
-		return cmdProfilePackage(args[1:])
 	case "-h", "--help", "help":
 		fmt.Print(profileHelp)
 		return exitOK
@@ -263,122 +249,6 @@ func cmdProfileStatus(args []string) int {
 			state = "stale"
 		}
 		fmt.Printf("remote:  %s (%s)\n", remote, state)
-	}
-	return exitOK
-}
-
-func cmdProfilePackage(args []string) int {
-	fs := flag.NewFlagSet("profile package", flag.ContinueOnError)
-	projectDir := fs.String("project", ".", "path from which to resolve the profile to package")
-	schemaDir := fs.String("schema-dir", "", "schema directory to package, bypassing profile resolution")
-	themeDir := fs.String("theme-dir", "", "theme directory to package, bypassing profile resolution")
-	out := fs.String("out", "", "skill directory to write (default: ./<profile>-skill)")
-	name := fs.String("name", "", "skill name (default: the profile id)")
-	binary := fs.String("with-binary", "", "docc executable to bundle, for hosts without docc on PATH")
-	notes := fs.String("notes", "", "Markdown file appended to the generated SKILL.md, after the pack's own skill notes")
-	zipPath := fs.String("zip", "", "also write the skill as a zip archive at this path")
-	jsonOut := fs.Bool("json", false, "machine-readable output")
-	if code, stop := parseFlags(fs, profilePackageHelp, args); stop {
-		return code
-	}
-	cf := commonFlags{jsonOut: *jsonOut}
-	if fs.NArg() != 0 {
-		return failf(cf, exitUsage, "usage: docc profile package [--project DIR] [--out DIR]")
-	}
-	// The skill's identity comes from the profile it packages, so two firms'
-	// skills never collide in one agent's skill directory.
-	id := *name
-	sources := profile.Resolved{SchemaDir: *schemaDir, ThemeDir: *themeDir}
-	switch {
-	case (*schemaDir == "") != (*themeDir == ""):
-		return failf(cf, exitUsage, "--schema-dir and --theme-dir select a profile together; give both or neither")
-	case *schemaDir != "":
-		if id == "" {
-			id = "docc"
-		}
-	default:
-		paths, err := profile.XDGPaths()
-		if err != nil {
-			return fail(cf, exitConfig, err)
-		}
-		resolved, err := profile.Resolve(*projectDir, paths)
-		if err != nil {
-			return fail(cf, exitConfig, err)
-		}
-		sources = *resolved
-		if id == "" {
-			// A pinned reference and an unpinned checkout both name the pack;
-			// only the first records a commit.
-			switch {
-			case resolved.Reference != nil:
-				id = resolved.Reference.ID
-			case resolved.PackID != "":
-				id = resolved.PackID
-			default:
-				id = "docc"
-			}
-		}
-	}
-	dir := *out
-	if dir == "" {
-		dir = id + "-skill"
-	}
-	if _, err := os.Lstat(dir); err == nil {
-		return failf(cf, exitUsage, "refusing to overwrite %s\n  remove it, or choose another --out", dir)
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return fail(cf, exitUsage, err)
-	}
-
-	// The firm's drafting guidance first, then this build's host-specific
-	// notes. Both belong: a pack knows when to ask for a Heimatort, and only
-	// the person packaging knows how this host hands a file back.
-	var skillNotes []string
-	description := ""
-	if sources.Skill != nil {
-		description = sources.Skill.Description
-		if sources.Skill.Notes != "" {
-			skillNotes = append(skillNotes, filepath.Join(sources.PackRoot, filepath.Clean(sources.Skill.Notes)))
-		}
-	}
-	if *notes != "" {
-		skillNotes = append(skillNotes, *notes)
-	}
-
-	result, err := profile.PackageSkill(profile.SkillOptions{
-		SchemaDir:   sources.SchemaDir,
-		ThemeDir:    sources.ThemeDir,
-		Out:         dir,
-		Name:        id,
-		Binary:      *binary,
-		Notes:       skillNotes,
-		Description: description,
-	})
-	if err != nil {
-		return fail(cf, exitConfig, err)
-	}
-	if *zipPath != "" {
-		if err := profile.ZipSkill(dir, *zipPath); err != nil {
-			return fail(cf, exitConfig, err)
-		}
-		result.Zip = *zipPath
-	}
-	if *jsonOut {
-		if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {
-			return fail(cf, exitDiag, err)
-		}
-		return exitOK
-	}
-	fmt.Printf("packaged skill %s in %s\n", result.Name, result.Dir)
-	fmt.Printf("types:    %s\n", strings.Join(result.Types, ", "))
-	fmt.Printf("themes:   %s\n", strings.Join(result.Themes, ", "))
-	fmt.Printf("examples: %d\n", len(result.Examples))
-	if result.Binary != "" {
-		fmt.Printf("binary:   bin/%s\n", result.Binary)
-	} else {
-		fmt.Println("binary:   none — the skill expects docc on PATH")
-	}
-	if result.Zip != "" {
-		fmt.Printf("archive:  %s\n", result.Zip)
 	}
 	return exitOK
 }

@@ -9,8 +9,8 @@ a profile, written for an agent (or a patient human) with a shell, the `docc`
 binary, LibreOffice and a way to look at rendered pages.
 
 The method was test-driven on a notarial purchase deed
-(`kaufvertrag_beispiel.docx` → `.docc/schemas/ch_urkunde_kaufvertrag.yaml` +
-`.docc/themes/ch_urkunde_kaufvertrag.yaml`); examples below come from that run.
+(`kaufvertrag_beispiel.docx` → `schemas/ch_urkunde_kaufvertrag.yaml` +
+`themes/ch_urkunde_kaufvertrag.yaml`); examples below come from that run.
 
 ## The loop
 
@@ -273,7 +273,7 @@ docc doctor --strict     # make the warnings bind
 docc doctor --json       # the same report, for a script
 ```
 
-It prints which `.docc` directory won, lists every type with the theme it
+It prints which configuration won, lists every type with the theme it
 names, and then runs the schema-against-theme agreement check that otherwise
 only runs inside a build — so a style the theme does not define, or a
 `{{ field }}` the schema does not declare, surfaces without a document to
@@ -374,11 +374,11 @@ inherited spacing quirks, the highlighted placeholders themselves).
 
 ## 9. Ship it as a pack repository
 
-A profile written under `.docc/` belongs to one project. A *pack* is the same
-two directories in a Git repository of their own, so every project and every
-colleague resolves an identical, pinned revision. docc hosts no packs and
-ships nobody's: an organisation keeps its own, the way it keeps the letterhead
-it derived them from.
+Authoring happens in a pack checkout — `docc init` gives you one — and the
+same checkout, pushed to a Git repository of its own, is the pack every
+project and every colleague resolves as an identical, pinned revision. docc
+hosts no packs and ships nobody's: an organisation keeps its own, the way it
+keeps the letterhead it derived them from.
 
 ```text
 kanzlei-profiles/
@@ -388,15 +388,8 @@ kanzlei-profiles/
 ```
 
 ```bash
-git init kanzlei-profiles && cd kanzlei-profiles
-mv ~/project/.docc/schemas ~/project/.docc/themes .
-cat > docc-profile.yaml <<'YAML'
-format: 1
-id: example-kanzlei
-name: Example Kanzlei profiles
-schemas: schemas
-themes: themes
-YAML
+cd kanzlei-profiles    # the checkout you authored in
+git init && git add -A && git commit -m "kanzlei profiles"
 ```
 
 `id` is stable and filesystem-safe: it names the directory revisions install
@@ -450,27 +443,25 @@ docc profile use ~/git/kanzlei-profiles --project .
 That clones the committed `HEAD`. Working-tree edits stay invisible until you
 commit and `docc profile update` — right for a build that has to be
 reproducible, tiresome for the render-and-compare loop of step 7. For that
-loop, point at the working tree itself through the legacy project
-configuration, which resolves symlinks:
+loop, work inside the checkout itself (its manifest resolves directly), or
+point another directory at the working tree:
 
 ```bash
-mkdir -p .docc
-ln -s ~/git/kanzlei-profiles/schemas .docc/schemas
-ln -s ~/git/kanzlei-profiles/themes  .docc/themes
+export DOCC_PROFILE=~/git/kanzlei-profiles
 ```
 
 An edit then lands in the next `docc build`. Nothing is pinned, which is why
-this is a development arrangement and not one to commit: replace it with a
-binding before the project is shared or filed.
+this is a development arrangement: use a committed binding for anything shared
+or filed.
 
 ## Worked example
 
 The `ch_urkunde_kaufvertrag` profile is the reference run of this guide.
 
-`.docc/schemas/ch_urkunde_kaufvertrag.yaml` declares a `partei` block with
+`schemas/ch_urkunde_kaufvertrag.yaml` declares a `partei` block with
 four variants, a `grundstueck` block, `betraege` money blocks that must
 balance, an `unterschriften` signature block, seven span types, and two
-handwritten fields. `.docc/themes/ch_urkunde_kaufvertrag.yaml` puts the crest
+handwritten fields. `themes/ch_urkunde_kaufvertrag.yaml` puts the crest
 in a first-page header, the Urkunde title block between two rules, a
 small-caps I./1./1.1. outline over the headings, amounts in two columns with
 their sums spelled out, and signature lines drawn by a tab leader.
@@ -484,5 +475,5 @@ certification starts its own page.
 
 The Word originals are not kept in the repository — reference material lives
 in an ignored `assets/` directory, and what survives in git is the crest
-(`.docc/themes/urkunde-wappen.png`) and the schema's header comment recording
+(`themes/urkunde-wappen.png`) and the schema's header comment recording
 the lineage.

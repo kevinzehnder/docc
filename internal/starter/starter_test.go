@@ -10,6 +10,7 @@ import (
 	"github.com/kevinzehnder/docc/internal/emit"
 	"github.com/kevinzehnder/docc/internal/ir"
 	"github.com/kevinzehnder/docc/internal/parse"
+	"github.com/kevinzehnder/docc/internal/profile"
 	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/sema"
 	"github.com/kevinzehnder/docc/internal/starter"
@@ -22,17 +23,17 @@ func TestInitCreatesWorkingStarter(t *testing.T) {
 		t.Fatalf("Init: %v", err)
 	}
 
-	schemas, err := schema.Load(filepath.Join(root, ".docc", "schemas"))
+	schemas, err := schema.Load(filepath.Join(root, "schemas"))
 	if err != nil {
 		t.Fatalf("load schemas: %v", err)
 	}
-	themes, err := theme.Load(filepath.Join(root, ".docc", "themes"))
+	themes, err := theme.Load(filepath.Join(root, "themes"))
 	if err != nil {
 		t.Fatalf("load themes: %v", err)
 	}
 
 	for _, name := range []string{"letter.md", "legal.md"} {
-		path := filepath.Join(root, "examples", "docc", name)
+		path := filepath.Join(root, "examples", name)
 		src, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatalf("read %s: %v", name, err)
@@ -50,7 +51,7 @@ func TestInitCreatesWorkingStarter(t *testing.T) {
 			t.Fatalf("theme for %s: %v", name, err)
 		}
 		built, err := emit.Build(ir.Build(file, result.DocType, result.Meta.Values), result.Schema, th,
-			emit.Options{ThemeDir: filepath.Join(root, ".docc", "themes")})
+			emit.Options{ThemeDir: filepath.Join(root, "themes")})
 		if err != nil {
 			t.Fatalf("build %s: %v", name, err)
 		}
@@ -58,13 +59,28 @@ func TestInitCreatesWorkingStarter(t *testing.T) {
 			t.Fatalf("build %s produced no body", name)
 		}
 	}
+}
 
-	skill, err := os.ReadFile(filepath.Join(root, ".agents", "skills", "docc", "SKILL.md"))
-	if err != nil {
-		t.Fatalf("read installed skill: %v", err)
+// The scaffold is a real pack checkout: the ordinary walk-up resolution finds
+// its manifest, with no init-specific resolution path left anywhere.
+func TestInitResolvesAsPackCheckout(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv(profile.EnvProfile, "")
+	if err := starter.Init(root); err != nil {
+		t.Fatalf("Init: %v", err)
 	}
-	if !strings.Contains(string(skill), "name: docc") {
-		t.Fatal("installed skill has no docc frontmatter")
+	resolved, err := profile.Resolve(filepath.Join(root, "examples", "letter.md"), profile.Paths{
+		Config: filepath.Join(root, "xdg-config"),
+		Data:   filepath.Join(root, "xdg-data"),
+	})
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if resolved.Source != "pack-checkout" {
+		t.Fatalf("Source = %q, want pack-checkout", resolved.Source)
+	}
+	if resolved.PackID != "starter" {
+		t.Fatalf("PackID = %q, want starter", resolved.PackID)
 	}
 }
 
@@ -80,14 +96,26 @@ func TestInitRefusesToOverwrite(t *testing.T) {
 
 func TestInitDoesNotOverwriteExistingExamples(t *testing.T) {
 	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, "examples", "docc"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "examples"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := starter.Init(root); err == nil || !strings.Contains(err.Error(), "refusing to overwrite") {
 		t.Fatalf("Init error = %v, want overwrite refusal", err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".docc")); !os.IsNotExist(err) {
-		t.Fatalf(".docc exists after rejected init: %v", err)
+	if _, err := os.Stat(filepath.Join(root, "schemas")); !os.IsNotExist(err) {
+		t.Fatalf("schemas exists after rejected init: %v", err)
+	}
+}
+
+// A .docc binding in the target would shadow the checkout in resolution order,
+// so init refuses rather than writing a pack nobody would resolve.
+func TestInitRefusesOverAProjectBinding(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".docc"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := starter.Init(root); err == nil || !strings.Contains(err.Error(), "refusing to overwrite") {
+		t.Fatalf("Init error = %v, want overwrite refusal", err)
 	}
 }
 
@@ -103,8 +131,14 @@ func TestPlanListsWithoutWriting(t *testing.T) {
 	if len(planned) == 0 {
 		t.Fatal("Plan listed no files")
 	}
-	if !slices.Contains(planned, filepath.Join(root, ".docc", "schemas", "ch_letter.yaml")) {
-		t.Errorf("Plan does not list the letter schema: %v", planned)
+	for _, want := range []string{
+		filepath.Join(root, "docc-profile.yaml"),
+		filepath.Join(root, "schemas", "ch_letter.yaml"),
+		filepath.Join(root, "examples", "letter.md"),
+	} {
+		if !slices.Contains(planned, want) {
+			t.Errorf("Plan does not list %s: %v", want, planned)
+		}
 	}
 	// Nothing may exist yet — not even the target directory.
 	if _, err := os.Stat(root); !os.IsNotExist(err) {
@@ -126,7 +160,7 @@ func TestPlanListsWithoutWriting(t *testing.T) {
 func TestInitRefusalLeavesNoDirectory(t *testing.T) {
 	root := t.TempDir()
 	target := filepath.Join(root, "project")
-	if err := os.MkdirAll(filepath.Join(target, ".docc"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(target, "schemas"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -137,13 +171,13 @@ func TestInitRefusalLeavesNoDirectory(t *testing.T) {
 
 	// And the refusal path itself creates nothing new.
 	fresh := filepath.Join(root, "fresh")
-	if err := os.MkdirAll(filepath.Join(fresh, "examples", "docc"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(fresh, "examples"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := starter.Init(fresh); err == nil {
-		t.Fatal("Init succeeded over an existing examples/docc")
+		t.Fatal("Init succeeded over an existing examples directory")
 	}
-	if _, err := os.Stat(filepath.Join(fresh, ".docc")); !os.IsNotExist(err) {
-		t.Errorf(".docc created despite the refusal: %v", err)
+	if _, err := os.Stat(filepath.Join(fresh, "schemas")); !os.IsNotExist(err) {
+		t.Errorf("schemas created despite the refusal: %v", err)
 	}
 }

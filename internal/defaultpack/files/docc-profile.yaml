@@ -1,0 +1,10 @@
+# The starter profile pack docc ships inside its own binary. It is a real
+# pack: the same manifest format, the same loader, the same validation as any
+# pack installed from a repository. `docc init` copies it out as an editable
+# checkout; without any configuration, docc resolves it as the `builtin`
+# source.
+format: 1
+id: starter
+name: docc starter profiles
+schemas: schemas
+themes: themes

@@ -32,7 +32,7 @@ const usage = `docc — a compiler for structured documents
 usage:
   docc check [flags] <file.md>...   validate documents against their schema
   docc build [flags] <file.md>      validate, then render to .docx (or compatibility PDF)
-  docc init [flags] [directory]     create a standalone generic starter project
+  docc init [flags] [directory]     create an editable starter profile pack
   docc profile <command>            install, select, inspect, or update profile packs
   docc doctor [flags] [path]        report the resolved configuration and check it
   docc lsp [flags]                  start a Language Server Protocol server
@@ -47,8 +47,8 @@ Flags may appear before or after the positional arguments. Use "--" to end flag
 parsing when a file name begins with a dash.
 
 flags:
-  --schema-dir <dir>   schema directory (default: nearest .docc/schemas)
-  --theme-dir <dir>    theme directory (default: nearest .docc/themes)
+  --schema-dir <dir>   schema directory (default: the resolved profile's)
+  --theme-dir <dir>    theme directory (default: the resolved profile's)
   --type <type>        override the frontmatter document_type
   --json               machine-readable output
   --strict             treat warnings as errors
@@ -90,10 +90,11 @@ flags:
 `
 	initHelp = `docc init [flags] [directory]
 
-Create a standalone starter project: .docc/ with a letter and a legal document
-type, sample documents, and an agent skill. Refuses to overwrite an existing
-configuration. The result is yours to edit — it is a starting point, not a
-managed install. For a Git-managed profile, use "docc profile use" instead.
+Create an editable profile-pack checkout: docc-profile.yaml, schemas/ and
+themes/ copied from the starter pack built into docc, plus sample documents in
+examples/. Refuses to overwrite an existing pack. The result is yours to edit —
+it is a starting point, not a managed install. For a Git-managed profile, use
+"docc profile use" instead.
 
 flags:
 `
@@ -107,13 +108,12 @@ commands:
   use [--ref REF] [--project DIR] REPOSITORY
   update [--project DIR]
   status [--project DIR]
-  package [--project DIR] [--out DIR] [--with-binary PATH]
 
 Run "docc profile <command> --help" for command-specific help.
 `
 	doctorHelp = `docc doctor [flags] [path]
 
-Report which .docc directory, schemas and themes are in effect for path (default
+Report which profile, schemas and themes are in effect for path (default
 the working directory), then check every schema against the theme it names.
 
 flags:
@@ -226,8 +226,8 @@ type commonFlags struct {
 }
 
 func (c *commonFlags) bind(fs *flag.FlagSet) {
-	fs.StringVar(&c.schemaDir, "schema-dir", "", "schema directory (default: nearest .docc/schemas)")
-	fs.StringVar(&c.themeDir, "theme-dir", "", "theme directory (default: nearest .docc/themes)")
+	fs.StringVar(&c.schemaDir, "schema-dir", "", "schema directory (default: the resolved profile's)")
+	fs.StringVar(&c.themeDir, "theme-dir", "", "theme directory (default: the resolved profile's)")
 	fs.StringVar(&c.docType, "type", "", "override the frontmatter document_type")
 	fs.BoolVar(&c.jsonOut, "json", false, "machine-readable output")
 	fs.BoolVar(&c.strict, "strict", false, "treat warnings as errors")
@@ -531,7 +531,7 @@ func cmdInit(args []string) int {
 		fmt.Fprintln(os.Stderr, "docc:", err)
 		return exitConfig
 	}
-	fmt.Printf("created docc starter in %s\n", dir)
+	fmt.Printf("created starter profile pack in %s\n", dir)
 	return 0
 }
 

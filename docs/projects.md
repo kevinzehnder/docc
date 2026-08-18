@@ -6,24 +6,44 @@ hand one to an agent. For Git-managed packs see
 
 ## Projects
 
-`docc` is the engine. The schemas, themes and house style belong to the
-project being compiled, in a `.docc` directory that `docc` finds by walking up
+`docc` is the engine. The schemas, themes and house style belong to a profile
+pack, and a project selects one. Two shapes exist, both found by walking up
 from the input file the way `git` finds `.git`:
 
+A **bound project** carries a `.docc` directory recording which managed pack it
+uses:
+
 ```
-myproject/
+my-documents/
   .docc/
-    schemas/
-      _base.yaml        # shared field shapes, extended by the rest
-      ch_legal.yaml
-      ch_letter.yaml
-    themes/
-      legal.yaml         # page geometry, styles, and fixed furniture
+    profile.yaml         # pack id, source and ref
+    profile.lock         # the exact installed commit
   docs/
     klage_mueller.md
 ```
 
-Override the location with `--schema-dir`.
+A **pack checkout** is the pack itself — the manifest at the root names the
+directories, so documents beside it compile without any `.docc`:
+
+```
+my-pack/
+  docc-profile.yaml
+  schemas/
+    _base.yaml           # shared field shapes, extended by the rest
+    ch_legal.yaml
+  themes/
+    legal.yaml           # page geometry, styles, and fixed furniture
+  examples/
+    letter.md
+```
+
+With neither in sight, docc resolves the starter pack embedded in the binary.
+Override any of it with `--schema-dir` and `--theme-dir`.
+
+The old layout — bare `.docc/schemas` and `.docc/themes` with no manifest — is
+no longer resolved and fails with an error naming the fix: move the two
+directories up beside a `docc-profile.yaml`, or bind a pack with
+`docc profile use`.
 
 ### Starting a new project
 
@@ -47,20 +67,19 @@ new directories that have no project binding. A project binding always wins.
 Use `docc profile update --project .` to deliberately resolve and lock a newer
 revision.
 
-`docc init [directory]` remains the offline option for a standalone generic
-starter. It creates `.docc/` with a generic letter and a Swiss-legal
-starter schema/theme, plus compiling examples in `examples/docc/`. It never
-overwrites an existing starter configuration, example directory, or installed
-skill, and it creates nothing at all when it refuses. `--dry-run` lists the
-files it would write and touches nothing. What it installs is yours to edit — a
-starting point, not a managed install.
+`docc init [directory]` remains the offline option: it copies the embedded
+starter pack out as an editable checkout — `docc-profile.yaml`, `schemas/`,
+`themes/` and compiling examples in `examples/`. It never overwrites an
+existing pack or example directory, and it creates nothing at all when it
+refuses. `--dry-run` lists the files it would write and touches nothing. What
+it writes is yours to edit — a starting point, not a managed install.
 
 ```bash
-mkdir my-documents && cd my-documents
+mkdir my-pack && cd my-pack
 docc init --dry-run     # see what is coming
 docc init
-docc check examples/docc/letter.md
-docc build examples/docc/letter.md
+docc check examples/letter.md
+docc build examples/letter.md
 ```
 
 See [Profile packs](profile-packs.md) for the pack manifest, XDG storage,
@@ -69,15 +88,6 @@ resolution order and operational model.
 The starter is deliberately generic. Replace the legal theme's `YOUR …`
 letterhead values, then adapt its schemas and themes to the organisation's
 actual conventions before using it for production documents.
-
-### Agent skill
-
-No LLM is required to use `docc`. For agents, this repository ships a portable
-[Agent Skill](../skills/docc/SKILL.md) that describes the validation-and-build
-workflow. `docc init` also installs it at `.agents/skills/docc/SKILL.md`, which
-Pi discovers in a trusted project. Other harnesses can copy that directory or
-load the skill file directly; the project's `.docc` configuration remains the
-authoritative contract.
 
 This split means changing a letterhead is a file edit, not a compiler release,
 and one engine serves projects whose document conventions have nothing in common.

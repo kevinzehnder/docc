@@ -6,7 +6,7 @@ gate a build appear while typing.
 ## NeoVim
 
 `docc lsp` is a dependency-free Language Server Protocol server. It publishes
-live diagnostics for Markdown documents using the nearest `.docc/schemas`
+live diagnostics for Markdown documents using the resolved profile's schemas
 directory; `--schema-dir` and `--type` have the same meaning as for `check`.
 
 With NeoVim's built-in LSP client, add this to your `init.lua`:

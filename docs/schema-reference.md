@@ -1,6 +1,6 @@
 # Schema reference
 
-Every key a `.docc/schemas/*.yaml` file may set, what it accepts, and what
+Every key a schema YAML file may set, what it accepts, and what
 happens when it is absent. The narrative introduction is in the
 [Schemas](authoring.md#schemas) section; this is the exhaustive list.
 
@@ -23,7 +23,7 @@ docc doctor                   # which schemas resolved, and whether they are sou
 | `type` | string | — | The identifier matched against a document's `document_type`. Required; two schemas with the same `type` is a load error. |
 | `extends` | string | — | Another schema whose `frontmatter`, `types`, `blocks`, `spans`, `fields` and `rules` are inherited. Keys declared here win. Cycles are rejected at load. |
 | `description` | string | — | One line, shown by `docc types` and `docc describe`. |
-| `theme` | string | — | The theme in `.docc/themes` used to render this type. **Empty means check-only**: the type validates but `docc build` refuses it. `docc doctor` reports it as `check-only` rather than as a fault. |
+| `theme` | string | — | The theme, by name, used to render this type. **Empty means check-only**: the type validates but `docc build` refuses it. `docc doctor` reports it as `check-only` rather than as a fault. |
 | `example` | string | — | A compact document or drafting starter of this type, printed by `docc example`. It lives in the schema so the contract and its starter cannot drift; a test checks it. A starter may contain blank `before-execution` fields: `check` accepts it while `build` deliberately refuses it. |
 | `types` | map | — | Reusable object shapes, referenced by name from a field's `type`. |
 | `frontmatter` | map | — | The top-level metadata fields. |

@@ -16,7 +16,7 @@ import (
 func TestSchemaExamplesCompileClean(t *testing.T) {
 	dirs := map[string]string{
 		"testdata": filepath.Join("..", "..", "testdata", "schemas"),
-		"starter":  filepath.Join("..", "starter", "files", "docc", "schemas"),
+		"starter":  filepath.Join("..", "defaultpack", "files", "schemas"),
 	}
 	for label, dir := range dirs {
 		set, err := schema.Load(dir)

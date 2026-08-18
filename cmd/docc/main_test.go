@@ -96,7 +96,7 @@ func TestInitCommand(t *testing.T) {
 	if got := run([]string{"init", root}); got != 0 {
 		t.Fatalf("run(init) = %d, want 0", got)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".docc", "schemas", "ch_letter.yaml")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, "schemas", "ch_letter.yaml")); err != nil {
 		t.Fatalf("starter letter schema: %v", err)
 	}
 }
@@ -129,7 +129,7 @@ func TestInitDryRun(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("run(init --dry-run) = %d, want 0", code)
 	}
-	if !strings.Contains(out, filepath.Join(root, ".docc", "schemas", "ch_letter.yaml")) {
+	if !strings.Contains(out, filepath.Join(root, "schemas", "ch_letter.yaml")) {
 		t.Errorf("dry run does not list the letter schema:\n%s", out)
 	}
 	entries, err := os.ReadDir(root)
@@ -255,12 +255,16 @@ description: A theme.
 // against their own project's contract.
 func TestCheckLoadsSchemaPerFile(t *testing.T) {
 	projA := t.TempDir()
-	write(t, filepath.Join(projA, ".docc", "schemas", "memo.yaml"), "type: memo\ndescription: A memo.\n")
+	write(t, filepath.Join(projA, "docc-profile.yaml"), "format: 1\nid: proj-a\nschemas: schemas\nthemes: themes\n")
+	write(t, filepath.Join(projA, "schemas", "memo.yaml"), "type: memo\ndescription: A memo.\n")
+	write(t, filepath.Join(projA, "themes", "t.yaml"), minimalTheme)
 	docA := filepath.Join(projA, "a.md")
 	write(t, docA, "---\ndocc: 1\ndocument_type: memo\n---\n\n# Hi\n")
 
 	projB := t.TempDir()
-	write(t, filepath.Join(projB, ".docc", "schemas", "note.yaml"), "type: note\ndescription: A note.\n")
+	write(t, filepath.Join(projB, "docc-profile.yaml"), "format: 1\nid: proj-b\nschemas: schemas\nthemes: themes\n")
+	write(t, filepath.Join(projB, "schemas", "note.yaml"), "type: note\ndescription: A note.\n")
+	write(t, filepath.Join(projB, "themes", "t.yaml"), minimalTheme)
 	docB := filepath.Join(projB, "b.md")
 	write(t, docB, "---\ndocc: 1\ndocument_type: note\n---\n\n# Hi\n")
 
@@ -406,8 +410,10 @@ func TestJSONFailureObjects(t *testing.T) {
 // to describe a type from outside its own tree without naming both directories.
 func TestDescribeFromAnotherProject(t *testing.T) {
 	proj := t.TempDir()
-	write(t, filepath.Join(proj, ".docc", "schemas", "memo.yaml"), memoSchema)
-	t.Chdir(t.TempDir()) // somewhere with no .docc above it
+	write(t, filepath.Join(proj, "docc-profile.yaml"), "format: 1\nid: firm\nschemas: schemas\nthemes: themes\n")
+	write(t, filepath.Join(proj, "schemas", "memo.yaml"), memoSchema)
+	write(t, filepath.Join(proj, "themes", "t.yaml"), minimalTheme)
+	t.Chdir(t.TempDir()) // somewhere with no configuration above it
 
 	var code int
 	captureStdout(t, func() { code = run([]string{"describe", "memo"}) })
