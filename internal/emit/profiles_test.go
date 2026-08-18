@@ -76,6 +76,21 @@ func TestStarterProfile(t *testing.T) {
 				t.Fatalf("schema and theme disagree: %v", err)
 			}
 
+			// The warning half of `doctor --strict`, which this test claimed to
+			// assert and did not. The embedded pack shipped for two releases
+			// with an unguarded div rule in ch_legal: `doctor --strict` on a
+			// freshly installed docc exited 3, against the profile docc itself
+			// handed the user.
+			for _, unread := range UnreadStyleKeys(sc) {
+				t.Errorf("styles: %s", unread)
+			}
+			for _, unguarded := range sema.UnguardedDivRules(sc) {
+				t.Errorf("%s", unguarded)
+			}
+			for _, inert := range InertFurnitureFlags(th) {
+				t.Errorf("theme %s: %s", th.Name, inert)
+			}
+
 			if sc.Example == "" {
 				t.Fatal("a buildable type must carry an `example:` — it is the profile's own regression test")
 			}

@@ -146,12 +146,18 @@ rules:
     check: no_placeholder_text
     severity: error
 
+  # `on_missing: ignore` says the absent case was considered: a brief arguing a
+  # point of law offers no exhibits, so a document with no `::: beweis` block is
+  # correct rather than unchecked. Without it `docc doctor --strict` reports the
+  # rule as unguarded — a check that reports success for a document it never
+  # examined — and it is right to.
   - id: LEG012
     check: div_items_match
     severity: error
     args:
       div: beweis
       pattern: '//\s*Beilage\s+\d+\s*$'
+      on_missing: ignore
     message: "Beweismittel without a Beilage reference"
     hint: 'append a reference, e.g. "// Beilage 3"'
 
