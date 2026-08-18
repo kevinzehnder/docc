@@ -614,3 +614,77 @@ func TestOnMissingDiv(t *testing.T) {
 		})
 	}
 }
+
+const anchoredDoc = `---
+document_type: test
+kaeufer:
+  name: Anna Muster-Berger
+---
+
+# Parteien
+
+Die Käuferschaft, [Anna Muster-Berger]{.name}, erwirbt vom Verkäufer.
+
+# Unterschriften
+
+- [Anna Muster]{.name}:
+`
+
+// The copied-deed case: every occurrence agrees with every other one, so
+// spans_agree is content, and none of them is blank, so the field machinery is
+// content. Only the frontmatter knows who the buyer actually is.
+func TestSpanMatchesFieldCatchesStaleValue(t *testing.T) {
+	ds := run(t, anchoredDoc, schema.Rule{
+		ID:    "X010",
+		Check: "span_matches_field",
+		Args:  map[string]any{"span": "name", "field": "kaeufer.name"},
+	})
+	if got := codes(ds); len(got) != 1 || got[0] != "X010" {
+		t.Fatalf("codes = %v, want [X010]\n%s", got, messages(ds))
+	}
+	if !strings.Contains(ds[0].Message, `"Anna Muster"`) {
+		t.Errorf("message does not quote the stale value: %q", ds[0].Message)
+	}
+	if !strings.Contains(ds[0].Message, `"Anna Muster-Berger"`) {
+		t.Errorf("message does not quote the authority: %q", ds[0].Message)
+	}
+	if ds[0].Pos.Line == 0 {
+		t.Error("the diagnostic must point at the span, not at the file")
+	}
+}
+
+// A rule anchored to a field the document never sets checked nothing, and must
+// say so rather than exit clean.
+func TestSpanMatchesFieldReportsMissingAnchor(t *testing.T) {
+	ds := run(t, anchoredDoc, schema.Rule{
+		ID:    "X011",
+		Check: "span_matches_field",
+		Args:  map[string]any{"span": "name", "field": "verkaeufer.name"},
+	})
+	if got := codes(ds); len(got) != 1 || got[0] != "X011" {
+		t.Fatalf("codes = %v, want [X011]\n%s", got, messages(ds))
+	}
+}
+
+// A blank the author was told to leave visible is not a disagreement, or
+// `docc example --blank` would fail this tool's own check.
+func TestSpanMatchesFieldIgnoresFieldBlanks(t *testing.T) {
+	src := `---
+document_type: test
+kaeufer:
+  name: Anna Muster-Berger
+---
+
+# Parteien
+
+Die Käuferschaft, [Anna Muster-Berger]{.name}, und [____]{.name .docc-field key=zweitkaeufer}.
+`
+	ds := run(t, src, schema.Rule{
+		ID:    "X012",
+		Check: "span_matches_field",
+		Args:  map[string]any{"span": "name", "field": "kaeufer.name"},
+	})
+	if len(ds) != 0 {
+		t.Fatalf("expected no diagnostics, got:\n%s", messages(ds))
+	}
+}

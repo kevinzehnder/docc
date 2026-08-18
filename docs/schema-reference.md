@@ -196,17 +196,46 @@ rejected before anything is rendered.
 spans:
   uid:
     description: A Swiss company identifier.
+  kaufpreis:
+    description: Der Kaufpreis, in Ziffern.
+    required: true      # at least one must appear somewhere in the body
 ```
 
-Only `description`. A span never changes rendering by itself — it exists so the
-checker can find a value inside prose. The schema's `styles:` may give
-`span.<type>` a character style; without one the text renders as ordinary prose.
+A span exists so the checker can find a value inside prose. It never changes
+rendering by itself; the schema's `styles:` may give `span.<type>` a character
+style, and without one the text renders as ordinary prose.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `description` | string | What the type marks. Shown by `docc describe`, which is how a drafting agent learns the vocabulary. |
+| `required` | bool | At least one span of this type must appear **anywhere in the body**, or `DOC042`. Use it for a value that lives in a flowing sentence: `required_spans` on a block would demand a `:::` wrapper invented for the checker rather than for the document. |
+
+`required` asks only that the value be stated and marked. Whether it is a row of
+underscores is [`no_blank_spans`](#rules); whether two occurrences agree is
+`spans_agree`; whether it says what the frontmatter says is `span_matches_field`.
+Because an absence has no line to underline, `DOC042` is a file-level diagnostic.
 
 Types prefixed `docc-` are reserved for the compiler and need no declaration.
 A span with no type class, or an undeclared one, is `DOC031`.
 
 `ref=` on a span resolves against `{#id}` attributes on blocks; a reference to an
 id that does not exist is `DOC037`, and a reused id is `DOC034`.
+
+## Choosing between a span and a field
+
+Both mark a value inside prose, and the choice is not about the value — it is
+about **which mistake you are defending against**.
+
+| The value | The risk | Declare it as |
+|---|---|---|
+| Required, and carried forward unchanged from document to document — the firm, the Grundbuchamt, a standard clause | It is right today; the danger is the day it changes and you update three of the four places | a **span**, watched by `spans_agree` — every occurrence is findable and must not drift |
+| Required, and restated fresh in every document — the party, the price, the date | You forget to change it | a **field** (`.docc-field`) — `docc example --blank` empties exactly these, and `build` refuses while one is open |
+| Required, restated fresh, and drafted by copying the last document | The value is already filled in — with the *previous* matter's — so neither blankness nor disagreement can see it | a **span** anchored with `span_matches_field` to a frontmatter field the metadata supplies from an authoritative source |
+
+The three compose on one mark:
+`[SIX SIS AG]{.glaeubiger .docc-field key=glaeubiger_name}` is a creditor name,
+a hole that must be filled before the deed is built, and — with a rule — a value
+checked against the frontmatter.
 
 ## `fields`
 
@@ -289,6 +318,7 @@ without provoking it.
 | `cross_reference` | `div` (required), `pattern` (required regexp, capture group 1 is the key), `list_field` (required), `label` (defaults to `list_field`) | A citation in a block that does not index into a frontmatter list. |
 | `required_div` | `div` (required), `anchor_heading` (optional) | A required semantic block is absent. The optional heading anchors the diagnostic where the missing content belongs. |
 | `no_empty_sections` | — | A heading with no content. A heading whose next heading is deeper is a container and is exempt. |
+| `span_matches_field` | `span` (required, the type), `field` (required, a dotted frontmatter path) | Every occurrence of the span type must say what the frontmatter says. This is the check `spans_agree` cannot be: agreement is not correctness, and a deed drafted from last month's deed carries the previous client's name consistently in all six places. Anchoring the prose to metadata that arrived from a register makes one place decide what the value is. A rule whose field the document never sets reports that it checked nothing, rather than exiting clean. |
 | `spans_agree` | `spans` (required list of span type names) | Two occurrences of one span type that do not say the same thing. Opt-in per type, because some are supposed to differ — a Kaufvertrag's `.name` spans are the Verkäufer and the Käufer. The types a schema watches here are also the ones compared **across** documents when several are checked in one `docc check` invocation, reported as `DOC029`. |
 | `no_blank_spans` | — | A semantic span left as a blank — `[____]{.heimatort}`. A span carrying `.docc-field` is exempt, because there a blank is content; any other span is a fact the document claims to state. |
 | `amount_at_least` | `div` (required), `minimum` (required, written as an amount: `"Fr. 20'000.00"`), `on_missing` (optional) | A money block whose total — its `[= …]` item, or the sum of its items — falls below a floor the document type declares. This is the error every other check accepts: a figure transcribed wrongly but transcribed the same way everywhere, so nothing in the document contradicts anything else in it. |
@@ -371,4 +401,5 @@ declares. Broadly:
 | `DOC023`, `DOC026`–`DOC027` | Block and span syntax |
 | `DOC030`–`DOC037` | The markup contract — blocks, spans, ids, references |
 | `DOC038`–`DOC041` | `fields:` blanks |
+| `DOC042` | A required span type appears nowhere in the document |
 | `DOC099` | A rule fired but its schema gave it no `id` |

@@ -133,6 +133,15 @@ type BlockVariant struct {
 // SpanSpec declares one inline span type.
 type SpanSpec struct {
 	Description string `yaml:"description"`
+	// Required makes the absence of every span of this type an error. It is
+	// document-wide, which is what distinguishes it from a block's
+	// `required_spans`: a value that lives in a flowing sentence should not
+	// need a `:::` block wrapped around it to be demanded.
+	//
+	// Presence is all it asks. Whether the value is a row of underscores is
+	// the `no_blank_spans` rule's business, and whether two occurrences agree
+	// is `spans_agree`'s.
+	Required bool `yaml:"required"`
 }
 
 // FieldSpec declares one intentionally incomplete field. A blank is content,

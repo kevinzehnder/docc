@@ -140,6 +140,9 @@ type describedVariant struct {
 type describedSpan struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	// Required reports that a document of this type must carry at least one
+	// span of this type, anywhere in the body.
+	Required bool `json:"required,omitempty"`
 	// Syntax is one valid span to imitate.
 	Syntax string `json:"syntax"`
 }
@@ -253,7 +256,7 @@ func describe(sc *schema.Schema, rendered map[string][]string) describedType {
 	for _, name := range sortedKeys(sc.Spans) {
 		s := sc.Spans[name]
 		d.Spans = append(d.Spans, describedSpan{
-			Name: name, Description: s.Description,
+			Name: name, Description: s.Description, Required: s.Required,
 			Syntax: fmt.Sprintf("[literal text]{.%s key=<key>}", name),
 		})
 	}
@@ -433,6 +436,10 @@ func printDescribed(d describedType) {
 	if len(d.Spans) > 0 {
 		fmt.Println("\nspans:")
 		for _, s := range d.Spans {
+			if s.Required {
+				fmt.Printf("  %-38s required — at least one\n", s.Syntax)
+				continue
+			}
 			fmt.Printf("  %s\n", s.Syntax)
 		}
 	}

@@ -195,8 +195,10 @@ func checkRequiredSpans(f *parse.File, div *parse.Div, required []string, ds *di
 }
 
 func checkSpans(f *parse.File, sc *schema.Schema, ds *diag.List) {
+	present := map[string]bool{}
 	for _, span := range f.Spans() {
 		name := span.SpanType()
+		present[name] = true
 		// `docc-` types are compiler-owned and need no declaration.
 		if strings.HasPrefix(name, "docc-") {
 			continue
@@ -217,6 +219,21 @@ func checkSpans(f *parse.File, sc *schema.Schema, ds *diag.List) {
 				Hint:    "declared span types: " + strings.Join(sortedMapKeys(sc.Spans), ", "),
 			})
 		}
+	}
+
+	// An absence has no line to underline, so this is a file-level diagnostic
+	// rather than a caret under something unrelated. The `Expected` line is
+	// what the author is missing, which is the actionable half.
+	for _, name := range sortedMapKeys(sc.Spans) {
+		if !sc.Spans[name].Required || present[name] {
+			continue
+		}
+		ds.Add(diag.Diagnostic{
+			File: f.Path, Pos: diag.Position{}, Severity: diag.Error, Code: "DOC042",
+			Message:  fmt.Sprintf("no `.%s` appears in the document, and the schema requires one", name),
+			Hint:     "state the value in the prose and mark it: " + sc.Spans[name].Description,
+			Expected: fmt.Sprintf("[text]{.%s}", name),
+		})
 	}
 }
 

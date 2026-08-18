@@ -156,6 +156,32 @@ func TestUnknownSpanType(t *testing.T) {
 	}
 }
 
+// A span type can be demanded document-wide, without wrapping the prose in a
+// block to get at `required_spans`. The value lives in a flowing sentence, and
+// forcing a `:::` around it would be structure invented for the checker.
+func TestRequiredSpanMissing(t *testing.T) {
+	sc := parteiSchema()
+	sc.Spans["kaufpreis"] = schema.SpanSpec{Description: "Der Kaufpreis.", Required: true}
+
+	ds := checkMarkupOn(t, "---\n---\n\nAm [1. Mai 2026]{.datum} passiert es.\n", sc)
+	if got := codes(ds); len(got) != 1 || got[0] != "DOC042" {
+		t.Fatalf("codes = %v, want [DOC042]\n%s", got, messages(ds))
+	}
+	if !strings.Contains(ds[0].Expected, "{.kaufpreis}") {
+		t.Errorf("expected should show the span to write: %q", ds[0].Expected)
+	}
+}
+
+func TestRequiredSpanSatisfiedAnywhere(t *testing.T) {
+	sc := parteiSchema()
+	sc.Spans["kaufpreis"] = schema.SpanSpec{Required: true}
+
+	src := "---\n---\n\nDer Preis beträgt [Fr. 100'000.00]{.kaufpreis} netto.\n"
+	if ds := checkMarkupOn(t, src, sc); len(ds) != 0 {
+		t.Fatalf("expected no diagnostics, got:\n%s", messages(ds))
+	}
+}
+
 func TestRefResolves(t *testing.T) {
 	src := "---\n---\n\n::: beweis {#vertrag}\nx\n:::\n\nGemäss [Vertrag]{.datum ref=vertrag} gilt es.\n"
 	ds := checkMarkupOn(t, src, parteiSchema())

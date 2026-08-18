@@ -992,6 +992,7 @@ var explanations = map[string]string{
 	"DOC039": "a field is still blank at build time but its completion is not `handwritten`. Fill in the value before building, or declare `completion: handwritten` in the schema if a human completes it on paper.",
 	"DOC040": "a `.docc-field` span is missing its `key=`, or names a field the schema does not declare. The key ties the blank to its `fields:` entry.",
 	"DOC041": "the schema declares a field with a completion stage the compiler does not know. Use `handwritten` or `before-execution`.",
+	"DOC042": "a span type the schema requires appears nowhere in the document. Unlike a block's `required_spans`, this asks only that the value be stated and marked somewhere in the body — write it into the prose and annotate it.",
 	"DOC099": "a check the schema selected reported a problem but the schema gave the rule no `id:`. Add one to `rules:` so the diagnostic has a stable code.",
 }
 
@@ -1043,7 +1044,7 @@ func explainForSchema(code string, sc *schema.Schema) []string {
 			b := describeBlock(name, sc.Blocks[name])
 			out = append(out, b.Syntax)
 		}
-	case "DOC031", "DOC037":
+	case "DOC031", "DOC037", "DOC042":
 		for _, name := range sortedKeys(sc.Spans) {
 			out = append(out, fmt.Sprintf("[text]{.%s}  %s", name, sc.Spans[name].Description))
 		}

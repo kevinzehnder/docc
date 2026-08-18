@@ -184,6 +184,7 @@ var registry = map[string]CheckFunc{
 	"no_empty_sections":   checkNoEmptySections,
 	"amounts_balance":     checkAmountsBalance,
 	"amount_at_least":     checkAmountAtLeast,
+	"span_matches_field":  checkSpanMatchesField,
 }
 
 // checkDescriptions says what each registered check looks for, in one line.
@@ -202,6 +203,7 @@ var checkDescriptions = map[string]string{
 	"no_empty_sections":   "a heading with no content before the next one. A heading whose next heading is deeper is a container and is exempt.",
 	"amount_at_least":     "a money block whose total is below a floor the document type declares — a figure transcribed wrongly but consistently, which every other check accepts.",
 	"amounts_balance":     "money that does not add up: items contradicting a `[= …]` total, or a block whose `total-of` does not settle.",
+	"span_matches_field":  "a span that does not say what the frontmatter says. The metadata is the authority — typically transcribed from a register — and the prose must agree with it.",
 }
 
 // checkArgs lists the arguments each check reads. It exists because `args:` is
@@ -222,6 +224,7 @@ var checkArgs = map[string][]string{
 	"no_empty_sections":   nil,
 	"amounts_balance":     {"div", "on_missing"},
 	"amount_at_least":     {"div", "minimum", "on_missing"},
+	"span_matches_field":  {"span", "field"},
 }
 
 // DescribeCheck returns a one-line description of a registered check, or "" for
@@ -680,6 +683,84 @@ func checkSpansAgree(c *ruleContext) {
 // meaning, so a line break inside a name is not reported as a disagreement.
 func normalizeSpanValue(s string) string {
 	return strings.Join(strings.Fields(s), " ")
+}
+
+// checkSpanMatchesField anchors a span type to a frontmatter field: every
+// occurrence must say what the metadata says.
+//
+// It closes the gap `spans_agree` cannot, because agreement is not correctness.
+// A deed drafted from last month's deed carries the previous client's name
+// consistently in all six places; the occurrences agree with each other and
+// with nothing else. `.docc-field` does not catch it either — the value is not
+// blank, it is simply somebody else's.
+//
+// The frontmatter is the anchor because that is where a value arrives from an
+// authority — a Handelsregister or Grundbuch lookup — rather than from the
+// document it is being copied into. The author still writes the name into
+// every sentence, and still reads the deed in context; what changes is that
+// there is now one place that decides what the name is.
+//
+// args:
+//
+//	span:  the span type every occurrence of which must match
+//	field: the dotted frontmatter path holding the authoritative value
+func checkSpanMatchesField(c *ruleContext) {
+	typ, ok := c.argString("span", true)
+	if !ok {
+		return
+	}
+	field, ok := c.argString("field", true)
+	if !ok {
+		return
+	}
+
+	raw, found := c.Meta.Lookup(field)
+	if !found || raw == nil {
+		// Silence here would be the failure UnguardedDivRules exists to report:
+		// a check that examined nothing and exited zero. The document is
+		// missing the value the prose is supposed to be verified against.
+		c.report(c.Meta.Pos(field),
+			fmt.Sprintf("give `%s` a value, or drop the rule that anchors `.%s` to it", field, typ),
+			"`.%s` is anchored to `%s`, which the document does not set", typ, field)
+		return
+	}
+	want, isText := raw.(string)
+	if !isText {
+		c.schemaErrorf(fmt.Sprintf("anchor `.%s` to a string field", typ),
+			"argument %q names %q, which is %T, not text", "field", field, raw)
+		return
+	}
+	want = normalizeSpanValue(want)
+	if isFillBlank(want) {
+		c.report(c.Meta.Pos(field),
+			fmt.Sprintf("write the value in `%s`; the prose is checked against it", field),
+			"`%s` is blank, so `.%s` is checked against nothing", field, typ)
+		return
+	}
+
+	for _, span := range c.File.Spans() {
+		if span.SpanType() != typ {
+			continue
+		}
+		// A blank the author was told to leave visible is not a disagreement,
+		// exactly as in checkSpansAgree: `docc example --blank` must not fail
+		// this tool's own check.
+		if span.HasClass(FieldSpanType) {
+			continue
+		}
+		value := normalizeSpanValue(span.LiteralText(c.File.BodySource))
+		if isFillBlank(value) {
+			continue // a blank is no_blank_spans' business
+		}
+		if value == want {
+			continue
+		}
+		pos := c.File.BodyPos(span.Literal.Start)
+		pos.Len = span.Literal.Stop - span.Literal.Start
+		c.report(pos,
+			fmt.Sprintf("write %q, or correct `%s` if the metadata is what is wrong", want, field),
+			"`.%s` says %q, but `%s` says %q", typ, value, field, want)
+	}
 }
 
 // checkNoEmptySections flags a heading with no content before the next heading.
