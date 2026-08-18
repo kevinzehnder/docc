@@ -96,6 +96,7 @@ in exactly one of four places:
 |---|---|---|
 | Facts the fixed furniture prints (notary name, title, letterhead fields) | frontmatter | theme interpolates `{{ field }}` in prologue/epilogue/header |
 | Facts of the individual document (parties, object, price, dates) | authored body text | validated via `blocks:` / `spans:` declarations |
+| Facts transcribed from a register (Firma, UID, Grundbuchbeschrieb, Bürgerort) | frontmatter **and** authored body text | the value is set once in frontmatter, written into the prose as a span, and tied to it with a `span_matches_field` rule |
 | `ODER:` alternatives, "delete if not applicable" sections | nowhere — the author writes the applicable wording | variants of a semantic block where structure matters; otherwise just prose |
 | Blanks filled in by hand on paper (Beurkundungsdatum, Protokoll-Nr.) | body, as visible blanks | `[____]{.docc-field key=...}` + `fields:` with `completion: handwritten` |
 
@@ -109,6 +110,25 @@ Rules of thumb:
   `completion: before-execution` (the default): `docc check` accepts the
   draft, `docc build` refuses while it is blank. A blank completed with a pen
   gets `completion: handwritten` and survives into the rendered page.
+- **A value that must be stated, but not inside a block, gets `required: true`
+  on its `spans:` declaration.** It asks that a span of that type appear
+  somewhere in the body. Reach for it when the value lives in a flowing
+  sentence: wrapping the paragraph in a `:::` block to get at `required_spans`
+  is structure invented for the checker rather than for the document.
+- **Decide per value which mistake you are guarding against**, because that is
+  what picks the mechanism, not the value itself:
+
+  | The value | The risk | Declare it as |
+  |---|---|---|
+  | Carried forward unchanged — the firm, the Grundbuchamt, a standard clause | It is right today; the danger is the day it changes and you update three of the four places | a **span** watched by `spans_agree` |
+  | Restated fresh in every document — the party, the price | You forget to change it | a **blank** (`fields:` + `.docc-field`) |
+  | Restated by copying the last document of this type | The value is filled and consistent — with the *previous* matter's — so neither the blank gate nor `spans_agree` can see it | a **span** anchored with `span_matches_field` to a frontmatter field |
+
+  The last row is the one a template cannot help with and the one that files
+  the wrong client's name. Anchor the values a register supplies: the
+  frontmatter is where a Handelsregister or Grundbuch lookup deposits them, so
+  it is the one place that decides what the value is, and the prose is checked
+  against it.
 - If the template's alternatives differ in *required structure* (a party that
   is a person needs name/birth date/place of origin; a company needs
   name/UID/seat), model them as one block with a `discriminator:` and
@@ -156,7 +176,8 @@ Order of work inside the YAML:
    will declare.
 7. `rules:` — pick from the registry (`no_placeholder_text`,
    `div_items_match`, `cross_reference`, `no_empty_sections`,
-   `amounts_balance`) with schema-owned codes. `div_items_match` with a
+   `amounts_balance`, `spans_agree`, `span_matches_field`) with schema-owned
+   codes. `div_items_match` with a
    pattern is the cheap way to enforce a per-line shape inside a block, e.g.
    every Betragszeile starts with `[Fr. ...]`; `amounts_balance` then checks
    that those figures add up.
@@ -171,6 +192,21 @@ Order of work inside the YAML:
    items, 864'000.00
    error[KFV013]: the amounts do not settle "kaufpreis": 78'500.00 is
    unaccounted for
+   ```
+
+   The same applies to the drafter noticing that a value was carried over from
+   the document this one was copied from. `spans_agree` catches the half-done
+   edit; `span_matches_field` catches the one that was never started:
+
+   ```yaml
+   - id: KFV015
+     check: span_matches_field
+     args: { span: firma, field: kaeuferin.firma }
+   ```
+
+   ```
+   error[KFV015]: `.firma` says "Muster AG", but `kaeuferin.firma` says
+   "Beispiel Immobilien AG"
    ```
 8. `example:` — a compact but *complete* document. Write it against the real
    template content, scrubbed. This is the profile's spec: it exercises every
@@ -300,6 +336,25 @@ does nothing — and so is `div.betreage` with the letters transposed. Both are
 otherwise silent, and both cost an afternoon of blaming the theme. Treat a
 doctor warning as an error while building a profile: if a mapping is unread,
 either the key is wrong or the mapping should go.
+
+The same finding exists on the theme side, and cost a real letter before it
+became a check:
+
+```
+theme starter-letter: prologue line 12 (BeilagenHeader): `omit_if_empty` has no
+placeholder to be empty on a line of fixed text — remove it, or use
+`if_nonempty: <field>`
+```
+
+`omit_if_empty` asks whether every placeholder a line filled in came out empty,
+so a line of fixed text has nothing to be empty and the flag does nothing
+whatever it is set to. The knob for a literal heading that must disappear with
+its list is `if_nonempty:`.
+
+Doctor also reports a rule scoped to a block nothing makes mandatory. That one
+is worse than an unread mapping — the rule reports success for a document it
+never examined — so answer it deliberately: pair it with `required_div`, or say
+`on_missing: ignore` to record that the absent case is legitimate.
 
 ## 7. Iterate visually
 
