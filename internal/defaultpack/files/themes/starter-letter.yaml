@@ -258,15 +258,16 @@ prologue:
   - { style: DateLine, text: "{{ sender.city }}, {{ date }}" }
   - { style: SubjectLine, text: "{{ subject }}" }
 
-# The enclosures heading carries omit_if_empty: false because it interpolates
-# nothing — a literal line has no fields to be empty, so without this it would
-# print even for a letter with no enclosures. The items below it are a repeat,
-# which emits nothing when the list is empty; the heading cannot know that.
+# The enclosures heading carries if_nonempty because it interpolates nothing:
+# a literal line has no fields to be empty, so omit_if_empty cannot reach it
+# and the heading would print over an empty list. The items below it are a
+# repeat, which emits nothing when the list is empty; the heading cannot know
+# that, so it is told the field to watch.
 epilogue:
   - { style: ClosingLine, text: "{{ closing }}" }
   - { style: SignatureBlock, text: "{{ signee.name }}" }
   - { style: SignatureName, text: "{{ signee.title }}" }
-  - { style: BeilagenHeader, text: "Beilagen", omit_if_empty: false }
+  - { style: BeilagenHeader, text: "Beilagen", if_nonempty: beilagen }
   - { style: BeilagenItem, text: "– {{ item }}", repeat: beilagen }
 
 footer:

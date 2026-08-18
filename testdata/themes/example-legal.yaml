@@ -368,33 +368,33 @@ numbering:
 # is renderer-dependent. In the flow it lands in the same place everywhere, and
 # page two keeps a normal top margin.
 prologue:
-  - { style: LH_Kanzlei, text: "Advokatur und Notariat", omit_if_empty: false }
-  - { style: LH_KanzleiName, text: "Muster & Partner", omit_if_empty: false }
-  - { style: LH_Rule, text: "", omit_if_empty: false }
+  - { style: LH_Kanzlei, text: "Advokatur und Notariat" }
+  - { style: LH_KanzleiName, text: "Muster & Partner" }
+  - { style: LH_Rule, text: "" }
 
   # Partner column, floated into the right margin. Consecutive paragraphs
   # carrying the same frame merge into one frame, so each line repeats it.
-  - { style: LH_AddrBold, text: "Musterstrasse 1", omit_if_empty: false, frame: &pcol { x: 148mm, y: 40mm, width: 45mm, h_anchor: page, v_anchor: page, wrap: around } }
-  - { style: LH_AddrBold, text: "5000 Aarau", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "Telefon 000 000 00 00", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_AddrBold, text: "Dr. iur. Anna Beispiel", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "Rechtsanwalt und Notar", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "ab@example.ch", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_AddrBold, text: "lic. iur. Bruno Beispiel", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "Rechtsanwalt", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "bb@example.ch", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_AddrBold, text: "lic. iur. Clara Muster", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "Rechtsanwalt LL.M.", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "cm@example.ch", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_AddrBold, text: "lic. iur. David Muster", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "Rechtsanwalt", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "dm@example.ch", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "im Anwaltsregister eingetragen", omit_if_empty: false, frame: *pcol }
+  - { style: LH_AddrBold, text: "Musterstrasse 1", frame: &pcol { x: 148mm, y: 40mm, width: 45mm, h_anchor: page, v_anchor: page, wrap: around } }
+  - { style: LH_AddrBold, text: "5000 Aarau", frame: *pcol }
+  - { style: LH_Addr, text: "Telefon 000 000 00 00", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_AddrBold, text: "Dr. iur. Anna Beispiel", frame: *pcol }
+  - { style: LH_Addr, text: "Rechtsanwalt und Notar", frame: *pcol }
+  - { style: LH_Addr, text: "ab@example.ch", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_AddrBold, text: "lic. iur. Bruno Beispiel", frame: *pcol }
+  - { style: LH_Addr, text: "Rechtsanwalt", frame: *pcol }
+  - { style: LH_Addr, text: "bb@example.ch", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_AddrBold, text: "lic. iur. Clara Muster", frame: *pcol }
+  - { style: LH_Addr, text: "Rechtsanwalt LL.M.", frame: *pcol }
+  - { style: LH_Addr, text: "cm@example.ch", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_AddrBold, text: "lic. iur. David Muster", frame: *pcol }
+  - { style: LH_Addr, text: "Rechtsanwalt", frame: *pcol }
+  - { style: LH_Addr, text: "dm@example.ch", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_Addr, text: "im Anwaltsregister eingetragen", frame: *pcol }
 
   # Swiss Post address field — see docs/swiss-post-letter-layout.md.
   #
@@ -423,7 +423,7 @@ prologue:
   - { style: LegalCaseRef, text: "{{ case_ref }}" }
   - { style: LegalDocTitle, text: "{{ legal_doc_type }}" }
 
-  - { style: LegalPlain, text: "für", omit_if_empty: false }
+  - { style: LegalPlain, text: "für" }
   - style: LegalPartyEntry
     runs:
       - { style: LegalBold, text: "{{ klaeger.name }}," }
@@ -431,10 +431,10 @@ prologue:
       - { style: LegalSmall, break: true, text: "{{ klaeger.postal_code }} {{ klaeger.city }}, {{ klaeger.street }}" }
   - style: LegalVertreter
     runs:
-      - { text: "vertreten durch ", omit_if_empty: false }
+      - { text: "vertreten durch " }
       - { text: "{{ klaeger_vertreter }}" }
 
-  - { style: LegalPlain, text: "gegen", omit_if_empty: false }
+  - { style: LegalPlain, text: "gegen" }
   - style: LegalPartyEntry
     runs:
       - { style: LegalBold, text: "{{ beklagter.name }}," }
@@ -442,17 +442,17 @@ prologue:
       - { style: LegalSmall, break: true, text: "{{ beklagter.postal_code }} {{ beklagter.city }}, {{ beklagter.street }}" }
   - style: LegalVertreter
     runs:
-      - { text: "vertreten durch ", omit_if_empty: false }
+      - { text: "vertreten durch " }
       - { text: "{{ beklagter_vertreter }}" }
 
   - style: LegalBetreff
     runs:
-      - { text: "betreffend ", omit_if_empty: false }
+      - { text: "betreffend " }
       - { style: LegalBold, text: "{{ betreff }}" }
 
   # The cover page ends here. This paragraph is empty and exists only to carry
   # the break, so the first markdown block lands at the top of page two.
-  - { style: LegalBodyStart, text: "", omit_if_empty: false, page_break: true }
+  - { style: LegalBodyStart, text: "", page_break: true }
 
 # Everything after the last Randziffer: the rule that closes the argument, the
 # formulaic request, the signature, the filing notes, and the enclosures index
@@ -462,15 +462,15 @@ prologue:
 # furniture is not part of it, so the Randziffern stop at the last paragraph of
 # prose exactly as they should.
 epilogue:
-  - { style: LegalSchlussLinie, text: "", omit_if_empty: false }
+  - { style: LegalSchlussLinie, text: "" }
   - { style: LegalSchlussformel, text: "{{ schlussformel }}" }
   - { style: LegalGruss, text: "{{ gruss }}", omit_if_empty: false }
   - { style: LegalUnterschrift, text: "{{ unterzeichner }}" }
   - { style: LegalVermerk, text: "{{ versandvermerk }}" }
-  - { style: LegalVermerk, text: "Beilagen gemäss separatem Beilagenverzeichnis", omit_if_empty: false }
+  - { style: LegalVermerk, text: "Beilagen gemäss separatem Beilagenverzeichnis" }
 
   # The index is a sheet of its own. page_break sits on the heading, so a brief
   # with no Beilagen still gets the page — the repeat below emits nothing and
   # the sheet carries only the heading.
-  - { style: LegalBeilagenTitel, text: "Beilagen", omit_if_empty: false, page_break: true }
+  - { style: LegalBeilagenTitel, text: "Beilagen", page_break: true }
   - { style: LegalBeilagenItem, text: "{{ item }}", repeat: beilagen, numbering: Beilagenverzeichnis }

@@ -2,6 +2,7 @@ package emit
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/kevinzehnder/docc/internal/ir"
@@ -115,6 +116,63 @@ func TestStarterProfile(t *testing.T) {
 					t.Errorf("skeleton: %s[%s]: %s", d.Severity, d.Code, d.Message)
 				}
 				t.Fatal("`example --blank` does not pass `check --strict`")
+			}
+		})
+	}
+}
+
+// TestStarterLetterOmitsEmptyEnclosureHeading pins the one condition the
+// letter's furniture cannot express by omission: "Beilagen" is a literal, so
+// omit_if_empty can never reach it — `AllEmpty` requires a placeholder to have
+// been empty, and a literal has none. Only `if_nonempty:` drops it, and without
+// that the heading prints over nothing whenever a letter goes out with no
+// enclosures. No fixture in testdata/ has an empty list, so this is the guard.
+func TestStarterLetterOmitsEmptyEnclosureHeading(t *testing.T) {
+	root := filepath.Join("..", "defaultpack", "files")
+	themeDir := filepath.Join(root, "themes")
+
+	schemas, err := schema.Load(filepath.Join(root, "schemas"))
+	if err != nil {
+		t.Fatalf("load schemas: %v", err)
+	}
+	themes, err := theme.Load(themeDir)
+	if err != nil {
+		t.Fatalf("load themes: %v", err)
+	}
+	sc, err := schemas.Get("ch_letter")
+	if err != nil {
+		t.Fatalf("resolve ch_letter: %v", err)
+	}
+	th, err := themes.Get(sc.Theme)
+	if err != nil {
+		t.Fatalf("theme %q: %v", sc.Theme, err)
+	}
+
+	f, parseDiags := parse.Parse("ch_letter example", []byte(sc.Example))
+	res := sema.Check(f, schemas, parseDiags, "")
+	if res.Diagnostics.HasErrors() {
+		t.Fatalf("the schema's own example does not validate")
+	}
+
+	for _, tc := range []struct {
+		name     string
+		beilagen []any
+		want     bool
+	}{
+		{"empty", []any{}, false},
+		{"populated", []any{"Vertrag"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res.Meta.Values["beilagen"] = tc.beilagen
+			built, err := Build(
+				ir.Build(f, res.DocType, res.Meta.Values),
+				sc, th, Options{ThemeDir: themeDir},
+			)
+			if err != nil {
+				t.Fatalf("build: %v", err)
+			}
+			if got := strings.Contains(xml(t, built), "Beilagen"); got != tc.want {
+				t.Errorf("enclosures heading present = %v, want %v", got, tc.want)
 			}
 		})
 	}

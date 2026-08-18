@@ -303,33 +303,33 @@ numbering:
 # page two keeps a normal top margin.
 prologue:
   # Replace these placeholder lines with your firm's approved letterhead.
-  - { style: LH_Kanzlei, text: "LAW FIRM", omit_if_empty: false }
-  - { style: LH_KanzleiName, text: "YOUR FIRM NAME", omit_if_empty: false }
-  - { style: LH_Rule, text: "", omit_if_empty: false }
+  - { style: LH_Kanzlei, text: "LAW FIRM" }
+  - { style: LH_KanzleiName, text: "YOUR FIRM NAME" }
+  - { style: LH_Rule, text: "" }
 
   # Partner column, floated into the right margin. Consecutive paragraphs
   # carrying the same frame merge into one frame, so each line repeats it.
-  - { style: LH_AddrBold, text: "YOUR STREET 1", omit_if_empty: false, frame: &pcol { x: 148mm, y: 40mm, width: 45mm, h_anchor: page, v_anchor: page, wrap: around } }
-  - { style: LH_AddrBold, text: "0000 YOUR CITY", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR PHONE", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_AddrBold, text: "YOUR NAME", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR TITLE", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR EMAIL", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_AddrBold, text: "YOUR COLLEAGUE", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR TITLE", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR EMAIL", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_AddrBold, text: "YOUR COLLEAGUE", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR TITLE", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR EMAIL", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_AddrBold, text: "YOUR COLLEAGUE", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR TITLE", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "YOUR EMAIL", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: " ", omit_if_empty: false, frame: *pcol }
-  - { style: LH_Addr, text: "im Anwaltsregister eingetragen", omit_if_empty: false, frame: *pcol }
+  - { style: LH_AddrBold, text: "YOUR STREET 1", frame: &pcol { x: 148mm, y: 40mm, width: 45mm, h_anchor: page, v_anchor: page, wrap: around } }
+  - { style: LH_AddrBold, text: "0000 YOUR CITY", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR PHONE", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_AddrBold, text: "YOUR NAME", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR TITLE", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR EMAIL", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_AddrBold, text: "YOUR COLLEAGUE", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR TITLE", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR EMAIL", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_AddrBold, text: "YOUR COLLEAGUE", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR TITLE", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR EMAIL", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_AddrBold, text: "YOUR COLLEAGUE", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR TITLE", frame: *pcol }
+  - { style: LH_Addr, text: "YOUR EMAIL", frame: *pcol }
+  - { style: LH_Addr, text: " ", frame: *pcol }
+  - { style: LH_Addr, text: "im Anwaltsregister eingetragen", frame: *pcol }
 
   # Swiss Post address field — see docs/swiss-post-letter-layout.md.
   #
@@ -358,7 +358,7 @@ prologue:
   - { style: LegalCaseRef, text: "{{ case_ref }}" }
   - { style: LegalDocTitle, text: "{{ legal_doc_type }}" }
 
-  - { style: LegalPlain, text: "für", omit_if_empty: false }
+  - { style: LegalPlain, text: "für" }
   - style: LegalPartyEntry
     runs:
       - { style: LegalBold, text: "{{ klaeger.name }}," }
@@ -366,10 +366,10 @@ prologue:
       - { style: LegalSmall, break: true, text: "{{ klaeger.postal_code }} {{ klaeger.city }}, {{ klaeger.street }}" }
   - style: LegalVertreter
     runs:
-      - { text: "vertreten durch ", omit_if_empty: false }
+      - { text: "vertreten durch " }
       - { text: "{{ klaeger_vertreter }}" }
 
-  - { style: LegalPlain, text: "gegen", omit_if_empty: false }
+  - { style: LegalPlain, text: "gegen" }
   - style: LegalPartyEntry
     runs:
       - { style: LegalBold, text: "{{ beklagter.name }}," }
@@ -377,14 +377,14 @@ prologue:
       - { style: LegalSmall, break: true, text: "{{ beklagter.postal_code }} {{ beklagter.city }}, {{ beklagter.street }}" }
   - style: LegalVertreter
     runs:
-      - { text: "vertreten durch ", omit_if_empty: false }
+      - { text: "vertreten durch " }
       - { text: "{{ beklagter_vertreter }}" }
 
   - style: LegalBetreff
     runs:
-      - { text: "betreffend ", omit_if_empty: false }
+      - { text: "betreffend " }
       - { style: LegalBold, text: "{{ betreff }}" }
 
   # The cover page ends here. This paragraph is empty and exists only to carry
   # the break, so the first markdown block lands at the top of page two.
-  - { style: LegalBodyStart, text: "", omit_if_empty: false, page_break: true }
+  - { style: LegalBodyStart, text: "", page_break: true }

@@ -341,15 +341,15 @@ header:
       image: { path: example-crest.png, width: 24mm, height: 24mm, alt: "Crest" }
 
 prologue:
-  - { style: UrkErrichtet, text: "errichtet von", omit_if_empty: false }
+  - { style: UrkErrichtet, text: "errichtet von" }
   - { style: UrkPerson, text: "{{ urkundsperson.name }}," }
   - { style: UrkPerson, text: "{{ urkundsperson.amtstitel }}, in {{ urkundsperson.ort }}" }
-  - { style: UrkRule, text: "", omit_if_empty: false }
+  - { style: UrkRule, text: "" }
   - { style: Titel, text: "{{ title }}" }
   # Only an executed deed has a place and date of Beurkundung. A draft has
   # neither, and a furniture line whose fields are all empty is dropped, so
   # the line simply is not there until it is true.
   - { style: UrkBeurkundet, text: "beurkundet in {{ beurkundet.ort }} am {{ beurkundet.datum }}" }
-  - { style: TitelRule, text: "", omit_if_empty: false }
+  - { style: TitelRule, text: "" }
 
 epilogue: []
