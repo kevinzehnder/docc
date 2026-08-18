@@ -12,7 +12,7 @@ import (
 func fieldSchema() *schema.Schema {
 	return &schema.Schema{
 		Type: "test",
-		Fields: map[string]schema.FieldSpec{
+		Blanks: map[string]schema.FieldSpec{
 			"beurkundungsdatum": {Required: true, Completion: "handwritten"},
 			"protokollnummer":   {Required: true, Completion: "before-execution"},
 			"bemerkung":         {},
@@ -75,7 +75,7 @@ func TestUndeclaredFieldKey(t *testing.T) {
 func TestInvalidCompletionIsSchemaBug(t *testing.T) {
 	sc := &schema.Schema{
 		Type:   "test",
-		Fields: map[string]schema.FieldSpec{"x": {Completion: "later"}},
+		Blanks: map[string]schema.FieldSpec{"x": {Completion: "later"}},
 	}
 	ds := checkMarkupOn(t, "---\n---\n\n[___]{.docc-field key=x}\n", sc)
 	if got := codes(ds); len(got) != 1 || got[0] != "DOC041" {

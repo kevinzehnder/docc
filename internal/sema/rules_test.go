@@ -378,7 +378,7 @@ func TestNoBlankSpans(t *testing.T) {
 		Spans: map[string]schema.SpanSpec{
 			"heimatort": {}, "name": {},
 		},
-		Fields: map[string]schema.FieldSpec{
+		Blanks: map[string]schema.FieldSpec{
 			"datum": {Completion: "handwritten"},
 		},
 		Rules: []schema.Rule{{ID: "X060", Check: "no_blank_spans", Severity: "error"}},

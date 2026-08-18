@@ -1049,8 +1049,8 @@ func explainForSchema(code string, sc *schema.Schema) []string {
 			out = append(out, fmt.Sprintf("[text]{.%s}  %s", name, sc.Spans[name].Description))
 		}
 	case "DOC038", "DOC039", "DOC040", "DOC041":
-		for _, name := range sortedKeys(sc.Fields) {
-			f := sc.Fields[name]
+		for _, name := range sortedKeys(sc.Blanks) {
+			f := sc.Blanks[name]
 			completion := f.Completion
 			if completion == "" {
 				completion = "before-execution"

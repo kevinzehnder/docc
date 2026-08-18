@@ -260,8 +260,8 @@ func describe(sc *schema.Schema, rendered map[string][]string) describedType {
 			Syntax: fmt.Sprintf("[literal text]{.%s key=<key>}", name),
 		})
 	}
-	for _, name := range sortedKeys(sc.Fields) {
-		f := sc.Fields[name]
+	for _, name := range sortedKeys(sc.Blanks) {
+		f := sc.Blanks[name]
 		completion := f.Completion
 		if completion == "" {
 			completion = "before-execution"

@@ -38,20 +38,20 @@ func checkDocFields(f *parse.File, sc *schema.Schema, ds *diag.List) {
 			continue
 		}
 		present[key] = true
-		if len(sc.Fields) > 0 {
-			if _, declared := sc.Fields[key]; !declared {
+		if len(sc.Blanks) > 0 {
+			if _, declared := sc.Blanks[key]; !declared {
 				ds.Add(diag.Diagnostic{
 					File: f.Path, Pos: spanPos(f, span), Severity: diag.Error, Code: "DOC040",
 					Message: fmt.Sprintf("schema %q does not declare a field %q", sc.Type, key),
-					Hint:    "declared fields: " + strings.Join(sortedMapKeys(sc.Fields), ", "),
+					Hint:    "declared fields: " + strings.Join(sortedMapKeys(sc.Blanks), ", "),
 					Key:     key,
 				})
 			}
 		}
 	}
 
-	for _, name := range sortedMapKeys(sc.Fields) {
-		spec := sc.Fields[name]
+	for _, name := range sortedMapKeys(sc.Blanks) {
+		spec := sc.Blanks[name]
 		switch spec.Completion {
 		case "", completionHandwritten, completionBeforeExecution:
 		default:
@@ -77,7 +77,7 @@ func checkDocFields(f *parse.File, sc *schema.Schema, ds *diag.List) {
 // `check` accepts these blanks — drafting with them is the point — so the
 // caller invokes this only when actually building.
 func CheckCompletion(f *parse.File, sc *schema.Schema, ds *diag.List) {
-	if len(sc.Fields) == 0 {
+	if len(sc.Blanks) == 0 {
 		return
 	}
 	for _, span := range fieldSpans(f) {
@@ -85,7 +85,7 @@ func CheckCompletion(f *parse.File, sc *schema.Schema, ds *diag.List) {
 		if !ok {
 			continue // already DOC040 at check time
 		}
-		spec, declared := sc.Fields[key]
+		spec, declared := sc.Blanks[key]
 		if !declared || spec.Completion == completionHandwritten {
 			continue
 		}

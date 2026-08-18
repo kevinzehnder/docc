@@ -40,10 +40,15 @@ type Schema struct {
 	// Types prefixed `docc-` are reserved for the compiler and need no
 	// declaration.
 	Spans map[string]SpanSpec `yaml:"spans"`
-	// Fields declares the intentionally incomplete fields of the type: blanks
+	// Blanks declares the intentionally incomplete fields of the type: values
 	// that are content, written `[____]{.docc-field key=<name>}`. The map key
 	// is the span key.
-	Fields map[string]FieldSpec `yaml:"fields"`
+	//
+	// The YAML key stays `fields:` — it is what a schema author writes and what
+	// `docc describe` reports — but the Go name does not, because Fields is
+	// already the type of a frontmatter declaration map and one word meaning
+	// two things in one file is how a reader loses an afternoon.
+	Blanks map[string]FieldSpec `yaml:"fields"`
 	// Styles maps markdown constructs to style ids defined by the theme.
 	Styles map[string]string `yaml:"styles"`
 	// Rules lists named cross-cutting checks to run.
