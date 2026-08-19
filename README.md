@@ -3,7 +3,7 @@
   <img src="docs/img/banner-product.svg" alt="docc — structured documents, compiled" width="520">
 </picture>
 
-# Documents that pass a check before they become Word files
+# Write it. Check it. Build it.
 
 > **Markdown in → document contract verified → `.docx` out**
 
