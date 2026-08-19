@@ -31,6 +31,7 @@ const usage = `docc — a compiler for structured documents
 
 usage:
   docc check [flags] <file.md>...   validate documents against their schema
+  docc read [flags] <file.md>...    emit what documents state, as JSON
   docc build [flags] <file.md>      validate, then render to .docx (or compatibility PDF)
   docc init [flags] [directory]     create an editable starter profile pack
   docc profile <command>            install, select, inspect, or update profile packs
@@ -178,6 +179,8 @@ func run(args []string) int {
 	switch cmd {
 	case "check":
 		return cmdCheck(rest)
+	case "read":
+		return cmdRead(rest)
 	case "build":
 		return cmdBuild(rest)
 	case "init":

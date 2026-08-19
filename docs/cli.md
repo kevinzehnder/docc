@@ -14,6 +14,7 @@ docc doctor                       # which schemas and themes are in effect, and 
 docc check docs/klage.md          # validate
 docc check --json docs/*.md       # machine-readable, for agents and CI
 docc check --strict docs/klage.md # warnings become errors
+docc read docs/klage.md           # what the document states, as JSON
 docc build docs/klage.md          # validate, then emit a .docx
 docc build --to pdf docs/klage.md # optional compatibility export; needs soffice
 docc lsp                          # serve editor diagnostics over stdio
@@ -82,6 +83,7 @@ It never mixes human-readable status text into that stream.
 | Command | stdout JSON |
 |---|---|
 | `check --json` | `{ "ok", "errors", "warnings", "diagnostics" }` |
+| `read` | `{ "ok", "path", "document_type", "frontmatter", "body", "spans", "fields", "errors", "warnings", "diagnostics" }` per file; an array with several files — see below |
 | `build --json` | `{ "ok", "type", "theme", "format", "output" }`; validation diagnostics are a separate JSON object on stderr |
 | `types --json` | `{ "types": [{ "type", "description", "theme" }] }` |
 | `describe --json` | `{ "type", "extends", "theme", "frontmatter", "body", "blocks", "spans", "blanks", "rules", "has_example", "field_map" }` — the full contract, with a `syntax` example per block, span and blank |
@@ -103,6 +105,34 @@ consulted at all; when it is `false`, an empty `rendered` means nothing.
 
 Body headings report `required`, `required_when` (the frontmatter condition that
 makes an otherwise optional section mandatory) and `ordered`.
+
+### `docc read`
+
+`check` answers whether a document is valid; `read` answers what it states, so
+a tool holding a deed can list the parcels it names without regexing markdown.
+Output is always JSON — there is no `--json` flag — in the schema's vocabulary
+(block names, span classes, field keys, headings), never the theme's:
+
+- `frontmatter` has schema defaults applied and dates in ISO form.
+- `body` is a flat list of sections in document order: `{ "heading", "level",
+  "line", "blocks" }`, with content before any heading in a section without
+  one. A block is discriminated by `"block"`: `para`, `list`, `table`, `code`,
+  `quote`, `rule`, or the name of a fenced div. A `para` carries `lines` — one
+  entry per hard break, because in a register row the break is structure — and
+  its `spans`. Text comes back as authored, with backslash escapes resolved.
+- `spans` is a flat index of every span in document order, each with its
+  `class`, `text`, `line`, `attrs` and nearest preceding `heading`, for
+  consumers that want "every `.egrid` in this document" without a tree walk.
+- `fields` lists every `.docc-field` marker: `{ "key", "value", "blank",
+  "completion", "line" }`. A blank has `"value": null` and `"blank": true` —
+  "not yet known" and "known to be empty" are different facts.
+- Every node carries `line`, so a tool that reports a mismatch can point a
+  human at the source.
+
+Unlike `check`, diagnostics never gate the output: exit `0` means the document
+was parsed, even with open errors — a half-finished draft is exactly the
+document a review tool most wants to inspect. The diagnostics ride alongside
+in the same object; deciding validity stays `check`'s job.
 
 Failures stay on the JSON stream. Under `--json`, a command that cannot produce
 its result writes a failure object to stdout instead:

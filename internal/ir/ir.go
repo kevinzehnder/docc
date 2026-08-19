@@ -16,16 +16,23 @@ type Document struct {
 }
 
 // Block is a body-level element.
+//
+// Every block carries Line, the 1-based source line it starts on (zero when
+// the node has no recorded source lines). The emitter ignores it; `docc read`
+// reports it, because a consumer that finds a mismatch has to point a human at
+// the place in the source.
 type Block interface{ block() }
 
 // Heading is a section heading. Level is 1-based.
 type Heading struct {
 	Level   int
+	Line    int
 	Inlines []Inline
 }
 
 // Para is a paragraph of prose.
 type Para struct {
+	Line    int
 	Inlines []Inline
 }
 
@@ -36,6 +43,7 @@ type List struct {
 	Ordered bool
 	// Start is the first number of an ordered list; zero means 1.
 	Start int
+	Line  int
 	Items []ListItem
 }
 
@@ -46,13 +54,17 @@ type ListItem struct {
 
 // Div is a fenced region: `::: name`.
 type Div struct {
-	Name   string
+	Name string
+	// ID is the `#id` from the attribute block, empty when absent.
+	ID     string
+	Line   int
 	Blocks []Block
 }
 
 // Table is a grid. The first row is a header when Header is set.
 type Table struct {
 	Header bool
+	Line   int
 	// Align holds the per-column alignment: "", "left", "center", "right".
 	Align []string
 	Rows  []Row
@@ -71,14 +83,18 @@ type Cell struct {
 // Code is a preformatted block.
 type Code struct {
 	Language string
+	Line     int
 	Text     string
 }
 
 // Rule is a horizontal rule.
-type Rule struct{}
+type Rule struct {
+	Line int
+}
 
 // Quote is a block quotation.
 type Quote struct {
+	Line   int
 	Blocks []Block
 }
 
@@ -114,7 +130,15 @@ type LineBreak struct{}
 // character style — an annotation that means something should be allowed to
 // look like something.
 type Span struct {
-	Type    string
+	Type string
+	// Line is the 1-based source line of the opening `[`.
+	Line int
+	// Classes lists every `.class` in source order; Type is the first. A
+	// span's compiler markers (`.docc-field`) ride here as later entries.
+	Classes []string
+	// Attrs holds the `key=value` pairs. The first occurrence of a duplicated
+	// key wins, matching parse.AttrBlock.Get.
+	Attrs   map[string]string
 	Inlines []Inline
 }
 

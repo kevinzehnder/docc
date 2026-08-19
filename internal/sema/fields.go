@@ -89,7 +89,7 @@ func CheckCompletion(f *parse.File, sc *schema.Schema, ds *diag.List) {
 		if !declared || spec.Completion == completionHandwritten {
 			continue
 		}
-		if !isBlank(span.LiteralText(f.BodySource)) {
+		if !IsBlank(span.LiteralText(f.BodySource)) {
 			continue
 		}
 		ds.Add(diag.Diagnostic{
@@ -115,9 +115,10 @@ func fieldSpans(f *parse.File) []*parse.Span {
 	return out
 }
 
-// isBlank reports whether a field's literal is an unfilled blank: empty, or
-// nothing but underscores and spaces.
-func isBlank(literal string) bool {
+// IsBlank reports whether a field's literal is an unfilled blank: empty, or
+// nothing but underscores and spaces. Exported because `docc read` must make
+// the same call when it reports a field as blank rather than filled.
+func IsBlank(literal string) bool {
 	for _, r := range literal {
 		if r != '_' && r != ' ' && r != '\t' {
 			return false

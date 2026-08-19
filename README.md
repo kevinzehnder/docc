@@ -58,6 +58,7 @@ is wrong but not what to do is treated as a bug.
 ```bash
 docc describe ch_letter      # what the type actually requires
 docc check --json brief.md   # machine-readable, for CI or an agent
+docc read brief.md           # what the document states, as JSON — spans, fields, blanks
 docc lsp                     # the same checks in the editor, while typing
 ```
 

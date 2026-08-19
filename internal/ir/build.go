@@ -35,39 +35,40 @@ func blocks(f *parse.File, parent ast.Node) []Block {
 func block(f *parse.File, n ast.Node) Block {
 	switch v := n.(type) {
 	case *ast.Heading:
-		return Heading{Level: v.Level, Inlines: inlines(f, v)}
+		return Heading{Level: v.Level, Line: lineOf(f, v), Inlines: inlines(f, v)}
 
 	case *ast.Paragraph:
-		return Para{Inlines: inlines(f, v)}
+		return Para{Line: lineOf(f, v), Inlines: inlines(f, v)}
 
 	case *ast.TextBlock:
 		// A tight list item's content is a TextBlock rather than a Paragraph.
-		return Para{Inlines: inlines(f, v)}
+		return Para{Line: lineOf(f, v), Inlines: inlines(f, v)}
 
 	case *ast.List:
-		list := List{Ordered: v.IsOrdered(), Start: v.Start}
+		list := List{Ordered: v.IsOrdered(), Start: v.Start, Line: lineOf(f, v)}
 		for item := v.FirstChild(); item != nil; item = item.NextSibling() {
 			list.Items = append(list.Items, ListItem{Blocks: blocks(f, item)})
 		}
 		return list
 
 	case *parse.Div:
-		return Div{Name: v.Name, Blocks: blocks(f, v)}
+		return Div{Name: v.Name, ID: v.Attr.ID, Line: lineOf(f, v), Blocks: blocks(f, v)}
 
 	case *ast.Blockquote:
-		return Quote{Blocks: blocks(f, v)}
+		return Quote{Line: lineOf(f, v), Blocks: blocks(f, v)}
 
 	case *ast.FencedCodeBlock:
 		return Code{
 			Language: string(v.Language(f.BodySource)),
+			Line:     lineOf(f, v),
 			Text:     rawLines(f, v),
 		}
 
 	case *ast.CodeBlock:
-		return Code{Text: rawLines(f, v)}
+		return Code{Line: lineOf(f, v), Text: rawLines(f, v)}
 
 	case *ast.ThematicBreak:
-		return Rule{}
+		return Rule{Line: lineOf(f, v)}
 
 	case *gast.Table:
 		return table(f, v)
@@ -82,8 +83,32 @@ func block(f *parse.File, n ast.Node) Block {
 	}
 }
 
+// lineOf returns the 1-based source line a block starts on. Containers
+// (lists, tables, quotes) record no lines of their own, so the first
+// descendant that does supplies the position. Zero means no line is known,
+// which only a thematic break produces in practice.
+func lineOf(f *parse.File, n ast.Node) int {
+	if d, isDiv := n.(*parse.Div); isDiv {
+		return f.BodyPos(d.OpenOffset).Line
+	}
+	if n.Type() == ast.TypeBlock && n.Lines().Len() > 0 {
+		return f.BodyPos(n.Lines().At(0).Start).Line
+	}
+	// A table cell holds inline children with no block lines above them; the
+	// first text segment is the position that exists.
+	if t, isText := n.(*ast.Text); isText {
+		return f.BodyPos(t.Segment.Start).Line
+	}
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		if line := lineOf(f, c); line > 0 {
+			return line
+		}
+	}
+	return 0
+}
+
 func table(f *parse.File, t *gast.Table) Table {
-	out := Table{}
+	out := Table{Line: lineOf(f, t)}
 	for _, al := range t.Alignments {
 		out.Align = append(out.Align, alignName(al))
 	}
@@ -137,7 +162,7 @@ func inline(f *parse.File, n ast.Node) []Inline {
 	switch v := n.(type) {
 	case *ast.Text:
 		seg := v.Segment
-		text := string(seg.Value(f.BodySource))
+		text := unescape(string(seg.Value(f.BodySource)))
 		items := []Inline{Str{Text: text}}
 		// A hard break is a property of the text node, not a node of its own.
 		if v.HardLineBreak() {
@@ -163,7 +188,23 @@ func inline(f *parse.File, n ast.Node) []Inline {
 		return []Inline{CodeSpan{Text: inlineText(f, v)}}
 
 	case *parse.Span:
-		return []Inline{Span{Type: v.SpanType(), Inlines: inlines(f, v)}}
+		span := Span{
+			Type:    v.SpanType(),
+			Line:    f.BodyPos(v.OpenOffset).Line,
+			Inlines: inlines(f, v),
+		}
+		for _, class := range v.Attr.Classes {
+			span.Classes = append(span.Classes, class.Name)
+		}
+		for _, a := range v.Attr.Attrs {
+			if span.Attrs == nil {
+				span.Attrs = map[string]string{}
+			}
+			if _, dup := span.Attrs[a.Key]; !dup {
+				span.Attrs[a.Key] = a.Value
+			}
+		}
+		return []Inline{span}
 
 	case *ast.Link:
 		return []Inline{Link{Inlines: inlines(f, v), URL: string(v.Destination)}}
@@ -198,6 +239,35 @@ func inlineText(f *parse.File, n ast.Node) string {
 		}
 	}
 	return b.String()
+}
+
+// unescape resolves CommonMark backslash escapes: a backslash before ASCII
+// punctuation stands for the punctuation itself. goldmark leaves escapes in
+// its text segments and resolves them in its own renderers, so this pipeline
+// must do the same or `\[Unterhalt\]` reaches the rendered document verbatim.
+// Entity references (`&amp;`) stay literal: nobody writes them in this corpus,
+// and resolving them correctly means carrying the HTML5 entity table.
+func unescape(s string) string {
+	if !strings.Contains(s, `\`) {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\\' && i+1 < len(s) && isASCIIPunct(s[i+1]) {
+			b.WriteByte(s[i+1])
+			i++
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
+
+// isASCIIPunct matches CommonMark's ASCII punctuation set, the characters a
+// backslash may escape.
+func isASCIIPunct(c byte) bool {
+	return strings.IndexByte("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", c) >= 0
 }
 
 // merge joins adjacent Str nodes. goldmark splits text at every soft break and

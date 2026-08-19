@@ -12,7 +12,7 @@ were once accepted here and later removed.
 ## Layout
 
 ```
-cmd/docc/            CLI: check | build | init | profile | doctor | lsp |
+cmd/docc/            CLI: check | read | build | init | profile | doctor | lsp |
                      types | describe | example | themes | explain | version
 internal/diag/       Diagnostic type, source-excerpt and JSON rendering
 internal/parse/      goldmark wrapper: frontmatter split, block tree, positions
