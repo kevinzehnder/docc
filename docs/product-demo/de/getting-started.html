@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="In drei Schritten einen geprüften Word-Brief mit docc erstellen."><title>Einen geprüften Brief erstellen — docc</title><link rel="stylesheet" href="../site.css"></head>
+<body>
+<header class="wrap site-header"><a class="brand" href="index.html" aria-label="docc Produktleitfaden">do<i>cc</i></a><nav class="site-nav" aria-label="Hauptnavigation"><a aria-current="page" href="getting-started.html">Einstieg</a><a href="compiler.html">Der Compiler</a><a href="authoring.html">Schreiben</a><a href="profiles.html">Profile</a><a href="../getting-started.html" lang="en">EN</a><a class="button" href="reference.html">Dokumentation</a></nav></header>
+<main><section class="page-hero"><div class="wrap"><div class="eyebrow">10-Minuten-Anleitung</div><h1>Einen Brief erstellen, <em>dem Sie vertrauen können.</em></h1><p class="lede">Starten Sie mit dem eingebauten Beispiel <code>ch_letter</code>. Derselbe Ablauf gilt später mit eigenen Dokumenttypen und einem eigenen Profilpaket.</p></div></section><div class="wrap docs-layout"><aside class="docs-aside" aria-label="Auf dieser Seite"><strong>AUF DIESER SEITE</strong><a href="#install">Installieren</a><a href="#start">Brief beginnen</a><a href="#check">Prüfen</a><a href="#build">.docx erstellen</a><a href="#next">Danach</a></aside><article class="content">
+<section id="install"><div class="eyebrow">Vor dem Start</div><h2>Installieren und dann fragen, was vorhanden ist.</h2><p>docc bringt ein Starterprofil mit. Daher kann eine unkonfigurierte Installation bereits Dokumenttypen beschreiben, ein Beispiel ausgeben und es bauen.</p><pre><span class="dim"># Das Kommando installieren.</span>
+go install github.com/kevinzehnder/docc/cmd/docc@latest
+
+<span class="dim"># Typen auflisten und den Briefvertrag ansehen.</span>
+docc types
+docc describe ch_letter</pre><p><code>docc describe</code> beantwortet die Frage «Was braucht dieses Dokument?»: Frontmatter, Struktur, Blöcke, Spans, Leerfelder und Regeln stammen aus dem Schema, nicht aus einer erratenen Word-Vorlage.</p></section>
+<section id="start"><div class="eyebrow">Schritt 1</div><h2>Mit einer lesbaren Vorlage anfangen.</h2><p>Das Beispiel gehört zum Schema selbst. So bleiben Einstieg und Dokumentvertrag zusammen; docc prüft, dass das Beispiel gültig bleibt.</p><pre>docc example ch_letter &gt; mahnung.md</pre><p>Öffnen Sie <code>mahnung.md</code> im gewohnten Editor. Die Datei hat zwei Teile:</p><div class="table-wrap"><table><thead><tr><th>Teil</th><th>Inhalt</th><th>Prüfung</th></tr></thead><tbody><tr><td><strong>YAML-Frontmatter</strong></td><td>Betreff, Absender, Empfänger, Versanddatum und weitere Briefdaten.</td><td>Pflichtwerte, Typen, Muster und Standardwerte.</td></tr><tr><td><strong>Markdown-Text</strong></td><td>Anrede, Begründung, Begehren, Listen und Schlussformel.</td><td>Dokumentstruktur und gültige Markdown-Elemente.</td></tr></tbody></table></div><pre><span class="dim">---</span>
+<span class="key">docc</span>: <span class="value">1</span>
+<span class="key">document_type</span>: <span class="value">ch_letter</span>
+<span class="key">subject</span>: <span class="value">Mahnung — Rechnung 2026-114</span>
+<span class="key">recipient</span>:
+  <span class="key">name</span>: <span class="value">Clara Muster</span>
+  <span class="key">postal_code</span>: <span class="value">"3000"</span>
+<span class="dim">---</span>
+
+<span class="md">Sehr geehrte Frau Muster</span>
+
+Wir vertreten die Muster Handels AG in der oben genannten Angelegenheit.</pre></section>
+<section id="check"><div class="eyebrow">Schritt 2</div><h2>Das Dokument kompilieren, bevor es zu Word wird.</h2><p><code>check</code> parst die ganze Quelle und führt alle Validierungen aus. Es sammelt Hinweise, statt beim ersten Problem aufzuhören—so entsteht eine brauchbare Korrekturliste.</p><pre>docc check mahnung.md</pre><pre><span class="dim">$</span> docc check mahnung.md
+
+mahnung.md:12:16: <span class="warn">error[DOC010]</span>: Feld <span class="warn">`postal_code`</span>
+hat ungültigen Wert <span class="warn">"300"</span>
+   |
+12 |   postal_code: "300"
+   |                <span class="warn">^^^^^</span> <span class="hint">vier Ziffern, in Anführungszeichen: "3000"</span></pre><div class="note"><strong>Build hat dieselbe Schranke:</strong> <code>docc build</code> validiert immer zuerst. <code>check</code> ist während des Schreibens, in CI und für Editor-Diagnosen nützlich, ohne eine Datei auszugeben.</div></section>
+<section id="build"><div class="eyebrow">Schritt 3</div><h2>Nur den bestandenen Brief erstellen.</h2><p>Wenn die Prüfung sauber ist, wird die Datei ausgegeben. Seitenränder, Fensteradresse, Typografie und Fusszeile stehen nicht im Brieftext: Das gewählte Theme liefert diese festen Layoutentscheide.</p><pre>docc build mahnung.md
+<span class="dim"># → mahnung.docx</span></pre><p>docc konvertiert keine Vorlage, sondern schreibt die <code>.docx</code> selbst. Identische Quelle, identisches Schema und identisches Theme ergeben identische Bytes.</p></section>
+<section id="next"><div class="eyebrow">Weiter</div><h2>Nur die nächste nötige Ebene lernen.</h2><div class="link-grid"><a class="link-card" href="compiler.html"><b>NÄCHSTES / SICHERHEIT</b><strong>So funktioniert die Prüfung</strong><span>Struktur, Werte und Regeln, die der Compiler durchsetzen kann.</span></a><a class="link-card" href="authoring.html"><b>NÄCHSTES / SCHREIBEN</b><strong>Strukturiertes Markdown</strong><span>Blöcke, Spans und Leerfelder für mehr als einen Brief.</span></a><a class="link-card" href="profiles.html"><b>NÄCHSTES / STANDARDS</b><strong>Profile und Themes</strong><span>Eigene Regeln und Briefpapier ohne Layout im Quelltext.</span></a><a class="link-card" href="https://github.com/kevinzehnder/docc/blob/master/docs/cli.md"><b>VOLLSTÄNDIGE REFERENZ</b><strong>Alle Befehle und Flags</strong><span>Die verbindliche CLI-Referenz des Projekts.</span></a></div></section>
+</article></div></main><footer><div class="wrap"><span>docc — strukturierte Markdown-Dokumente, kompiliert zu .docx</span><a href="index.html">Produktleitfaden</a></div></footer>
+</body></html>

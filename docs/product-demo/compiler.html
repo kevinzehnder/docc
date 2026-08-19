@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How docc verifies a document's structure, schema and rendering contract.">
+  <title>The compiler contract — docc guide</title><link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="wrap site-header"><a class="brand" href="index.html" aria-label="docc product guide">do<i>cc</i></a><nav class="site-nav" aria-label="Primary navigation"><a href="getting-started.html">Start here</a><a aria-current="page" href="compiler.html">The compiler</a><a href="authoring.html">Authoring</a><a href="profiles.html">Profiles</a><a href="de/compiler.html" lang="de">DE</a><a class="button" href="reference.html">Documentation</a></nav></header>
+  <main>
+    <section class="page-hero"><div class="wrap"><div class="eyebrow">The product promise</div><h1>A successful build means <em>more than “Word opened it.”</em></h1><p class="lede">docc treats a document type as a contract. It parses authored Markdown, verifies the declared requirements, then renders through the selected theme. Validation gates rendering.</p></div></section>
+    <div class="wrap docs-layout">
+      <aside class="docs-aside" aria-label="On this page"><strong>ON THIS PAGE</strong><a href="#contract">The contract</a><a href="#checks">What is checked</a><a href="#diagnostics">Diagnostics</a><a href="#commands">Compiler commands</a><a href="#determinism">Deterministic output</a></aside>
+      <article class="content">
+        <section id="contract"><div class="eyebrow">One clear boundary</div><h2>Author the content. Declare the rules. Compile the result.</h2><p>A Word file can contain an absent recipient address, an old placeholder, a heading in the wrong place or a legal value that does not match its required form. Those are document failures, not formatting preferences. docc moves that knowledge into a schema where it can be checked consistently.</p><div class="pipeline"><div><b>AUTHORED</b><strong>Source</strong><small>Markdown and YAML remain visible, reviewable and editable.</small></div><div><b>DECLARED</b><strong>Schema</strong><small>The type says which facts and structures are valid.</small></div><div><b>SELECTED</b><strong>Theme</strong><small>The profile says how a valid type is rendered.</small></div><div><b>PRODUCED</b><strong>Output</strong><small>A .docx exists only after the source passed its checks.</small></div></div><div class="note"><strong>What docc does not do:</strong> it does not invent missing facts, converse about the text, store documents or turn a template into an application. The input is an authored document; the product is a checked compilation.</div></section>
+        <section id="checks"><div class="eyebrow">Verification layers</div><h2>Requirements are checked where they belong.</h2><p>The selected schema decides the valid shape of one document type. The compiler checks the source against that shape and runs the type’s declared rules. The exact requirements are profile-specific; these are the kinds of guarantees a type can make.</p><div class="table-wrap"><table><thead><tr><th>Layer</th><th>Question it answers</th><th>Example</th></tr></thead><tbody><tr><td><strong>Document marker and type</strong></td><td>Is this actually a docc document, and which contract applies?</td><td><code>docc: 1</code> and <code>document_type: ch_letter</code> select a known type.</td></tr><tr><td><strong>Frontmatter schema</strong></td><td>Are required values present, typed and well-formed?</td><td>A Swiss postal code must be four quoted digits; an enum must be one allowed value.</td></tr><tr><td><strong>Body structure</strong></td><td>Does the document contain the required headings in the expected order?</td><td>A legal type can require <em>RECHTSBEGEHREN</em> before <em>BEGRÜNDUNG</em>.</td></tr><tr><td><strong>Semantic markup</strong></td><td>Are declared blocks, spans and intentional blanks used correctly?</td><td>A party block can require a name, date of birth and address span.</td></tr><tr><td><strong>Named rules</strong></td><td>Do type-specific cross-document constraints hold?</td><td>A no-placeholder rule prevents <code>[Name]</code> from surviving to output.</td></tr><tr><td><strong>Schema/theme fit</strong></td><td>Can the chosen theme render the schema’s declared styles and references?</td><td>A missing theme style is rejected before a paragraph is emitted.</td></tr></tbody></table></div><p>The compiler runs checks as a collection, not a queue of failures. An author should be able to correct all reported problems in a single editing pass.</p></section>
+        <section id="diagnostics"><div class="eyebrow">Useful failure</div><h2>Every error explains its place and its fix.</h2><p>Diagnostics have a stable code, a source position and a hint. That makes the same result useful in a terminal, an editor, CI or an automated drafting loop.</p><pre>brief.md:8:13: <span class="warn">error[DOC010]</span>: field <span class="warn">`case_ref`</span>
+has malformed value <span class="warn">"ZG2026000"</span>
+  |
+8 |   case_ref: "ZG2026000"
+  |             <span class="warn">^^^^^^^^^^</span> <span class="hint">court reference in the form AA.YYYY.NNN,
+  |                        e.g. "ZG.2026.000"</span></pre><div class="steps"><div class="step-row"><p><strong>The code is stable.</strong> A workflow can identify the class of failure without scraping prose.</p></div><div class="step-row"><p><strong>The caret is in source.</strong> The author repairs the Markdown file, rather than manually patching a generated Word document.</p></div><div class="step-row"><p><strong>The hint is actionable.</strong> The expected form belongs beside the error rather than in someone’s memory.</p></div></div></section>
+        <section id="commands"><div class="eyebrow">Use the compiler</div><h2>One document contract, several useful surfaces.</h2><p>The build path is deliberately small. Each command exposes a different view of the same underlying document and profile.</p><pre><span class="dim"># Validate without creating output.</span>
+docc check brief.md
+
+<span class="dim"># Build validates first, then emits the Word document.</span>
+docc build brief.md
+
+<span class="dim"># Machine-readable contract and diagnostics for tools, agents or CI.</span>
+docc describe --json ch_letter
+docc check --json brief.md
+
+<span class="dim"># Inspect the document's parsed facts and structure as JSON.</span>
+docc read brief.md
+
+<span class="dim"># Serve the same diagnostics while typing.</span>
+docc lsp</pre><p><code>check --json</code> emits a result object containing <code>ok</code>, error and warning counts, and diagnostics. The JSON command contract keeps stdout structured so another tool can consume it without parsing decorative terminal output.</p></section>
+        <section id="determinism"><div class="eyebrow">Repeatable result</div><h2>Same inputs, same document bytes.</h2><p>docc emits the <code>.docx</code> itself. With unchanged source, schema and theme, the generated archive is byte-identical regardless of machine, clock or network. The document records its profile provenance; incidental environment state does not leak into the output.</p><div class="note"><strong>Why that matters for a letter:</strong> a rebuilt version is not “probably the same.” If its bytes changed, a source or profile input changed. This turns document generation into something reviewable and reproducible instead of a last-mile manual ritual.</div><p>For the full model, read the project’s <a href="https://github.com/kevinzehnder/docc/blob/master/docs/philosophy.md">philosophy</a> and the <a href="https://github.com/kevinzehnder/docc/blob/master/docs/schema-reference.md">schema reference</a>.</p></section>
+      </article>
+    </div>
+  </main>
+  <footer><div class="wrap"><span>docc — structured Markdown documents, compiled to .docx</span><a href="reference.html">Complete documentation map</a></div></footer>
+</body>
+</html>

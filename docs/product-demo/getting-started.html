@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Build a checked Word letter with docc in three steps.">
+  <title>Write a checked letter — docc guide</title><link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="wrap site-header"><a class="brand" href="index.html" aria-label="docc product guide">do<i>cc</i></a><nav class="site-nav" aria-label="Primary navigation"><a aria-current="page" href="getting-started.html">Start here</a><a href="compiler.html">The compiler</a><a href="authoring.html">Authoring</a><a href="profiles.html">Profiles</a><a href="de/getting-started.html" lang="de">DE</a><a class="button" href="reference.html">Documentation</a></nav></header>
+  <main>
+    <section class="page-hero"><div class="wrap"><div class="eyebrow">10-minute walkthrough</div><h1>Build one letter <em>you can trust.</em></h1><p class="lede">Start with docc’s built-in <code>ch_letter</code> example. The same flow works with your firm’s own document types and profile pack.</p></div></section>
+    <div class="wrap docs-layout">
+      <aside class="docs-aside" aria-label="On this page"><strong>ON THIS PAGE</strong><a href="#install">Install</a><a href="#starter">Start a letter</a><a href="#check">Compile the check</a><a href="#build">Build the .docx</a><a href="#next">What next?</a></aside>
+      <article class="content">
+        <section id="install"><div class="eyebrow">Before you begin</div><h2>Install, then ask what exists.</h2><p>docc includes a starter profile, so an unconfigured installation can already describe its types, print an example and build it. Install the command, then inspect what the compiler knows.</p><pre><span class="dim"># Install the command.</span>
+go install github.com/kevinzehnder/docc/cmd/docc@latest
+
+<span class="dim"># List document types and see the full contract for a letter.</span>
+docc types
+docc describe ch_letter</pre><p><code>docc describe</code> is the answer to “what does this document need?” It reports the schema’s frontmatter, body, blocks, spans, blanks and rules rather than making you infer them from a Word template.</p><div class="note"><strong>Using your own profile already?</strong> Bind it with <code>docc profile use &lt;repository&gt;</code>. The compiler will then resolve that project’s schemas and themes. See <a href="profiles.html">Profiles &amp; themes</a>.</div></section>
+        <section id="starter"><div class="eyebrow">Step 1</div><h2>Generate a readable starting point.</h2><p>The example belongs to the schema itself. That keeps the starter and the contract together, and docc tests that the example remains valid.</p><pre>docc example ch_letter &gt; mahnung.md</pre><p>Open <code>mahnung.md</code> in any text editor. It has two deliberately different parts:</p><div class="table-wrap"><table><thead><tr><th>Part</th><th>What you write there</th><th>What docc does with it</th></tr></thead><tbody><tr><td><strong>YAML frontmatter</strong></td><td>The subject, sender, recipient, sent date and other letter facts.</td><td>Checks names, types, required values, patterns and defaults against the schema.</td></tr><tr><td><strong>Markdown body</strong></td><td>The salutation, reasoning, requests, lists and closing prose.</td><td>Parses the document structure and maps valid Markdown to theme styles.</td></tr></tbody></table></div><pre><span class="dim">---</span>
+<span class="key">docc</span>: <span class="value">1</span>
+<span class="key">document_type</span>: <span class="value">ch_letter</span>
+<span class="key">subject</span>: <span class="value">Mahnung — Rechnung 2026-114</span>
+<span class="key">sender</span>:
+  <span class="key">name</span>: <span class="value">Muster &amp; Partner</span>
+<span class="key">recipient</span>:
+  <span class="key">name</span>: <span class="value">Clara Muster</span>
+  <span class="key">postal_code</span>: <span class="value">"3000"</span>
+<span class="dim">---</span>
+
+<span class="md">Sehr geehrte Frau Muster</span>
+
+Wir vertreten die Muster Handels AG in der oben genannten Angelegenheit.</pre></section>
+        <section id="check"><div class="eyebrow">Step 2</div><h2>Compile the document before it becomes a Word file.</h2><p><code>check</code> parses the entire source and runs every applicable validation pass. It collects diagnostics instead of stopping at the first problem, so the author gets one useful correction list.</p><pre>docc check mahnung.md</pre><p>A diagnostic points to source and carries a hint. The compiler is not judging prose; it is enforcing the contract declared by the chosen document type.</p><pre><span class="dim">$</span> docc check mahnung.md
+
+mahnung.md:12:16: <span class="warn">error[DOC010]</span>: field <span class="warn">`postal_code`</span>
+has malformed value <span class="warn">"300"</span>
+   |
+12 |   postal_code: "300"
+   |                <span class="warn">^^^^^</span> <span class="hint">four digits, quoted: "3000"</span></pre><div class="note"><strong>Build has the same gate.</strong> You can run <code>docc build</code> directly; it validates first. Keeping <code>check</code> as a separate step is useful while drafting, in CI, and for editors or agents that want diagnostics without producing a file.</div></section>
+        <section id="build"><div class="eyebrow">Step 3</div><h2>Build only the passing letter.</h2><p>When the check is clean, emit the document. The source does not contain page margins, an address-window position or a footer: its selected theme supplies those fixed rendering decisions.</p><pre>docc build mahnung.md
+<span class="dim"># → mahnung.docx</span></pre><p>The output is not a converted template. docc writes the <code>.docx</code> itself. With identical source, schema and theme, the generated file is byte-identical—useful for review, reproducible builds and knowing that an output difference means something actually changed.</p></section>
+        <section id="next"><div class="eyebrow">Continue</div><h2>Learn only the next layer you need.</h2><div class="link-grid"><a class="link-card" href="compiler.html"><b>NEXT / CONFIDENCE</b><strong>How verification works</strong><span>See what structures, facts and rules the compiler can enforce.</span></a><a class="link-card" href="authoring.html"><b>NEXT / WRITING</b><strong>Structured Markdown</strong><span>Learn blocks, spans and fields for document types that need more than a letter.</span></a><a class="link-card" href="profiles.html"><b>NEXT / OWNERSHIP</b><strong>Profiles and themes</strong><span>Package your organisation’s schema and stationery without putting layout in source files.</span></a><a class="link-card" href="https://github.com/kevinzehnder/docc/blob/master/docs/cli.md"><b>CANONICAL REFERENCE</b><strong>Every command and flag</strong><span>Open the project’s complete CLI reference.</span></a></div></section>
+      </article>
+    </div>
+  </main>
+  <footer><div class="wrap"><span>docc — structured Markdown documents, compiled to .docx</span><a href="index.html">Product guide home</a></div></footer>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Lesbare, strukturierte Markdown-Dokumente mit docc verfassen."><title>Strukturiertes Markdown verfassen — docc</title><link rel="stylesheet" href="../site.css"></head>
+<body><header class="wrap site-header"><a class="brand" href="index.html" aria-label="docc Produktleitfaden">do<i>cc</i></a><nav class="site-nav" aria-label="Hauptnavigation"><a href="getting-started.html">Einstieg</a><a href="compiler.html">Der Compiler</a><a aria-current="page" href="authoring.html">Schreiben</a><a href="profiles.html">Profile</a><a href="../authoring.html" lang="en">EN</a><a class="button" href="reference.html">Dokumentation</a></nav></header><main><section class="page-hero"><div class="wrap"><div class="eyebrow">Das Schreibmodell</div><h1>Markdown, das <em>etwas bedeutet.</em></h1><p class="lede">Das Dokument bleibt lesbarer Text. Wo pures Markdown eine wichtige Dokumenttatsache nicht ausdrücken kann, ergänzt docc einen kleinen, erklärten Wortschatz: Frontmatter, semantische Blöcke, Spans und bewusste Felder.</p></div></section><div class="wrap docs-layout"><aside class="docs-aside" aria-label="Auf dieser Seite"><strong>AUF DIESER SEITE</strong><a href="#source">Quelldatei</a><a href="#frontmatter">Frontmatter</a><a href="#body">Textstruktur</a><a href="#semantics">Blöcke und Spans</a><a href="#fields">Leerfelder</a><a href="#boundary">Grenze</a></aside><article class="content">
+<section id="source"><div class="eyebrow">Eine Quelle</div><h2>Die Datei ist ein Dokument, kein Formular mit Datenbeilage.</h2><p>Eine docc-Datei ist normales Markdown mit YAML-Frontmatter. Sie lässt sich von oben bis unten lesen, in jedem Texteditor bearbeiten, in einem Diff prüfen und ohne spezielle Vorlagensprache weitergeben.</p><pre><span class="dim">---</span>
+<span class="key">docc</span>: <span class="value">1</span>
+<span class="key">document_type</span>: <span class="value">ch_letter</span>
+<span class="key">subject</span>: <span class="value">Mahnung — Rechnung 2026-114</span>
+<span class="dim">---</span>
+
+<span class="md">Sehr geehrte Frau Muster</span>
+
+Wir vertreten die Muster Handels AG in der oben genannten Angelegenheit.
+
+<span class="md"># Aufforderung</span></pre><p>Der Marker ist bewusst. Dateien ohne <code>docc: 1</code> sind keine docc-Dokumente; READMEs, Notizen oder Dateien anderer Markdown-Werkzeuge werden nicht versehentlich kompiliert.</p></section>
+<section id="frontmatter"><div class="eyebrow">Dokumenttatsachen</div><h2>Tatsachen gehören ins Frontmatter, nicht als verdeckte Prosa.</h2><p>Das Schema des Typs erklärt die erlaubten Schlüssel: Zeichenketten, Zahlen, Booleans, Daten, Enums, Listen und zusammengesetzte Werte wie Absender- und Empfängeradressen.</p><pre><span class="key">sent</span>: <span class="value">2026-08-05</span>
+<span class="key">registered</span>: <span class="value">true</span>
+<span class="key">sender</span>:
+  <span class="key">name</span>: <span class="value">Muster &amp; Partner</span>
+  <span class="key">uid</span>: <span class="value">CHE-123.456.789</span>
+  <span class="key">postal_code</span>: <span class="value">"5000"</span>
+<span class="key">beilagen</span>:
+  - <span class="value">Rechnung Nr. 2026-114</span></pre><p>Ein Feld kann Pflicht sein, einen Standardwert haben, explizites Null erlauben, einem Muster folgen oder nur bestimmte Werte akzeptieren. So bleibt der Brief ein Brief, während Daten zuverlässig prüfbar sind.</p><div class="note"><strong>Nicht raten:</strong> <code>docc describe &lt;type&gt;</code> zeigt den Vertrag eines unbekannten Dokumenttyps direkt aus dem Compiler.</div></section>
+<section id="body"><div class="eyebrow">Normales Markdown</div><h2>Überschriften, Listen und Absätze bleiben wie gewohnt.</h2><p>Die meisten Dokumente benötigen im Text keine Sondersyntax. Das Schema ordnet üblichen Markdown-Konstruktionen Theme-Stile zu und kann dort eine Überschriftenhierarchie verlangen, wo Struktur wichtig ist.</p><pre><span class="md"># Ausgangslage</span>
+
+Unsere Mandantin stellte Ihnen die Rechnung über CHF 8'400.— zu.
+
+<span class="md"># Aufforderung</span>
+
+1. den Betrag bis zum 31. August 2026 zu überweisen;
+2. uns die Zahlung unaufgefordert zu bestätigen.</pre><p>Ein Brief muss bewusst keine festen Abschnitte haben. Eine Rechtsschrift kann zwingende Überschriften und bedingte Unterabschnitte verlangen. Der Text zeigt die Struktur; das Schema entscheidet, wann ihr Fehlen ein Mangel ist.</p></section>
+<section id="semantics"><div class="eyebrow">Wenn Markdown allein nicht reicht</div><h2>Semantik markieren, ohne die Formulierung zu verstecken.</h2><p>Zwei Erweiterungen erfassen Tatsachen, die pures Markdown nicht ausdrückt. Beide bleiben sichtbar und beide existieren nur, wenn das Schema ihre Bedeutung erklärt.</p><h3>Blöcke: strukturierter Bereich mit Attributen</h3><pre><span class="dim">::: partei {#verkaeufer kind=person role=veraeusserer}</span>
+Herr [Max Muster]{.name}, geboren am
+[12. April 1975]{.geburtsdatum}, wohnhaft an der
+[Musterstrasse 10, 5400 Baden]{.adresse}
+<span class="dim">:::</span></pre><p>Ein Block ist ein Bereich <code>:::name</code>. Attribute haben die Form <code>{#id key=value}</code>; das Schema kann Varianten und die für sie verlangten Spans definieren.</p><h3>Spans: Inline-Fakt mit Typ</h3><pre>Der Erwerber ist [Max Muster]{.partei ref=verkaeufer}.</pre><p>Ein Span annotiert sichtbaren Text. Er ersetzt keine Formulierung durch Generierung, sondern lässt das Schema Tatsachen prüfen und erklärte Referenzen auflösen.</p></section>
+<section id="fields"><div class="eyebrow">Ein Leerfeld kann Inhalt sein</div><h2>Bewusste Lücken von fehlenden Angaben unterscheiden.</h2><p>Manche Dokumente müssen eine handschriftlich zu ergänzende Stelle enthalten: Unterschrift, Auswahl oder Ausführungsdatum. Das ist Inhalt in einem bewussten Zustand, nicht ein vergessenes Frontmatter-Feld.</p><pre>Ort und Datum: [________________]{.docc-field key=before_execution}
+
+Unterschrift: [________________]{.docc-field key=signature}</pre><p>Der reservierte <code>docc-field</code>-Span markiert den Unterschied. <code>check</code> kann ein beabsichtigtes Leerfeld akzeptieren, während <code>build</code> Felder zurückweisen kann, die vor der endgültigen Ausgabe auszufüllen sind.</p></section>
+<section id="boundary"><div class="eyebrow">Das Modell bleibt geschlossen</div><h2>Keine zweite Programmiersprache ins Dokument schmuggeln.</h2><p>docc hält das Inhaltsmodell absichtlich klein: Frontmatter, Blöcke, Spans, Felder, Textstruktur und benannte Regeln. Layout gehört zum Theme. Bedingte Vorlagenlogik, Makros und externe Datenmontage sind keine Schreibfunktionen.</p><div class="note"><strong>Der Gewinn ist Lesbarkeit:</strong> Der Text bleibt ein Dokument, Änderungen sind im Diff sichtbar, und der Compiler erhält trotzdem die Struktur, die für verlässliche Prüfungen nötig ist.</div><p>Alle Details stehen im verbindlichen <a href="https://github.com/kevinzehnder/docc/blob/master/docs/authoring.md">Authoring Guide</a> und in der <a href="https://github.com/kevinzehnder/docc/blob/master/docs/schema-reference.md">Schema-Referenz</a>.</p></section>
+</article></div></main><footer><div class="wrap"><span>docc — strukturierte Markdown-Dokumente, kompiliert zu .docx</span><a href="reference.html">Dokumentationskarte</a></div></footer></body></html>

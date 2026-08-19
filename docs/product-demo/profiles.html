@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How docc profile packs keep a document type and its approved rendering together.">
+  <title>Profiles and themes — docc guide</title><link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="wrap site-header"><a class="brand" href="index.html" aria-label="docc product guide">do<i>cc</i></a><nav class="site-nav" aria-label="Primary navigation"><a href="getting-started.html">Start here</a><a href="compiler.html">The compiler</a><a href="authoring.html">Authoring</a><a aria-current="page" href="profiles.html">Profiles</a><a href="de/profiles.html" lang="de">DE</a><a class="button" href="reference.html">Documentation</a></nav></header>
+  <main>
+    <section class="page-hero"><div class="wrap"><div class="eyebrow">Organisation-wide standards</div><h1>Keep the rules and the stationery <em>in the same place.</em></h1><p class="lede">A profile pack contains schemas and themes. It is the versioned, explicit answer to two questions: what counts as a valid document here, and what should that valid document look like?</p></div></section>
+    <div class="wrap docs-layout">
+      <aside class="docs-aside" aria-label="On this page"><strong>ON THIS PAGE</strong><a href="#split">Two responsibilities</a><a href="#pack">Profile pack</a><a href="#select">Selection and locks</a><a href="#inheritance">Inheritance</a><a href="#theme">Theme boundary</a><a href="#start">Start a profile</a></aside>
+      <article class="content">
+        <section id="split"><div class="eyebrow">A clean split</div><h2>A schema says “valid.” A theme says “rendered.”</h2><p>The author’s Markdown should not decide where the recipient address lands, which font a heading uses or whether a first-page header exists. Those are fixed layout decisions. Conversely, a theme should not be the only place that remembers a field is required or that an amount must match another value.</p><div class="table-wrap"><table><thead><tr><th>Schema</th><th>Theme</th></tr></thead><tbody><tr><td><strong>Document contract</strong><br>Types, frontmatter shapes, heading structure, blocks, spans, fields and rules.</td><td><strong>Document appearance</strong><br>Page geometry, styles, letterhead, frames, headers, footers, lists and formatting.</td></tr><tr><td>“A letter has a sender, recipient and subject; postal codes use this form.”</td><td>“The sender appears here; the recipient sits in this envelope window; this is the house font.”</td></tr><tr><td>Validated while checking source.</td><td>Validated against the schema before paragraph rendering begins.</td></tr></tbody></table></div><div class="note"><strong>The practical result:</strong> changing a letterhead does not require touching every letter. Adding a required document fact does not require a Word template scavenger hunt.</div></section>
+        <section id="pack"><div class="eyebrow">The unit of distribution</div><h2>A profile pack is a small Git repository.</h2><p>Profile packs keep schemas and themes together because they describe one organisation’s conventions. A manifest names the directories; the pack can be validated and versioned as a unit.</p><pre>my-docc-profile/
+├── docc-profile.yaml
+├── schemas/
+│   ├── _base.yaml
+│   ├── ch_letter.yaml
+│   └── ch_legal.yaml
+└── themes/
+    ├── _base.yaml
+    └── starter-letter.yaml</pre><p>The built-in starter pack follows the same model. <code>docc init</code> copies it into an editable checkout so a team can begin from a real profile rather than a special-case template.</p><pre><span class="dim"># Copy the built-in starter pack into the current project.</span>
+docc init
+
+<span class="dim"># Or install a Git-managed pack and bind it to this project.</span>
+docc profile use ssh://git.example.ch/kanzlei/docc-profiles.git</pre></section>
+        <section id="select"><div class="eyebrow">No silent fallback</div><h2>Every build can say which profile it used.</h2><p>When a project uses a pack, docc stores a project binding and lockfile. The selected revision—not whatever a remote repository happens to contain today—is what builds the document. Builds do not fetch or update profiles behind the author’s back.</p><pre>docc profile status
+<span class="dim"># Show the resolved source, reference and pinned commit.</span>
+
+docc profile update
+<span class="dim"># Resolve a newer revision; review and commit the lockfile change.</span></pre><p>Resolution follows one shared order for schemas and themes: explicit directory flags, <code>DOCC_PROFILE</code>, a nearest project binding, a pack checkout, the user default, then the built-in starter. A missing or unusable explicit selection is an error, not permission to compile against an unrelated fallback.</p><div class="note"><strong>Provenance is part of output.</strong> The generated document records the profile source and revision that produced it, making the rendering decision inspectable later.</div></section>
+        <section id="inheritance"><div class="eyebrow">Share without copying</div><h2>Extend a base. Override deliberately.</h2><p>Schemas and themes both support <code>extends</code>. The semantics stay aligned: maps merge key-by-key and ordered sequences are replaced wholesale when the child declares them. A child can change a small map entry without accidentally retaining half a parent list.</p><pre><span class="dim"># schemas/ch_letter.yaml</span>
+<span class="key">type</span>: <span class="value">ch_letter</span>
+<span class="key">extends</span>: <span class="value">base</span>
+<span class="key">theme</span>: <span class="value">starter-letter</span>
+<span class="key">frontmatter</span>:
+  <span class="key">subject</span>:
+    <span class="key">type</span>: <span class="value">string</span>
+    <span class="key">required</span>: <span class="value">true</span></pre><p>Names beginning with <code>_</code> are fragments: they can be extended but cannot be selected as a document type or theme. This gives a pack a place for shared defaults without exposing an incomplete profile as an authoring option.</p></section>
+        <section id="theme"><div class="eyebrow">Render after validation</div><h2>The theme gets the last word on layout—after it proves it can render the type.</h2><p>Before any paragraph is built, docc validates the fit between the schema and the theme: declared styles, interpolated fields and render-rule definitions must all resolve. This fails early instead of yielding a mostly-rendered Word document with a mysterious visual gap.</p><p>The writer creates the <code>.docx</code> archive directly, with no Word or template file in the rendering loop. It supports document furniture such as headers, footers, tables, images and positioned frames—the pieces a serious letterhead needs—while keeping their definitions in the profile rather than the source document.</p></section>
+        <section id="start"><div class="eyebrow">Choose the smallest next move</div><h2>Begin with the starter; make a pack when you own a standard.</h2><div class="steps"><div class="step-row"><p><strong>Just writing a letter?</strong> Use the built-in example and theme. No profile setup is required to learn the workflow.</p></div><div class="step-row"><p><strong>Adapting one office’s output?</strong> Run <code>docc init</code>, edit the copied starter pack and keep it with that project.</p></div><div class="step-row"><p><strong>Sharing a maintained convention?</strong> Put the pack in Git, install it with <code>docc profile use</code> and commit the project lockfile.</p></div></div><p>Use the canonical <a href="https://github.com/kevinzehnder/docc/blob/master/docs/profile-packs.md">profile packs</a>, <a href="https://github.com/kevinzehnder/docc/blob/master/docs/building-profiles.md">building profiles</a> and <a href="https://github.com/kevinzehnder/docc/blob/master/docs/theme-reference.md">theme reference</a> documentation when you are ready to build a real pack.</p></section>
+      </article>
+    </div>
+  </main>
+  <footer><div class="wrap"><span>docc — structured Markdown documents, compiled to .docx</span><a href="reference.html">Complete documentation map</a></div></footer>
+</body>
+</html>

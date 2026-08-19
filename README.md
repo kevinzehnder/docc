@@ -3,164 +3,180 @@
   <img src="docs/img/banner.svg" alt="docc" width="410">
 </picture>
 
-`docc` compiles Markdown into Word documents, and refuses to compile the ones
-that don't match their document type.
+# Documents that pass a check before they become Word files
+
+> **Markdown in → document contract verified → `.docx` out**
+
+`docc` is a deterministic compiler for structured Markdown documents. Write the
+letter, filing or deed as readable prose. `docc` verifies its structure, facts
+and declared rules before it renders the Word document people actually use.
 
 [![go](https://img.shields.io/badge/go-1.25-00ADD8?logo=go&logoColor=white)](go.mod)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-## Description
+**[Start with a checked letter](https://kevinzehnder.github.io/docc/getting-started.html)** ·
+**[Read the product guide](https://kevinzehnder.github.io/docc/)** ·
+**[Produktleitfaden auf Deutsch](https://kevinzehnder.github.io/docc/de/)**
 
-I work on paper. Deeds, contracts, letters to authorities, filings. They get
-printed, signed, filed. `.docx` is not a preference, it is what the office runs
-on: the shared drive, my coworkers, everyone I hand a draft to. Word is how you
-make one, and Word checks nothing. A template is a starting point, not a
-contract. It will print `[Name]` in the middle of a deed, or a purchase price
-the payments don't add up to.
+---
 
-Drafting in Markdown and converting doesn't help. The conversion is never quite
-right, so you fix it in Word, and now the Word file is the real document. A
-template engine stops the drift but takes the document away from you: the prose
-ends up split between a data file and a form with holes in it, and what I need to
-do with a draft is read it.
+## A file that opens is not a document you can trust
 
-Then models got good enough to draft, and the hard part moved. Writing is fast;
-getting a specific, correct output is not. "Parties in this order, amounts
-spelled out under the figures, the retention clause, the certification on its
-own page" is a hundred small constraints, and a model will satisfy ninety-eight
-of them. Re-reading every section to find the other two gives back what it
-saved. Instructions in a prompt are a request. I wanted a check.
+Word accepts almost anything: a recipient address without a postal code, a
+literal `[Name]`, a heading in the wrong place, a case reference in the wrong
+form. A template is only a starting point; it cannot prove that the document
+now meets its requirements.
 
-So the constraints live in a schema, not the prompt, and the document stays
-prose. `docc` is a CLI, which means the model can run it: draft, compile, read
-the errors, fix, and repeat until it compiles.
+The usual alternatives lose something important:
 
-```
+- drafting in Markdown and converting drifts back into manual Word repair;
+- template systems split prose into a data file and a form with holes;
+- a prompt can request a constraint, but it cannot check that the constraint
+  survived the draft.
+
+`docc` keeps the authored document readable and moves the requirements into a
+schema. It is a CLI, so a person, CI job, editor or drafting agent can run the
+same loop: write, compile, read the diagnostics, correct the source, repeat.
+
+```text
 docs/klage_mueller.md:14:13: error[DOC010]: field `case_ref` has malformed value "ZG2026000"
    |
 14 |   case_ref: "ZG2026000"
    |             ^^^^^^^^^^^ court reference in the form AA.YYYY.NNN, e.g. "ZG.2026.000"
 ```
 
-Markdown and YAML go in, a `.docx` comes out, and nothing renders until the
-document satisfies its type.
+## The compiler contract
 
-## How it works
+| Input | The compiler verifies | Output |
+|---|---|---|
+| **Markdown source** | The document marker, selected type, frontmatter values, body structure, semantic markup and named rules | **A `.docx` only after validation passes** |
+| **Schema** | Required fields, types, patterns, headings, blocks, spans, intentional blanks and document-specific checks | Diagnostics with stable codes, source positions and hints |
+| **Theme** | That the schema’s styles, references and values can actually be rendered | Approved layout: letterhead, fonts, margins, lists, headers and footers |
 
-**The document type is a schema.** Every document declares its type in the
-frontmatter. The schema for that type says which fields are required, what the
-body must contain, which blocks and spans are allowed, and which rules hold
-across fields, that the payments settle the price, for instance. All the checks
-run in one pass, so fixing one error at a time doesn't mean running the compiler
-ten times. Every diagnostic has a source position and a hint; one that says what
-is wrong but not what to do is treated as a bug.
+This is the boundary that matters: `docc` compiles authored documents. It does
+not invent missing facts, host a service, operate a template language or hide
+your prose in a database.
 
-```bash
-docc describe ch_letter      # what the type actually requires
-docc check --json brief.md   # machine-readable, for CI or an agent
-docc read brief.md           # what the document states, as JSON — spans, fields, blanks
-docc lsp                     # the same checks in the editor, while typing
+```text
+Markdown + YAML
+      ↓ parse
+Document structure
+      ↓ verify against the schema
+Checked document
+      ↓ render through the theme
+Deterministic .docx
 ```
 
-**The source is Markdown.** Ordinary Markdown with YAML frontmatter, no macros,
-no XML, no special editor. It diffs, so I can review a change to a document the
-way I review a change to code. It also means a language model can draft one
-without being taught a format first.
+A successful build means more than “Word could open the file.” It means the
+source satisfied the document type and the selected profile could render it.
 
-**It writes the `.docx` itself.** No Word, no template file, no LibreOffice in
-the loop. The writer builds the archive with the Go standard library and nothing
-else, so there's no template to keep in sync and no inherited corruption. Output
-is deterministic, the same input gives a byte-identical file on my laptop and
-on a CI runner, which is the only reason diffing a document is worth anything.
-
-**Layout lives in a theme.** Letterhead, fonts, margins, numbering, signature
-blocks: all in the theme, none in the document. An author can't override the
-house style by accident, because the document never contains it.
-
-**Schemas and themes live in one repository.** A *profile pack* is a Git repo
-holding both. Projects pin it with a lockfile, so a build is reproducible and
-works offline, and every rendered file records which profile and commit produced
-it. Changing an address or a font is one edit in one place. Optionally, installs
-can be made to require a signature from a key you named. A generic starter pack
-is embedded in the binary, so an unconfigured docc works out of the box.
-
-## Quick start
+## Start with one letter
 
 ```bash
 go install github.com/kevinzehnder/docc/cmd/docc@latest
 
-docc init                    # copy the built-in starter pack here, ready to edit
-docc types                   # what document types exist
+# The built-in starter profile is ready to use.
+docc types
 docc example ch_letter > brief.md
-docc check brief.md          # validate, with positions and hints
-docc build brief.md          # → brief.docx
+
+# Inspect the contract; then edit the readable source file.
+docc describe ch_letter
+docc check brief.md
+
+# Build validates first, then writes brief.docx.
+docc build brief.md
 ```
 
-If you already have a profile pack, bind it instead of running `init`:
+The example is ordinary Markdown with YAML frontmatter:
+
+```yaml
+---
+docc: 1
+document_type: ch_letter
+subject: Mahnung — Rechnung 2026-114
+recipient:
+  name: Clara Muster
+  postal_code: "3000"
+---
+
+Sehr geehrte Frau Muster
+```
+
+If your organisation already has a profile pack, bind it explicitly instead of
+initialising the starter:
 
 ```bash
 docc profile use ssh://git.example.ch/kanzlei/docc-profiles.git
 docc build brief.md
 ```
 
-A file becomes a docc document by declaring the marker in its frontmatter:
+## Why the source stays readable
 
-```yaml
----
-docc: 1          # the docc format version, this is what makes it a docc file
-document_type: ch_legal
----
-```
+**The document remains prose.** Standard Markdown covers paragraphs, headings,
+lists and quotations. YAML frontmatter holds facts such as sender, recipient,
+date and subject. The file stays reviewable in a diff and editable in any text
+editor.
 
-Files without the marker are not docc documents. READMEs, notes, Hugo or
-Obsidian posts with their own frontmatter: `docc check` reports `DOC024` for
-them, and the language server stays quiet.
+**Structure is added only when it has meaning.** A schema may declare semantic
+`:::blocks`, inline `[spans]{.type}` and intentional `docc-field` blanks for a
+document that needs them. The author still sees the words; the compiler gains
+the facts it must check.
 
-## Documentation
+**Layout lives in a theme.** An author never nudges an address window or repairs
+a footer in an old copy of a Word file. The theme owns stationery and rendering;
+the schema owns validity; the document owns its content.
+
+**The result is repeatable.** `docc` writes the `.docx` archive itself—no Word,
+template file or LibreOffice in the rendering loop. Identical source, schema and
+theme produce byte-identical output. Each rendered file records the profile and
+revision that produced it.
+
+## Explore the system
+
+| Start here | Go deeper |
+|---|---|
+| [Write a checked letter](https://kevinzehnder.github.io/docc/getting-started.html) | [How the compiler verifies documents](https://kevinzehnder.github.io/docc/compiler.html) |
+| [Author structured Markdown](https://kevinzehnder.github.io/docc/authoring.html) | [Profiles, schemas and themes](https://kevinzehnder.github.io/docc/profiles.html) |
+| [Product documentation map](https://kevinzehnder.github.io/docc/reference.html) | [Deutscher Produktleitfaden](https://kevinzehnder.github.io/docc/de/) |
+
+## Canonical documentation
 
 | | |
 |---|---|
-| [Philosophy](docs/philosophy.md) | What docc is, what it refuses to be, and where it is going |
-| [Quick reference](docs/cli.md) | Every command, its flags, exit codes, the JSON contract |
-| [Authoring guide](docs/authoring.md) | The narrative: document types, blocks, spans, body rules |
-| [Schema reference](docs/schema-reference.md) | Every key a document type may declare |
-| [Theme reference](docs/theme-reference.md) | How a theme works, and every key it may set |
-| [Profile packs](docs/profile-packs.md) | Git-managed schemas and themes, trust policy, provenance |
-| [Building profiles](docs/building-profiles.md) | Deriving a profile from an existing Word document |
-| [Projects](docs/projects.md) | Configuration layout and discovery |
-| [Editor integration](docs/editors.md) | Language server setup |
-| [Development](docs/development.md) | Building, testing, and the `.docx` writer's rules |
+| [Philosophy](docs/philosophy.md) | Product identity, non-goals and the deliberate scope boundary |
+| [Quick reference](docs/cli.md) | Every command, flag, exit code and JSON contract |
+| [Authoring guide](docs/authoring.md) | Document types, Markdown, blocks, spans and fields |
+| [Schema reference](docs/schema-reference.md) | Every schema key and validation option |
+| [Theme reference](docs/theme-reference.md) | Theme layout, styles and rendering definitions |
+| [Profile packs](docs/profile-packs.md) | Git-managed schemas and themes, locks and provenance |
+| [Building profiles](docs/building-profiles.md) | Deriving an approved profile from an existing document standard |
+| [Projects](docs/projects.md) | Configuration layout and profile discovery |
+| [Editor integration](docs/editors.md) | Language-server setup and in-editor diagnostics |
+| [Development](docs/development.md) | Tests, golden output and `.docx` writer rules |
 
 ## Status
 
-Pre-1.0, and written for my own work. I use it daily on real documents, which
-is the only testing it has had beyond its own suite. There is no company behind
-it and no roadmap beyond what I need next; it's public because that is easier
-than keeping it in a folder.
+Pre-1.0 and written for real document work. Working: `check`, `build`,
+`doctor`, `lsp`, `init`, `describe`, `example`, `explain`, the `.docx` writer,
+schema and theme inheritance, profile packs with lockfiles and optional
+signature policy, the embedded starter pack, and provenance stamped into every
+output.
 
-Working: `check`, `build`, `doctor`, `lsp`, `init`, `describe`, `example`,
-`explain`, the `.docx` writer, schema and theme inheritance, profile packs with
-lockfiles and an optional signature policy, an embedded starter pack, and
-provenance stamped into every output.
-
-`.docx` is the supported output; `--to pdf` is a convenience export that shells
-out to LibreOffice. Diagnostic codes are stable and won't be renumbered.
-Everything else may still move.
-
-Scope and planned work are in [docs/philosophy.md](docs/philosophy.md).
-Issues and patches are welcome, but I make no promises about response time.
+`.docx` is the supported output. `--to pdf` is a convenience export that shells
+out to LibreOffice. Diagnostic codes are stable and will not be renumbered;
+everything else may still move. Scope and planned work live in
+[docs/philosophy.md](docs/philosophy.md).
 
 ## Contributing
 
 ```bash
-task                      # the full CI chain: format, vet, lint, test, build
+task                      # full CI: format, vet, lint, test, build
 task test:golden:update   # after reviewing a golden diff, never before
 ```
 
-`testdata/` is the regression suite. A change to a message is supposed to fail
-the golden tests; read the diff first, because that is the check working.
-[CLAUDE.md](CLAUDE.md) documents the conventions the codebase holds itself to,
-and [docs/development.md](docs/development.md) the rest.
+`testdata/` is the regression suite. A changed message is supposed to fail the
+golden tests; read the diff first. [CLAUDE.md](CLAUDE.md) documents the project
+conventions and [docs/development.md](docs/development.md) the rest.
 
 ## License
 

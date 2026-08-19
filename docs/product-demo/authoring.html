@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Author readable, structured Markdown documents with docc.">
+  <title>Authoring structured Markdown — docc guide</title><link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="wrap site-header"><a class="brand" href="index.html" aria-label="docc product guide">do<i>cc</i></a><nav class="site-nav" aria-label="Primary navigation"><a href="getting-started.html">Start here</a><a href="compiler.html">The compiler</a><a aria-current="page" href="authoring.html">Authoring</a><a href="profiles.html">Profiles</a><a href="de/authoring.html" lang="de">DE</a><a class="button" href="reference.html">Documentation</a></nav></header>
+  <main>
+    <section class="page-hero"><div class="wrap"><div class="eyebrow">The authoring model</div><h1>Markdown that still <em>means something.</em></h1><p class="lede">The document remains readable prose. When plain Markdown cannot state an important document fact, docc adds a small, declared vocabulary: frontmatter, semantic blocks, spans and intentional fields.</p></div></section>
+    <div class="wrap docs-layout">
+      <aside class="docs-aside" aria-label="On this page"><strong>ON THIS PAGE</strong><a href="#file">The source file</a><a href="#frontmatter">Frontmatter</a><a href="#body">Body structure</a><a href="#semantics">Blocks and spans</a><a href="#fields">Intentional blanks</a><a href="#limits">Authoring boundary</a></aside>
+      <article class="content">
+        <section id="file"><div class="eyebrow">One source of truth</div><h2>The file is a document, not a form plus a data file.</h2><p>A docc source file is ordinary Markdown preceded by YAML frontmatter. You can read it from top to bottom, edit it in any text editor, compare it in a diff and hand it to an author without teaching a template language.</p><pre><span class="dim">---</span>
+<span class="key">docc</span>: <span class="value">1</span>
+<span class="key">document_type</span>: <span class="value">ch_letter</span>
+<span class="key">subject</span>: <span class="value">Mahnung — Rechnung 2026-114</span>
+<span class="dim">---</span>
+
+<span class="md">Sehr geehrte Frau Muster</span>
+
+Wir vertreten die Muster Handels AG in der oben genannten Angelegenheit.
+
+<span class="md"># Aufforderung</span>
+
+Wir fordern Sie hiermit auf:</pre><p>The marker is intentional. Files without <code>docc: 1</code> are not docc documents, so ordinary notes, READMEs or files from another Markdown tool are not accidentally treated as compiler input.</p></section>
+        <section id="frontmatter"><div class="eyebrow">Document facts</div><h2>Put facts in frontmatter when they are facts, not prose.</h2><p>The schema for the chosen document type declares the allowed frontmatter keys. Values can be strings, integers, booleans, dates, enums, lists and named compound types such as a sender or recipient address.</p><pre><span class="key">sent</span>: <span class="value">2026-08-05</span>
+<span class="key">registered</span>: <span class="value">true</span>
+<span class="key">sender</span>:
+  <span class="key">name</span>: <span class="value">Muster &amp; Partner</span>
+  <span class="key">uid</span>: <span class="value">CHE-123.456.789</span>
+  <span class="key">street</span>: <span class="value">Musterstrasse 1</span>
+  <span class="key">postal_code</span>: <span class="value">"5000"</span>
+  <span class="key">city</span>: <span class="value">Aarau</span>
+<span class="key">beilagen</span>:
+  - <span class="value">Rechnung Nr. 2026-114</span>
+  - <span class="value">Zahlungserinnerung</span></pre><p>A schema can mark a field required, give it a default, permit an explicit null, constrain it with a pattern or enumerate its acceptable values. That is why a sentence can stay a sentence while the date, address and routing facts remain reliably checkable.</p><div class="note"><strong>Ask, do not guess:</strong> run <code>docc describe &lt;type&gt;</code> before authoring an unfamiliar type. It is the compiler’s own explanation of what the frontmatter and body contract require.</div></section>
+        <section id="body"><div class="eyebrow">Normal Markdown</div><h2>Use headings, lists and paragraphs as you already do.</h2><p>Most documents need no special syntax in their body. The schema maps standard Markdown constructs to named theme styles and may declare a required heading hierarchy where structure matters.</p><pre><span class="md"># Ausgangslage</span>
+
+Unsere Mandantin stellte Ihnen die Rechnung über CHF 8'400.— zu.
+
+<span class="md"># Aufforderung</span>
+
+1. den Betrag bis zum 31. August 2026 zu überweisen;
+2. uns die Zahlung unaufgefordert zu bestätigen.
+
+&gt; Der Schuldner einer Verbindlichkeit wird durch Mahnung des Gläubigers
+&gt; in Verzug gesetzt.</pre><p>A letter type may intentionally have no required body sections. A formal filing can insist on a sequence of headings and conditional subsections. The author sees the structure in the document; the schema decides when its absence is a defect.</p></section>
+        <section id="semantics"><div class="eyebrow">When Markdown alone is not enough</div><h2>Mark document semantics without hiding the wording.</h2><p>There are two extensions for facts that plain Markdown cannot express. Both remain visible in source and both exist only when the schema declares their meaning.</p><h3>Blocks: a structural region with attributes</h3><pre><span class="dim">::: partei {#verkaeufer kind=person role=veraeusserer}</span>
+Herr [Max Muster]{.name}, geboren am
+[12. April 1975]{.geburtsdatum}, wohnhaft an der
+[Musterstrasse 10, 5400 Baden]{.adresse}
+<span class="dim">:::</span></pre><p>A block is a <code>:::name</code> region. Attributes are <code>{#id key=value}</code>; the schema can use a discriminator such as <code>kind</code> to select a permitted variant and state the spans that variant requires.</p><h3>Spans: an inline, typed fact</h3><pre>Der Erwerber ist [Max Muster]{.partei ref=verkaeufer}.</pre><p>A span annotates literal text inline. It never replaces the author’s words with generated language; it lets a schema validate the fact, resolve a declared reference or apply a style according to the document type.</p></section>
+        <section id="fields"><div class="eyebrow">A blank can be content</div><h2>Keep intentional blanks distinct from missing information.</h2><p>Sometimes a document must be compiled with a line left to complete by hand: a signature, a handwritten selection or an amount set at execution. That is content with a deliberate state, not a forgotten frontmatter value.</p><pre>Ort und Datum: [________________]{.docc-field key=before_execution}
+
+Unterschrift: [________________]{.docc-field key=signature}</pre><p>The reserved <code>docc-field</code> span marks that difference. A schema can constrain its permitted keys; <code>check</code> can accept an intentional blank while <code>build</code> can deliberately reject fields that must be completed before a final output exists.</p></section>
+        <section id="limits"><div class="eyebrow">Keep the model closed</div><h2>Do not smuggle a second programming language into the document.</h2><p>docc’s content model is intentionally narrow. Schemas describe document behavior through frontmatter, blocks, spans, fields, body structure and named rules. Layout belongs to a theme. Conditional template logic, a macro language and external data assembly are not authoring features.</p><div class="note"><strong>The payoff is legibility:</strong> an author reads the source as a document, a reviewer can see what changed, and the compiler still has enough structured information to verify the requirements that matter.</div><p>For every accepted key and syntax detail, use the canonical <a href="https://github.com/kevinzehnder/docc/blob/master/docs/authoring.md">authoring guide</a> and <a href="https://github.com/kevinzehnder/docc/blob/master/docs/schema-reference.md">schema reference</a>.</p></section>
+      </article>
+    </div>
+  </main>
+  <footer><div class="wrap"><span>docc — structured Markdown documents, compiled to .docx</span><a href="reference.html">Complete documentation map</a></div></footer>
+</body>
+</html>

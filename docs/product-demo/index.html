@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="docc is a deterministic compiler for structured Markdown documents.">
+  <title>docc — document certainty, without document busywork</title>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="wrap site-header">
+    <a class="brand" href="index.html" aria-label="docc product guide">do<i>cc</i></a>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="getting-started.html">Start here</a>
+      <a href="compiler.html">The compiler</a>
+      <a href="authoring.html">Authoring</a>
+      <a href="profiles.html">Profiles</a>
+      <a href="de/index.html" lang="de">DE</a>
+      <a class="button" href="reference.html">Documentation</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">Structured documents, compiled</div>
+          <h1>Write the document.<br><em>Verify the rest.</em></h1>
+          <p class="lede">docc is a deterministic compiler for structured Markdown documents. It verifies what a document must contain before it creates the Word file people actually use.</p>
+          <div class="hero-actions">
+            <a class="button" href="getting-started.html">Make a checked letter</a>
+            <span class="hero-note">Markdown in · contract verified · .docx out</span>
+          </div>
+        </div>
+        <div class="shot" aria-label="Illustrated terminal showing docc compile a checked letter">
+          <div class="bar"><span class="dots"><b></b><b></b><b></b></span>~/matter · zsh</div>
+          <div class="terminal">
+            <div><span class="prompt">$</span> <span class="command">docc check mahnung.md</span></div>
+            <div class="soft">checking ch_letter against starter-letter…</div>
+            <div class="ok">✓ structure matches the document type</div>
+            <div class="ok">✓ required values satisfy the schema</div>
+            <div class="ok">✓ letter rules passed</div>
+            <br>
+            <div><span class="prompt">$</span> <span class="command">docc build mahnung.md</span></div>
+            <div class="soft">validating before rendering…</div>
+            <div class="ok">✓ mahnung.docx</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap">
+        <div class="section-heading">
+          <div class="eyebrow">Why a compiler?</div>
+          <h2>A file that opens is not a document you can trust.</h2>
+          <p>Word will render almost anything. A document compiler makes the requirements explicit, checks them in one pass, and refuses to render a document that breaks its contract.</p>
+        </div>
+        <div class="grid-3">
+          <article class="card"><div class="number">01 / AUTHOR</div><h3>Keep the source readable</h3><p>Draft in Markdown: ordinary paragraphs, headings and lists, with YAML for the facts that belong in a letter.</p></article>
+          <article class="card"><div class="number">02 / VERIFY</div><h3>Make requirements checkable</h3><p>A schema declares the fields, structure and rules. docc points at every issue with a source location and a useful hint.</p></article>
+          <article class="card"><div class="number">03 / BUILD</div><h3>Keep layout out of prose</h3><p>A theme owns the stationery, styles and furniture. A valid source builds to a deterministic .docx with that chosen layout.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap" style="padding:94px 0">
+      <div class="section-heading">
+        <div class="eyebrow">The whole system</div>
+        <h2>One small pipeline. Clear responsibility at every step.</h2>
+      </div>
+      <div class="pipeline" aria-label="docc document compilation pipeline">
+        <div><b>01 / SOURCE</b><strong>Markdown</strong><small>Readable prose and frontmatter, in one diffable file.</small></div>
+        <div><b>02 / PARSE</b><strong>Structure</strong><small>Headings, blocks, spans and fields are understood as document parts.</small></div>
+        <div><b>03 / VERIFY</b><strong>Schema</strong><small>Required facts, ordering and document-specific rules are checked together.</small></div>
+        <div><b>04 / EMIT</b><strong>Theme → .docx</strong><small>Validated content meets fixed layout, with repeatable output.</small></div>
+      </div>
+      <div class="note"><strong>The important boundary:</strong> docc does not invent content, operate a template editor or hide your prose in a database. It compiles an authored document and gates rendering on validation.</div>
+    </section>
+
+    <section class="wrap" style="padding:0 0 94px">
+      <div class="section-heading">
+        <div class="eyebrow">A guide for the work</div>
+        <h2>Start with one letter. Understand the system when you need it.</h2>
+      </div>
+      <div class="link-grid">
+        <a class="link-card" href="getting-started.html"><b>01 / WALKTHROUGH</b><strong>Write a letter</strong><span>Start from a document type, check it and build the .docx.</span></a>
+        <a class="link-card" href="compiler.html"><b>02 / CONCEPT</b><strong>The compiler contract</strong><span>See exactly what is checked and why successful builds matter.</span></a>
+        <a class="link-card" href="authoring.html"><b>03 / AUTHORING</b><strong>Write structured Markdown</strong><span>Frontmatter, body structure, semantic blocks, spans and blanks.</span></a>
+        <a class="link-card" href="profiles.html"><b>04 / PROFILES</b><strong>Own your standards</strong><span>Keep schemas and themes together, versioned and selected explicitly.</span></a>
+        <a class="link-card" href="reference.html"><b>05 / REFERENCE</b><strong>Find the command</strong><span>A task-oriented map to the CLI and the complete project documentation.</span></a>
+        <a class="link-card" href="https://github.com/kevinzehnder/docc#readme"><b>06 / PROJECT</b><strong>Read the README</strong><span>Installation, source repository and the canonical overview.</span></a>
+      </div>
+    </section>
+
+    <section class="callout">
+      <div class="wrap callout-grid">
+        <div><div class="eyebrow">The practical result</div><h2>Spend the last five minutes on the letter—not on avoiding document accidents.</h2></div>
+        <div>
+          <p>Use the editor you already use. Let the compiler check the things a professional document cannot leave to memory.</p>
+          <div class="checklist"><div><b>✓</b>the document type is explicit</div><div><b>✓</b>required facts are present and well-formed</div><div><b>✓</b>the layout comes from the approved profile</div></div>
+          <p style="margin-top:25px"><a class="button dark" href="getting-started.html">Start the letter walkthrough</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="wrap"><span>docc — structured Markdown documents, compiled to .docx</span><a href="https://github.com/kevinzehnder/docc#readme">Project README</a></div></footer>
+</body>
+</html>
