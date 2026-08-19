@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/banner-dark.svg">
-  <img src="docs/img/banner.svg" alt="docc" width="410">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/banner-product-dark.svg">
+  <img src="docs/img/banner-product.svg" alt="docc — structured documents, compiled" width="520">
 </picture>
 
 # Documents that pass a check before they become Word files
