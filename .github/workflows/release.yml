@@ -11,6 +11,11 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # A stalled package mirror once held this job for the full six-hour default,
+    # and the publish step was skipped when the runner finally killed it. The
+    # release simply had no assets, with nothing red to look at. Every limit
+    # below exists to turn that silence into a failed run.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,15 +27,26 @@ jobs:
           go-version-file: go.mod
 
       - name: test
+        timeout-minutes: 10
         run: go test ./...
 
       # The release gate for the writer: unit tests check XML structure, but
       # only a real renderer proves the file opens. LibreOffice also backs the
       # optional `docc build --to pdf` path.
       - name: roundtrip through LibreOffice
+        # apt is given up on rather than waited out: without these it blocks on
+        # an unreachable mirror indefinitely, which is how v0.10.0 shipped with
+        # no binaries. The test itself bounds soffice at 90s, so the only
+        # unbounded part of this step was fetching the package.
+        timeout-minutes: 15
+        env:
+          APT_OPTS: >-
+            -o Acquire::Retries=3
+            -o Acquire::http::Timeout=20
+            -o Acquire::https::Timeout=20
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libreoffice-writer
+          sudo apt-get $APT_OPTS update
+          sudo apt-get $APT_OPTS install -y --no-install-recommends libreoffice-writer
           go test -tags roundtrip -run LibreOffice ./internal/docx/ -v
 
       # goreleaser is the only job that creates the release: it builds every
@@ -38,6 +54,7 @@ jobs:
       # on the same tag, whichever lost the race took the other's assets down
       # with it.
       - uses: goreleaser/goreleaser-action@v6
+        timeout-minutes: 20
         with:
           version: "~> v2"
           args: release --clean
