@@ -257,7 +257,7 @@ func describe(sc *schema.Schema, rendered map[string][]string) describedType {
 		s := sc.Spans[name]
 		d.Spans = append(d.Spans, describedSpan{
 			Name: name, Description: s.Description, Required: s.Required,
-			Syntax: fmt.Sprintf("[literal text]{.%s key=<key>}", name),
+			Syntax: fmt.Sprintf("[literal text]{.%s}", name),
 		})
 	}
 	for _, name := range sortedKeys(sc.Blanks) {
