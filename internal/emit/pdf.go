@@ -1,8 +1,10 @@
 package emit
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -49,17 +51,9 @@ func ToPDF(docxPath, pdfPath string, opts PDFOptions) error {
 
 	var lastErr error
 	for attempt := range attempts {
-		err := convertOnce(binary, docxPath, outDir, timeout, opts.Verbose)
+		err := convertOnce(binary, docxPath, pdfPath, timeout, opts.Verbose)
 		if err == nil {
-			// soffice names the output after the input, which is not
-			// necessarily what the caller asked for.
-			produced := filepath.Join(outDir, replaceExt(filepath.Base(docxPath), ".pdf"))
-			if produced != pdfPath {
-				if err := os.Rename(produced, pdfPath); err != nil {
-					return fmt.Errorf("move converted PDF: %w", err)
-				}
-			}
-			return verifyPDF(pdfPath)
+			return nil
 		}
 		lastErr = err
 		if attempt < attempts-1 {
@@ -69,15 +63,19 @@ func ToPDF(docxPath, pdfPath string, opts PDFOptions) error {
 	return fmt.Errorf("PDF conversion failed after %d attempt(s): %w", attempts, lastErr)
 }
 
-func convertOnce(binary, docxPath, outDir string, timeout time.Duration, verbose bool) error {
+func convertOnce(binary, docxPath, pdfPath string, timeout time.Duration, verbose bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	profile, err := os.MkdirTemp("", "docc-soffice-")
+	// Keep both LibreOffice's profile and its fixed-name output private. Writing
+	// into the destination directory used to let a stale or concurrent doc.pdf
+	// satisfy the existence check and then get moved over the requested output.
+	workDir, err := os.MkdirTemp(filepath.Dir(pdfPath), ".docc-pdf-*")
 	if err != nil {
 		return err
 	}
-	defer func() { _ = os.RemoveAll(profile) }()
+	defer func() { _ = os.RemoveAll(workDir) }()
+	profile := filepath.Join(workDir, "profile")
 
 	// The binary comes from exec.LookPath and the paths are the caller's own
 	// arguments; there is no shell involved, so no interpolation to escape.
@@ -86,7 +84,7 @@ func convertOnce(binary, docxPath, outDir string, timeout time.Duration, verbose
 		"--headless",
 		"--norestore",
 		"--convert-to", "pdf",
-		"--outdir", outDir,
+		"--outdir", workDir,
 		docxPath,
 	)
 	out, err := cmd.CombinedOutput()
@@ -101,13 +99,15 @@ func convertOnce(binary, docxPath, outDir string, timeout time.Duration, verbose
 	}
 
 	// An exit code of 0 proves nothing; check that a file appeared.
-	produced := filepath.Join(outDir, replaceExt(filepath.Base(docxPath), ".pdf"))
-	info, statErr := os.Stat(produced)
-	if statErr != nil {
+	produced := filepath.Join(workDir, replaceExt(filepath.Base(docxPath), ".pdf"))
+	if _, statErr := os.Stat(produced); statErr != nil {
 		return fmt.Errorf("soffice exited 0 but produced no PDF\n%s", strings.TrimSpace(string(out)))
 	}
-	if info.Size() == 0 {
-		return fmt.Errorf("soffice produced an empty PDF")
+	if err := verifyPDF(produced); err != nil {
+		return err
+	}
+	if err := os.Rename(produced, pdfPath); err != nil {
+		return fmt.Errorf("move converted PDF: %w", err)
 	}
 	return nil
 }
@@ -120,10 +120,21 @@ func verifyPDF(path string) error {
 	}
 	defer func() { _ = f.Close() }()
 
-	head := make([]byte, 5)
-	n, err := f.Read(head)
-	if err != nil || n < 5 || string(head) != "%PDF-" {
+	info, err := f.Stat()
+	if err != nil || info.Size() < 5 {
 		return fmt.Errorf("%s is not a valid PDF", path)
+	}
+	head := make([]byte, 5)
+	if _, err := io.ReadFull(f, head); err != nil || string(head) != "%PDF-" {
+		return fmt.Errorf("%s is not a valid PDF", path)
+	}
+	tailSize := min(info.Size(), int64(1024))
+	if _, err := f.Seek(-tailSize, io.SeekEnd); err != nil {
+		return err
+	}
+	tail := make([]byte, tailSize)
+	if _, err := io.ReadFull(f, tail); err != nil || !bytes.Contains(tail, []byte("%%EOF")) {
+		return fmt.Errorf("%s is not a complete PDF", path)
 	}
 	return nil
 }

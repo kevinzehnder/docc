@@ -1732,11 +1732,11 @@ func furnitureRuns(text string, props docx.RunProps) []docx.Run {
 }
 
 func (e *emitter) image(img theme.Image) (*docx.Drawing, error) {
-	path := img.Path
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(e.opts.ThemeDir, path)
+	path, err := themeImagePath(e.opts.ThemeDir, img.Path)
+	if err != nil {
+		return nil, err
 	}
-	data, err := os.ReadFile(path) //nolint:gosec // path comes from the project's own theme
+	data, err := os.ReadFile(path) //nolint:gosec // resolved inside the selected theme directory
 	if err != nil {
 		return nil, fmt.Errorf("theme image: %w", err)
 	}
@@ -1750,6 +1750,35 @@ func (e *emitter) image(img theme.Image) (*docx.Drawing, error) {
 		name = filepath.Base(path)
 	}
 	return e.out.AddImage(name, data, ext, width, height), nil
+}
+
+func themeImagePath(dir, name string) (string, error) {
+	if dir == "" {
+		return "", errors.New("theme image: theme directory is required")
+	}
+	if name == "" || filepath.IsAbs(name) {
+		return "", fmt.Errorf("theme image path %q must be relative to the theme directory", name)
+	}
+	root, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return "", fmt.Errorf("theme image directory: %w", err)
+	}
+	path, err := filepath.EvalSymlinks(filepath.Join(root, name))
+	if err != nil {
+		return "", fmt.Errorf("theme image: %w", err)
+	}
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("theme image path %q escapes the theme directory", name)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return "", fmt.Errorf("theme image: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("theme image %q is not a regular file", name)
+	}
+	return path, nil
 }
 
 // ---------------------------------------------------------------------------
