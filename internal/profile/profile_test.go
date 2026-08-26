@@ -28,6 +28,21 @@ func TestLoadPackRejectsEscapingPaths(t *testing.T) {
 	}
 }
 
+func TestLoadPackRejectsEscapingSymlink(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(root, "schemas")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(root, "themes"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(t, filepath.Join(root, manifestName), "format: 1\nid: example\nschemas: schemas\nthemes: themes\n")
+	if _, err := LoadPack(root); err == nil || !strings.Contains(err.Error(), "resolves outside the pack") {
+		t.Fatalf("LoadPack error = %v, want symlink escape error", err)
+	}
+}
+
 func TestResolveProjectBinding(t *testing.T) {
 	paths := testPaths(t)
 	ref := installFixturePack(t, paths, "firm", "0123456789abcdef0123456789abcdef01234567")

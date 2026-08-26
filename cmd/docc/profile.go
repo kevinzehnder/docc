@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kevinzehnder/docc/internal/profile"
 	"github.com/kevinzehnder/docc/internal/project"
@@ -45,6 +46,12 @@ is offline unless --check-remote asks Git whether the selected ref has advanced.
 flags:
 `
 )
+
+const profileOperationTimeout = 2 * time.Minute
+
+func profileContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), profileOperationTimeout)
+}
 
 func cmdProfile(args []string) int {
 	if len(args) == 0 {
@@ -89,7 +96,9 @@ func cmdProfileInstall(args []string) int {
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
-	installed, err := profile.Install(context.Background(), paths, fs.Arg(0), *ref, policy)
+	ctx, cancel := profileContext()
+	defer cancel()
+	installed, err := profile.Install(ctx, paths, fs.Arg(0), *ref, policy)
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
@@ -122,7 +131,9 @@ func cmdProfileUse(args []string) int {
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
-	installed, err := profile.Install(context.Background(), paths, fs.Arg(0), *ref, policy)
+	ctx, cancel := profileContext()
+	defer cancel()
+	installed, err := profile.Install(ctx, paths, fs.Arg(0), *ref, policy)
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
@@ -156,8 +167,10 @@ func cmdProfileUpdate(args []string) int {
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
+	ctx, cancel := profileContext()
+	defer cancel()
 	if *projectDir == "" {
-		return updateDefault(paths, policy)
+		return updateDefault(ctx, paths, policy)
 	}
 	proj, err := project.Resolve(*projectDir)
 	if err != nil {
@@ -167,7 +180,7 @@ func cmdProfileUpdate(args []string) int {
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
-	installed, err := profile.Install(context.Background(), paths, binding.Source, binding.Ref, policy)
+	installed, err := profile.Install(ctx, paths, binding.Source, binding.Ref, policy)
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
@@ -178,12 +191,12 @@ func cmdProfileUpdate(args []string) int {
 	return exitOK
 }
 
-func updateDefault(paths profile.Paths, policy profile.Policy) int {
+func updateDefault(ctx context.Context, paths profile.Paths, policy profile.Policy) int {
 	current, err := profile.Default(paths)
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
-	installed, err := profile.Install(context.Background(), paths, current.Source, current.Ref, policy)
+	installed, err := profile.Install(ctx, paths, current.Source, current.Ref, policy)
 	if err != nil {
 		return fail(commonFlags{}, exitConfig, err)
 	}
@@ -221,7 +234,9 @@ func cmdProfileStatus(args []string) int {
 		if resolved.Reference == nil {
 			return failf(commonFlags{jsonOut: *jsonOut}, exitConfig, "the resolved %s configuration has no Git source", resolved.Source)
 		}
-		remote, err = profile.RemoteCommit(context.Background(), resolved.Reference.Source, resolved.Reference.Ref)
+		ctx, cancel := profileContext()
+		defer cancel()
+		remote, err = profile.RemoteCommit(ctx, resolved.Reference.Source, resolved.Reference.Ref)
 		if err != nil {
 			return fail(commonFlags{jsonOut: *jsonOut}, exitConfig, err)
 		}

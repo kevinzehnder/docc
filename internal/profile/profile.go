@@ -102,6 +102,14 @@ type Pack struct {
 
 // LoadPack reads and validates a profile-pack manifest and its declared paths.
 func LoadPack(root string) (*Pack, error) {
+	root, err := filepath.Abs(root)
+	if err != nil {
+		return nil, fmt.Errorf("resolve profile root: %w", err)
+	}
+	root, err = filepath.EvalSymlinks(root)
+	if err != nil {
+		return nil, fmt.Errorf("resolve profile root: %w", err)
+	}
 	path := filepath.Join(root, manifestName)
 	data, err := os.ReadFile(path) //nolint:gosec // root is a selected local pack directory
 	if err != nil {
@@ -128,9 +136,15 @@ func LoadPack(root string) (*Pack, error) {
 		if filepath.IsAbs(value) || value == "." || strings.HasPrefix(filepath.Clean(value), ".."+string(filepath.Separator)) || filepath.Clean(value) == ".." {
 			return nil, fmt.Errorf("%s: %s must be a relative path inside the pack", path, name)
 		}
-		// The path is checked above: relative, and inside a pack root the
-		// caller chose.
-		info, err := os.Stat(filepath.Join(root, value)) //nolint:gosec // validated relative path inside the pack
+		resolved, err := filepath.EvalSymlinks(filepath.Join(root, value))
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s directory: %w", path, name, err)
+		}
+		rel, err := filepath.Rel(root, resolved)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return nil, fmt.Errorf("%s: %s directory resolves outside the pack", path, name)
+		}
+		info, err := os.Stat(resolved) //nolint:gosec // resolved and checked inside the selected pack
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s directory: %w", path, name, err)
 		}
@@ -820,6 +834,9 @@ func gitOutput(ctx context.Context, args ...string) (string, error) {
 	out, err := cmd.CombinedOutput()
 	if err == nil {
 		return string(out), nil
+	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), ctxErr)
 	}
 	text := strings.TrimSpace(string(out))
 	if len(text) > 4096 {

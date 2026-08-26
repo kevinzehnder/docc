@@ -14,7 +14,9 @@ Three commitments follow from it:
 
 - **One thing, done well.** docc compiles authored Markdown. It does not
   ingest, store, template, serve, or converse. Anything upstream of an authored
-  `.md` file or downstream of a built `.docx` is another tool's job.
+  `.md` file or downstream of a built `.docx` is another tool's job, except for
+  comparing an edited copy's visible text with what docc renders. That narrow
+  inspection reports changes; it does not reconstruct or modify Markdown.
 - **Validation gates rendering.** A document that does not satisfy its schema
   does not build (short of `--force`). The value is not the `.docx` — Word can
   make one of those — it is the guarantee that what built was checked.
@@ -67,7 +69,8 @@ Do not add:
   knowledge of the pack that ships it, so skills are built and released by the
   pack repositories that own that knowledge. docc is a compiler an agent may
   invoke; it does not package itself for agents.
-- OCR or document ingestion — that work lives in its own project;
+- OCR, general document ingestion or DOCX-to-Markdown conversion — the narrow
+  `docc diff` text comparison is not an importer;
 - LLM or VLM API clients — agents author Markdown *around* docc, the compiler
   stays model-independent;
 - document storage, databases, collaboration or review workflows;
