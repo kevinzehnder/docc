@@ -15,6 +15,7 @@ docc check docs/klage.md          # validate
 docc check --json docs/*.md       # machine-readable, for agents and CI
 docc check --strict docs/klage.md # warnings become errors
 docc read docs/klage.md           # what the document states, as JSON
+docc diff docs/klage.md review.docx # textual edits made in Word
 docc build docs/klage.md          # validate, then emit a .docx
 docc build --to pdf docs/klage.md # optional compatibility export; needs soffice
 docc lsp                          # serve editor diagnostics over stdio
@@ -84,6 +85,7 @@ It never mixes human-readable status text into that stream.
 |---|---|
 | `check --json` | `{ "ok", "errors", "warnings", "diagnostics" }` |
 | `read` | `{ "ok", "path", "document_type", "frontmatter", "body", "spans", "fields", "errors", "warnings", "diagnostics" }` per file; an array with several files — see below |
+| `diff --json` | `{ "ok", "equal", "source", "against", "changes", "stories": [{ "name", "hunks" }] }` |
 | `build --json` | `{ "ok", "type", "theme", "format", "output" }`; validation diagnostics are a separate JSON object on stderr |
 | `types --json` | `{ "types": [{ "type", "description", "theme" }] }` |
 | `describe --json` | `{ "type", "extends", "theme", "frontmatter", "body", "blocks", "spans", "blanks", "rules", "has_example", "field_map" }` — the full contract, with a `syntax` example per block, span and blank |
@@ -105,6 +107,17 @@ consulted at all; when it is `false`, an empty `rendered` means nothing.
 
 Body headings report `required`, `required_when` (the frontmatter condition that
 makes an otherwise optional section mandatory) and `ordered`.
+
+### `docc diff`
+
+`diff` renders the Markdown through its schema and theme, extracts canonical
+visible text from that baseline and from the edited DOCX, and reports
+paragraph-level changes. It includes the body, headers and footers; run
+boundaries, formatting,
+comments and images are ignored. Tracked changes are read as their final view:
+insertions are included and deletions excluded. Exit `0` means equal and exit `1`
+means differences were found. The command reports changes only; applying them to
+the Markdown remains the author's or calling tool's job.
 
 ### `docc read`
 

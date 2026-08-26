@@ -144,7 +144,7 @@ func TestInitDryRun(t *testing.T) {
 // TestHelpExitsZero: a help request is a successful request. Every subcommand
 // used to collapse flag.ErrHelp into exit 2, which surprises scripts.
 func TestHelpExitsZero(t *testing.T) {
-	for _, cmd := range []string{"check", "build", "init", "doctor", "types", "themes", "describe", "example", "explain", "lsp"} {
+	for _, cmd := range []string{"check", "read", "diff", "build", "init", "doctor", "types", "themes", "describe", "example", "explain", "lsp"} {
 		t.Run(cmd, func(t *testing.T) {
 			var code int
 			out := captureStdout(t, func() { code = run([]string{cmd, "--help"}) })

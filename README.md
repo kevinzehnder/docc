@@ -85,6 +85,9 @@ docc check brief.md
 
 # Build validates first, then writes brief.docx.
 docc build brief.md
+
+# After someone edits the Word file, report its textual changes.
+docc diff brief.md brief-reviewed.docx
 ```
 
 The example is ordinary Markdown with YAML frontmatter:
@@ -156,8 +159,8 @@ revision that produced it.
 
 ## Status
 
-Pre-1.0 and written for real document work. Working: `check`, `build`,
-`doctor`, `lsp`, `init`, `describe`, `example`, `explain`, the `.docx` writer,
+Pre-1.0 and written for real document work. Working: `check`, `read`, `diff`,
+`build`, `doctor`, `lsp`, `init`, `describe`, `example`, `explain`, the `.docx` writer,
 schema and theme inheritance, profile packs with lockfiles and optional
 signature policy, the embedded starter pack, and provenance stamped into every
 output.
