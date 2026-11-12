@@ -163,6 +163,10 @@ type Indent struct {
 	Left, Right Twips
 	FirstLine   Twips
 	Hanging     Twips
+	// ExplicitLeft and ExplicitHanging let an unnumbered list continuation
+	// align with its item's text while cancelling the style's hanging indent.
+	ExplicitLeft    bool
+	ExplicitHanging bool
 }
 
 // FramePr positions a paragraph as a floating frame. This is how the address

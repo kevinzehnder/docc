@@ -114,6 +114,31 @@ tried in that order and only the first takes effect, so mapping two is rejected
 rather than resolved. `docc describe` reports which pattern each block ended up
 with.
 
+### Multiple paragraphs in a list item
+
+Indent continuation paragraphs to the start of the item's text. Keep blank
+lines between them when separate, editable Word paragraphs are intended:
+
+```markdown
+3. Introductory request.
+
+   First continuation paragraph belonging to request 3.
+
+   Second continuation paragraph belonging to request 3.
+
+4. The next request.
+
+   - A nested bullet.
+   - Another nested bullet.
+```
+
+Only the first paragraph receives the item's number. Continuations retain the
+list's paragraph formatting and text indentation, without a number or hanging
+first line. They do not consume a number or acquire a marginal paragraph number.
+Nested bullets use bullet numbering, not the outer ordered list's numbering.
+Do not use spaces in the visible text or forced line breaks to imitate this
+structure: a forced break remains part of one paragraph.
+
 ### What a theme cannot change
 
 Some constructs are formatted by the compiler and reach no style key. A schema

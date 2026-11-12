@@ -191,7 +191,7 @@ func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 	}
 	if ind := p.Indent; ind != (Indent{}) {
 		attrs := []attr{}
-		if ind.Left != 0 {
+		if ind.Left != 0 || ind.ExplicitLeft {
 			attrs = append(attrs, ai("w:left", ind.Left))
 		}
 		if ind.Right != 0 {
@@ -199,7 +199,7 @@ func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 		}
 		// Hanging and firstLine are mutually exclusive in the format; emitting
 		// both makes Word pick one unpredictably.
-		if ind.Hanging != 0 {
+		if ind.Hanging != 0 || ind.ExplicitHanging {
 			attrs = append(attrs, ai("w:hanging", ind.Hanging))
 		} else if ind.FirstLine != 0 {
 			attrs = append(attrs, ai("w:firstLine", ind.FirstLine))

@@ -724,14 +724,22 @@ func (e *emitter) list(l ir.List, out *[]docx.Block, depth int, numName string) 
 		}
 	}
 	numID := e.numID(numName, l)
+	e.listItems(l, out, depth, numID, numName)
+}
 
+func (e *emitter) listItems(l ir.List, out *[]docx.Block, depth, numID int, numName string) {
 	for _, item := range l.Items {
 		first := true
 		for _, b := range item.Blocks {
-			// Nested lists keep the parent's numbering instance and step down a
-			// level; a fresh instance would restart the sub-numbering.
 			if nested, isList := b.(ir.List); isList {
-				e.nestedList(nested, out, depth+1, numID)
+				if nested.Ordered == l.Ordered {
+					// Same-kind sublists share the parent's multilevel definition.
+					e.listItems(nested, out, depth+1, numID, numName)
+				} else {
+					// A bullet list inside an ordered item needs its own bullet
+					// definition, not another level of the decimal list.
+					e.list(nested, out, depth+1, "")
+				}
 				continue
 			}
 
@@ -747,6 +755,16 @@ func (e *emitter) list(l ir.List, out *[]docx.Block, depth int, numName string) 
 					p.Props.Numbering = &docx.NumRef{ID: numID, Level: depth}
 					p.Props.Style = e.listStyle(numName, p.Props.Style)
 					first = false
+				} else if _, prose := b.(ir.Para); prose {
+					// Keep genuine paragraphs inside one item. They retain the
+					// list's text formatting, but neither repeat its label nor
+					// inherit the numbered paragraph's hanging first line.
+					p.Props.Style = e.listStyle(numName, p.Props.Style)
+					p.Props.Numbering = &docx.NumRef{ID: 0}
+					p.Props.Indent = docx.Indent{
+						Left:         e.listTextIndent(numID, depth),
+						ExplicitLeft: true, ExplicitHanging: true,
+					}
 				}
 				*out = append(*out, p)
 			}
@@ -754,30 +772,31 @@ func (e *emitter) list(l ir.List, out *[]docx.Block, depth int, numName string) 
 	}
 }
 
-func (e *emitter) nestedList(l ir.List, out *[]docx.Block, depth int, numID int) {
-	for _, item := range l.Items {
-		first := true
-		for _, b := range item.Blocks {
-			if nested, isList := b.(ir.List); isList {
-				e.nestedList(nested, out, depth+1, numID)
+func (e *emitter) listTextIndent(numID, depth int) docx.Twips {
+	for _, instance := range e.numbering.Instances {
+		if instance.ID != numID {
+			continue
+		}
+		for _, definition := range e.numbering.Abstract {
+			if definition.ID != instance.AbstractID {
 				continue
 			}
-			var buf []docx.Block
-			e.blockTo(b, &buf, depth)
-			for _, blk := range buf {
-				p, isPara := blk.(docx.Paragraph)
-				if !isPara {
-					*out = append(*out, blk)
-					continue
+			for _, level := range definition.Levels {
+				if level.Level == depth {
+					return level.Indent
 				}
-				if first {
-					p.Props.Numbering = &docx.NumRef{ID: numID, Level: depth}
-					first = false
-				}
-				*out = append(*out, p)
 			}
 		}
 	}
+	// Word supports at most nine list levels. Bound the conventional
+	// half-inch fallback just as the theme's default indentation does.
+	if depth < 0 {
+		depth = 0
+	}
+	if depth > 8 {
+		depth = 8
+	}
+	return docx.Twips(720 * (depth + 1))
 }
 
 // listStyle returns the paragraph style for a list, preferring the schema's
