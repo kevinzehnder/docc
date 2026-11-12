@@ -18,6 +18,11 @@ func TestBuildAutomaticHyphenation(t *testing.T) {
 			th := testTheme()
 			th.Defaults.AutoHyphenation = enabled
 			th.Defaults.Lang = "de-CH"
+			if enabled {
+				bodyStyle := th.Styles["Standard"]
+				bodyStyle.SuppressAutoHyphens = ptrTo(false)
+				th.Styles["Standard"] = bodyStyle
+			}
 			source := &ir.Document{Meta: map[string]any{}}
 			built, err := Build(source, testSchema(), th, Options{})
 			if err != nil {
@@ -32,6 +37,15 @@ func TestBuildAutomaticHyphenation(t *testing.T) {
 				t.Errorf("autoHyphenation = %v, want %v", got, enabled)
 			}
 			styles := partOf(t, data, "word/styles.xml")
+			if enabled {
+				// Both the defaults and the body style must explicitly allow it.
+				// Otherwise an application's rewritten default can suppress it.
+				if got := strings.Count(styles, `<w:suppressAutoHyphens w:val="0"/>`); got != 2 {
+					t.Errorf("explicit allow settings = %d, want defaults and body style", got)
+				}
+			} else if strings.Contains(styles, "suppressAutoHyphens") {
+				t.Error("a theme that does not enable hyphenation must be unchanged")
+			}
 			if !strings.Contains(styles, `<w:lang w:val="de-CH"/>`) {
 				t.Error("proofing language did not reach document defaults")
 			}

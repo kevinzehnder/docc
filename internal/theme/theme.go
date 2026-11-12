@@ -154,12 +154,15 @@ type Style struct {
 	// bookmarks. 1 is the top level; omit for body text.
 	OutlineLevel int `yaml:"outline_level"`
 	// KeepNext stops a heading being stranded at the foot of a page.
-	KeepNext          bool   `yaml:"keep_next"`
-	KeepLines         bool   `yaml:"keep_lines"`
-	PageBreakBefore   bool   `yaml:"page_break_before"`
-	ContextualSpacing bool   `yaml:"contextual_spacing"`
-	Shading           string `yaml:"shading"`
-	UIPriority        int    `yaml:"ui_priority"`
+	KeepNext          bool `yaml:"keep_next"`
+	KeepLines         bool `yaml:"keep_lines"`
+	PageBreakBefore   bool `yaml:"page_break_before"`
+	ContextualSpacing bool `yaml:"contextual_spacing"`
+	// SuppressAutoHyphens is nil to inherit, true to suppress, or false to
+	// explicitly allow automatic hyphenation in this paragraph style.
+	SuppressAutoHyphens *bool  `yaml:"suppress_auto_hyphens"`
+	Shading             string `yaml:"shading"`
+	UIPriority          int    `yaml:"ui_priority"`
 }
 
 // Spacing is vertical paragraph spacing.

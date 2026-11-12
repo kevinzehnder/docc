@@ -178,7 +178,7 @@ because a hand-edited theme full of twips is unreadable.
 | `font` | string | — | The document's base font. |
 | `size` | font size | `11pt` | The base size. |
 | `lang` | string | — | The proofing language, e.g. `de-CH`. Worth setting: Word otherwise spell-checks a German brief against the machine's locale. |
-| `auto_hyphenation` | bool | `false` | Enables document-wide automatic hyphenation (`w:autoHyphenation` in `word/settings.xml`). Set `lang` for the renderer's language-specific dictionary; Word and LibreOffice may choose different breaks. No hyphens are inserted into source text. Inherited by child themes; explicit `false` turns it off. |
+| `auto_hyphenation` | bool | `false` | Enables document-wide automatic hyphenation (`w:autoHyphenation` in `word/settings.xml`) and explicitly allows it in paragraph defaults. Set `lang` for the renderer's language-specific dictionary; Word and LibreOffice may choose different breaks. No hyphens are inserted into source text. Inherited by child themes; explicit `false` turns it off. |
 
 ## `formats`
 
@@ -253,6 +253,7 @@ styles:
 | `keep_lines` | bool | Keeps the paragraph's lines together. |
 | `page_break_before` | bool | Starts a new page. |
 | `contextual_spacing` | bool | Suppresses spacing between paragraphs of the same style — list items. |
+| `suppress_auto_hyphens` | bool | Paragraph-level override for automatic hyphenation: `true` exempts this style, `false` explicitly permits it, and omission inherits. Set `false` on a body style to keep hyphenation enabled even when an application rewrites document paragraph defaults with suppression. This does not enable the document-wide flag by itself. |
 
 Left-align styles for content with manual line breaks or short lines (party
 entries, address blocks) even when the body justifies: Word stretches a justified

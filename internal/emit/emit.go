@@ -74,6 +74,12 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 		abstractByName: map[string]int{},
 	}
 
+	if th.Defaults.AutoHyphenation {
+		// The document-wide flag alone is not sufficient for applications
+		// that import paragraph defaults with hyphenation suppressed.
+		e.out.Defaults.Paragraph.SuppressAutoHyphens = docx.ToggleOff
+	}
+
 	e.out.Properties = docx.Properties{
 		Title:   metaString(doc.Meta, "title"),
 		Subject: metaString(doc.Meta, "subject", "betreff"),

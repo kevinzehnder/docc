@@ -81,13 +81,14 @@ func (s Style) paraProps() docx.ParaProps {
 			FirstLine: s.Indent.FirstLine.Twips(0),
 			Hanging:   s.Indent.Hanging.Twips(0),
 		},
-		KeepNext:          s.KeepNext,
-		KeepLines:         s.KeepLines,
-		PageBreak:         s.PageBreakBefore,
-		ContextualSpacing: s.ContextualSpacing,
-		Shading:           s.Shading,
-		Tabs:              docxTabs(s.Tabs),
-		Borders:           s.Borders.docx(),
+		KeepNext:            s.KeepNext,
+		KeepLines:           s.KeepLines,
+		PageBreak:           s.PageBreakBefore,
+		ContextualSpacing:   s.ContextualSpacing,
+		SuppressAutoHyphens: docx.ToggleFrom(s.SuppressAutoHyphens),
+		Shading:             s.Shading,
+		Tabs:                docxTabs(s.Tabs),
+		Borders:             s.Borders.docx(),
 	}
 	if s.OutlineLevel > 0 {
 		// Word counts outline levels from zero.

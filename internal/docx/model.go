@@ -200,6 +200,9 @@ type ParaProps struct {
 	// ContextualSpacing suppresses spacing between paragraphs of the same
 	// style, the usual want for list items.
 	ContextualSpacing bool
+	// SuppressAutoHyphens exempts this paragraph from document-wide automatic
+	// hyphenation. Explicitly off allows it even if a parent style suppresses it.
+	SuppressAutoHyphens Toggle
 	// Shading is a background fill as a hex colour without "#".
 	Shading string
 	// OutlineLevel sets the heading level for the navigation pane and for PDF

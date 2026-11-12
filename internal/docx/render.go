@@ -166,6 +166,7 @@ func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 		}
 		w.close("w:tabs")
 	}
+	writeToggle(w, "w:suppressAutoHyphens", p.SuppressAutoHyphens)
 	if p.ContextualSpacing {
 		w.empty("w:contextualSpacing")
 	}
@@ -224,7 +225,8 @@ func (p ParaProps) isZero() bool {
 	return p.Style == "" && p.Align == "" && p.Spacing == (Spacing{}) &&
 		p.Indent == (Indent{}) && p.Frame == nil && p.Numbering == nil &&
 		p.SectionBreak == nil && len(p.Tabs) == 0 && p.Borders == nil && !p.KeepNext && !p.KeepLines &&
-		!p.PageBreak && !p.ContextualSpacing && p.Shading == "" && p.OutlineLevel == nil
+		!p.PageBreak && !p.ContextualSpacing && p.SuppressAutoHyphens == ToggleInherit &&
+		p.Shading == "" && p.OutlineLevel == nil
 }
 
 func writeFramePr(w *xw, f *FramePr) {
