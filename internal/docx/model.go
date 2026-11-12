@@ -18,6 +18,9 @@ type Document struct {
 	Footers []HeaderFooter
 	// Defaults are the document-wide run and paragraph defaults.
 	Defaults Defaults
+	// AutoHyphenation enables automatic hyphenation in the viewing application.
+	// False preserves the OOXML default: no automatic hyphenation.
+	AutoHyphenation bool
 	// Properties are the core document properties (title, author).
 	Properties Properties
 	// Custom are document properties Word shows under File > Info > Advanced.

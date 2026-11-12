@@ -78,11 +78,14 @@ type Margins struct {
 	Gutter Length `yaml:"gutter"`
 }
 
-// Defaults are the document-wide font settings applied before any style.
+// Defaults are the document-wide typography settings applied before any style.
 type Defaults struct {
 	Font string   `yaml:"font"`
 	Size FontSize `yaml:"size"`
 	Lang string   `yaml:"lang"`
+	// AutoHyphenation asks the renderer to hyphenate using Lang. The compiler
+	// never inserts literal or soft hyphens into the authored text.
+	AutoHyphenation bool `yaml:"auto_hyphenation"`
 }
 
 // Formats says how non-string metadata is rendered into text. This is

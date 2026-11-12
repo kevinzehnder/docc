@@ -68,7 +68,8 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 					Lang: th.Defaults.Lang,
 				},
 			},
-			Styles: th.DocxStyles(),
+			Styles:          th.DocxStyles(),
+			AutoHyphenation: th.Defaults.AutoHyphenation,
 		},
 		abstractByName: map[string]int{},
 	}

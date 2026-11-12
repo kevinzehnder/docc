@@ -430,6 +430,9 @@ func (d *Document) writeSettings() []byte {
 			break
 		}
 	}
+	if d.AutoHyphenation {
+		w.empty("w:autoHyphenation", a("w:val", "true"))
+	}
 	w.open("w:compat")
 	// Declaring the format level keeps Word from applying legacy layout
 	// quirks that would move text relative to what LibreOffice renders.

@@ -178,6 +178,7 @@ because a hand-edited theme full of twips is unreadable.
 | `font` | string | — | The document's base font. |
 | `size` | font size | `11pt` | The base size. |
 | `lang` | string | — | The proofing language, e.g. `de-CH`. Worth setting: Word otherwise spell-checks a German brief against the machine's locale. |
+| `auto_hyphenation` | bool | `false` | Enables document-wide automatic hyphenation (`w:autoHyphenation` in `word/settings.xml`). Set `lang` for the renderer's language-specific dictionary; Word and LibreOffice may choose different breaks. No hyphens are inserted into source text. Inherited by child themes; explicit `false` turns it off. |
 
 ## `formats`
 
