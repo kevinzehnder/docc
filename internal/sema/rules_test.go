@@ -716,3 +716,32 @@ Unter der Firma [Muster Bua]{.firma .docc-field key=firma} besteht eine GmbH.
 		t.Errorf("message does not quote the typo: %q", ds[0].Message)
 	}
 }
+
+// "Ausmachend den Kaufpreis von" closes a payment schedule by restating the
+// price. With `equals` the restated figure is checked against the price, so a
+// changed price cannot leave a stale closing line behind.
+func TestAmountsBalanceEquals(t *testing.T) {
+	rule := schema.Rule{ID: "X095", Check: "amounts_balance", Args: map[string]any{"div": "betraege"}}
+	doc := func(closing, ref string) string {
+		return "---\ndocc: 1\ndocument_type: deed\n---\n\n" +
+			"::: betraege {#kaufpreis}\n- [= Fr. 1'800'000.00] Der Kaufpreis beträgt\n:::\n\n" +
+			"::: betraege {#rate-1 total-of=kaufpreis}\n- [Fr. 1'000'000.00] Schenkung\n:::\n\n" +
+			"::: betraege {#rate-2 total-of=kaufpreis}\n- [Fr. 800'000.00] Restkaufpreis\n:::\n\n" +
+			"::: betraege {#summe equals=" + ref + "}\n- [= Fr. " + closing + "] Ausmachend den Kaufpreis von\n:::\n"
+	}
+	for _, tc := range []struct {
+		name, closing, ref string
+		want               int
+	}{
+		{"matching restatement", "1'800'000.00", "kaufpreis", 0},
+		{"stale restatement", "1'700'000.00", "kaufpreis", 1},
+		{"unknown block", "1'800'000.00", "preis", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ds := run(t, doc(tc.closing, tc.ref), rule)
+			if got := len(codes(ds)); got != tc.want {
+				t.Errorf("findings = %d, want %d\n%s", got, tc.want, messages(ds))
+			}
+		})
+	}
+}

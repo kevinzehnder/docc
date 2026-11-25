@@ -33,6 +33,15 @@ import (
 // and its items must sum to that block's total — the deed's way of saying
 // every franc of the price is accounted for.
 //
+// A block that restates another block's total — the "Ausmachend den Kaufpreis
+// von" line closing a payment schedule — names it with `equals`:
+//
+//	::: betraege {#summe equals=kaufpreis}
+//	- [= Fr. 865'000.00] Ausmachend den Kaufpreis von
+//	:::
+//
+// and its total (or, without one, its items' sum) must be that block's total.
+//
 //	args:
 //	  div: the block name to check (required)
 func checkAmountsBalance(c *ruleContext) {
@@ -49,6 +58,12 @@ func checkAmountsBalance(c *ruleContext) {
 		items int
 	}
 	var settlements []pending
+	type restatement struct {
+		div *parse.Div
+		ref string
+		got amount
+	}
+	var restatements []restatement
 
 	for _, div := range c.divsNamed(name) {
 		var sum amount
@@ -98,6 +113,13 @@ func checkAmountsBalance(c *ruleContext) {
 				totals[id] = sum
 			}
 		}
+		if ref, has := div.Attr.Get("equals"); has {
+			got := sum
+			if declared != nil {
+				got = *declared
+			}
+			restatements = append(restatements, restatement{div: div, ref: ref, got: got})
+		}
 		if ref, has := div.Attr.Get("total-of"); has {
 			settlements = append(settlements, pending{
 				div: div, ref: ref, sum: sum, items: items,
@@ -128,6 +150,21 @@ func checkAmountsBalance(c *ruleContext) {
 		g.items += s.items
 		g.blocks++
 		g.last = s.div
+	}
+
+	for _, r := range restatements {
+		want, known := totals[r.ref]
+		if !known {
+			c.report(c.File.BodyPos(r.div.OpenOffset),
+				fmt.Sprintf("known money blocks: %s", strings.Join(sortedMapKeys(totals), ", ")),
+				"equals names %q, which is not a money block in this document", r.ref)
+			continue
+		}
+		if r.got != want {
+			c.report(c.File.BodyPos(r.div.OpenOffset),
+				fmt.Sprintf("%q totals %s", r.ref, want.String()),
+				"this block restates %q as %s, but it totals %s", r.ref, r.got.String(), want.String())
+		}
 	}
 
 	for _, ref := range order {

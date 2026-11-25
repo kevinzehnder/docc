@@ -342,6 +342,17 @@ schedule rather than instalment by instalment:
 :::
 ```
 
+A block that only restates another block's total — the "Ausmachend den
+Kaufpreis von" line closing the schedule — names it with `equals=<id>`, and its
+total must be that block's total, so a changed price cannot leave a stale
+closing line behind:
+
+```markdown
+::: betraege {#tilgung-summe equals=kaufpreis}
+- [= Fr. 865'000.00] Ausmachend den Kaufpreis von
+:::
+```
+
 Sums are exact — the amounts are read as hundredths, never as floating point,
 so a rounding artefact cannot be reported as a drafting error.
 
