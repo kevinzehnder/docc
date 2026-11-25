@@ -3,6 +3,7 @@ package emit
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-// PDFOptions configures the LibreOffice conversion.
+// PDFOptions configures the PDF conversion.
 type PDFOptions struct {
 	// Timeout bounds one conversion attempt. Zero means 120 seconds.
 	Timeout time.Duration
@@ -22,7 +23,11 @@ type PDFOptions struct {
 	Verbose bool
 }
 
-// ToPDF converts a .docx to PDF with LibreOffice.
+// ToPDF converts a .docx to PDF. WordCraft (`wordcraft-cli`) is preferred: on
+// the firm's own Word-saved deeds it put page breaks where Word did markedly
+// more often than LibreOffice (33 of 43 against 26), so its PDF is the closer
+// stand-in for what the office sees. LibreOffice is the fallback.
+// DOCC_PDF_CONVERTER=wordcraft|soffice forces one.
 //
 // soffice is hostile to automation in three specific ways, and each is handled
 // here rather than left to bite intermittently:
@@ -33,9 +38,13 @@ type PDFOptions struct {
 //     unhelpful lock error, so every run gets a private one;
 //   - it can hang indefinitely, so every attempt is bounded.
 func ToPDF(docxPath, pdfPath string, opts PDFOptions) error {
-	binary, err := findSoffice()
+	converter, err := findConverter(os.Getenv("DOCC_PDF_CONVERTER"))
 	if err != nil {
 		return err
+	}
+	convert := convertOnce
+	if converter.name == "wordcraft" {
+		convert = convertWordcraftOnce
 	}
 
 	timeout := opts.Timeout
@@ -51,7 +60,7 @@ func ToPDF(docxPath, pdfPath string, opts PDFOptions) error {
 
 	var lastErr error
 	for attempt := range attempts {
-		err := convertOnce(binary, docxPath, pdfPath, timeout, opts.Verbose)
+		err := convert(converter.binary, docxPath, pdfPath, timeout, opts.Verbose)
 		if err == nil {
 			return nil
 		}
@@ -112,6 +121,49 @@ func convertOnce(binary, docxPath, pdfPath string, timeout time.Duration, verbos
 	return nil
 }
 
+// convertWordcraftOnce renders with WordCraft. --strict makes a character the
+// fonts cannot draw, or a missing picture, a failure (exit 3, report on
+// stderr) instead of a PDF quietly showing a substitute: in a deed that has to
+// be loud. Output goes through a private directory and the same checks as
+// soffice's, so a partial write never lands on the requested path.
+func convertWordcraftOnce(binary, docxPath, pdfPath string, timeout time.Duration, verbose bool) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	workDir, err := os.MkdirTemp(filepath.Dir(pdfPath), ".docc-pdf-*")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(workDir) }()
+	produced := filepath.Join(workDir, "doc.pdf")
+
+	cmd := exec.CommandContext(ctx, binary, "convert", docxPath, produced, "--strict") //nolint:gosec // fixed argv, no shell
+	out, err := cmd.CombinedOutput()
+	if verbose && len(out) > 0 {
+		fmt.Fprintln(os.Stderr, strings.TrimSpace(string(out)))
+	}
+	if ctx.Err() == context.DeadlineExceeded {
+		return fmt.Errorf("wordcraft timed out after %s", timeout)
+	}
+	var exit *exec.ExitError
+	if errors.As(err, &exit) && exit.ExitCode() == 3 {
+		return fmt.Errorf("wordcraft: a character cannot be drawn or a picture is missing\n%s", strings.TrimSpace(string(out)))
+	}
+	if err != nil {
+		return fmt.Errorf("wordcraft: %w\n%s", err, strings.TrimSpace(string(out)))
+	}
+	if _, statErr := os.Stat(produced); statErr != nil {
+		return fmt.Errorf("wordcraft exited 0 but produced no PDF\n%s", strings.TrimSpace(string(out)))
+	}
+	if err := verifyPDF(produced); err != nil {
+		return err
+	}
+	if err := os.Rename(produced, pdfPath); err != nil {
+		return fmt.Errorf("move converted PDF: %w", err)
+	}
+	return nil
+}
+
 // verifyPDF checks the output really is a PDF and not a truncated write.
 func verifyPDF(path string) error {
 	f, err := os.Open(path) //nolint:gosec // path is the caller's own output
@@ -137,6 +189,31 @@ func verifyPDF(path string) error {
 		return fmt.Errorf("%s is not a complete PDF", path)
 	}
 	return nil
+}
+
+type pdfConverter struct{ name, binary string }
+
+// findConverter picks the renderer: the one named in choice, else WordCraft
+// when installed, else LibreOffice.
+func findConverter(choice string) (pdfConverter, error) {
+	switch choice {
+	case "", "wordcraft":
+		if p, err := exec.LookPath("wordcraft-cli"); err == nil {
+			return pdfConverter{"wordcraft", p}, nil
+		}
+		if choice == "wordcraft" {
+			return pdfConverter{}, fmt.Errorf("DOCC_PDF_CONVERTER=wordcraft, but wordcraft-cli is not on PATH")
+		}
+		fallthrough
+	case "soffice":
+		p, err := findSoffice()
+		if err != nil && choice == "" {
+			return pdfConverter{}, fmt.Errorf("neither wordcraft-cli nor soffice/libreoffice found on PATH — PDF output needs one of them")
+		}
+		return pdfConverter{"soffice", p}, err
+	default:
+		return pdfConverter{}, fmt.Errorf("DOCC_PDF_CONVERTER=%q: want wordcraft or soffice", choice)
+	}
 }
 
 func findSoffice() (string, error) {

@@ -17,7 +17,7 @@ docc check --strict docs/klage.md # warnings become errors
 docc read docs/klage.md           # what the document states, as JSON
 docc diff docs/klage.md review.docx # textual edits made in Word
 docc build docs/klage.md          # validate, then emit a .docx
-docc build --to pdf docs/klage.md # optional compatibility export; needs soffice
+docc build --to pdf docs/klage.md # optional compatibility export; needs wordcraft-cli or soffice
 docc lsp                          # serve editor diagnostics over stdio
 docc types                        # list known document types
 docc describe ch_legal            # report a document type's full contract
@@ -72,7 +72,11 @@ document types:
 ```
 
 `.docx` is the supported compiler output. `--to pdf` remains a
-compatibility-only export for environments that provide LibreOffice (`soffice`).
+compatibility-only export for environments that provide a renderer: WordCraft
+(`wordcraft-cli`) when it is installed, else LibreOffice (`soffice`).
+WordCraft is preferred because it breaks lines and pages closer to Word; with
+`--strict` semantics, a character the fonts cannot draw fails the export.
+`DOCC_PDF_CONVERTER=wordcraft|soffice` forces one.
 Hosts driving docc should build DOCX and use their own document/PDF capability
 when a user requests a PDF.
 

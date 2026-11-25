@@ -61,7 +61,7 @@ describe, example and explain also take:
   --from <path>        resolve the project from this path, not the working directory
 
 build flags:
-  --to docx|pdf        output format; pdf is compatibility-only and needs soffice (default: docx)
+  --to docx|pdf        output format; pdf is compatibility-only and needs wordcraft-cli or soffice (default: docx)
   --output <path>      output path (default: input with the new extension)
   --theme <name>       theme to render with (default: the schema's own)
   --force              render despite validation errors
