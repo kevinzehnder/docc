@@ -1,6 +1,11 @@
 package docx
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+)
 
 func itoa(n int) string { return strconv.Itoa(n) }
 
@@ -371,12 +376,51 @@ func (r RunProps) isZero() bool {
 	return r == RunProps{}
 }
 
-func (t Text) writeInline(w *xw, _ *Document) {
+func (t Text) writeInline(w *xw, d *Document) {
 	// xml:space="preserve" is what stops Word collapsing the leading and
 	// trailing spaces that separate runs within a sentence.
 	w.open("w:t", a("xml:space", "preserve"))
-	w.text(string(t))
+	w.text(d.bindAfter(string(t)))
 	w.close("w:t")
+}
+
+// bindAfter writes the space after each NonBreakingAfter token as a
+// non-breaking space where a digit follows, so "Fr. 800'000.00" stays on one
+// line. A token only counts at a word start: "Fr." inside "GFr." does not.
+// ponytail: within one text run; "Fr." and its figure split across two runs
+// (a span around the figure alone) still wrap. Join across runs if it shows.
+func (d *Document) bindAfter(s string) string {
+	if d == nil {
+		return s
+	}
+	for _, token := range d.NonBreakingAfter {
+		var b strings.Builder
+		rest := s
+		for {
+			i := strings.Index(rest, token+" ")
+			if i < 0 {
+				b.WriteString(rest)
+				break
+			}
+			end := i + len(token)
+			atStart := i == 0 || !unicode.IsLetter(lastRune(rest[:i]))
+			digitNext := end+1 < len(rest) && rest[end+1] >= '0' && rest[end+1] <= '9'
+			b.WriteString(rest[:end])
+			if atStart && digitNext {
+				b.WriteString("\u00a0")
+			} else {
+				b.WriteByte(' ')
+			}
+			rest = rest[end+1:]
+		}
+		s = b.String()
+	}
+	return s
+}
+
+func lastRune(s string) rune {
+	r, _ := utf8.DecodeLastRuneInString(s)
+	return r
 }
 
 func (Tab) writeInline(w *xw, _ *Document) { w.empty("w:tab") }

@@ -68,8 +68,9 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 					Lang: th.Defaults.Lang,
 				},
 			},
-			Styles:          th.DocxStyles(),
-			AutoHyphenation: th.Defaults.AutoHyphenation,
+			Styles:           th.DocxStyles(),
+			AutoHyphenation:  th.Defaults.AutoHyphenation,
+			NonBreakingAfter: th.Defaults.NonBreakingAfter,
 		},
 		abstractByName: map[string]int{},
 	}
@@ -1115,6 +1116,14 @@ func (e *emitter) amountDiv(d ir.Div, out *[]docx.Block, depth int, style, amoun
 				}
 				label, description, labelled := splitEvidenceLabel(para.Inlines)
 				if !labelled {
+					// Prose under an amount ("Konto IBAN ...", what the
+					// payment is) can have a style of its own, so it can stay
+					// out of the amount columns; without one it takes the
+					// block's.
+					textStyle := e.style("div." + d.Name + ".text")
+					if textStyle == "" {
+						textStyle = style
+					}
 					var inner []docx.Block
 					e.blockTo(b, &inner, depth)
 					for _, blk := range inner {
@@ -1123,7 +1132,7 @@ func (e *emitter) amountDiv(d ir.Div, out *[]docx.Block, depth int, style, amoun
 							*out = append(*out, blk)
 							continue
 						}
-						p.Props.Style = style
+						p.Props.Style = textStyle
 						*out = append(*out, p)
 					}
 					continue

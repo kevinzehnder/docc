@@ -89,6 +89,7 @@ var blockSuffixes = []struct{ suffix, purpose, fallback, pattern string }{
 	{".total", "styles the total row of amount rendering", "", ""},
 	{".total.amount", "styles the amount cell of that total row", "", ""},
 	{".words", "adds the amount spelled out in words; needs the theme's `formats.amount_words` as well", "", ""},
+	{".text", "styles the prose under an amount in amount rendering (a paragraph with no amount label); falls back to the block's style", "", ""},
 }
 
 // blockKeys reports the keys one declared block brings into existence.

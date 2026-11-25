@@ -86,6 +86,11 @@ type Defaults struct {
 	// AutoHyphenation asks the renderer to hyphenate using Lang. The compiler
 	// never inserts literal or soft hyphens into the authored text.
 	AutoHyphenation bool `yaml:"auto_hyphenation"`
+	// NonBreakingAfter lists tokens ("Fr.", "CHF") whose following space is
+	// written as a non-breaking space when a digit comes next, so an amount
+	// never wraps away from its currency. The source text is not changed;
+	// only the rendered document is.
+	NonBreakingAfter []string `yaml:"nonbreaking_after"`
 }
 
 // Formats says how non-string metadata is rendered into text. This is

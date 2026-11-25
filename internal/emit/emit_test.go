@@ -955,3 +955,37 @@ func text(p docx.Paragraph) string {
 // ptrTo is for the theme's tri-state toggles, where absent, on and explicitly
 // off are three different things.
 func ptrTo[T any](v T) *T { return &v }
+
+// Prose under an amount takes `div.<name>.text` when the schema maps it, so a
+// theme can keep it out of the amount columns; unmapped, it keeps the block's
+// style, as before.
+func TestAmountBlockProseStyle(t *testing.T) {
+	source := "---\nx: 1\n---\n\n::: betraege\n- [Fr. 800'000.00] zahlbar Valuta 1. Januar 2027\n\n  Konto IBAN CH00, lautend auf die Verkäuferschaft.\n:::\n"
+	for _, tc := range []struct {
+		textStyle, want string
+	}{{"Listenabsatz", "Listenabsatz"}, {"", "Formularzeile"}} {
+		sc := testSchema()
+		sc.Styles["div.betraege"] = "Formularzeile"
+		sc.Styles["div.betraege.amount"] = "Firma"
+		if tc.textStyle != "" {
+			sc.Styles["div.betraege.text"] = tc.textStyle
+		}
+		f, ds := parse.Parse("t.md", []byte(source))
+		if ds.HasErrors() {
+			t.Fatalf("parse: %+v", ds)
+		}
+		built, err := Build(ir.Build(f, "test", map[string]any{}), sc, testTheme(), Options{})
+		if err != nil {
+			t.Fatalf("build: %v", err)
+		}
+		if len(built.Body) != 2 {
+			t.Fatalf("got %d body blocks, want amount line + prose", len(built.Body))
+		}
+		if got := built.Body[0].(docx.Paragraph).Props.Style; got != "Formularzeile" {
+			t.Errorf("amount line style = %q, want Formularzeile", got)
+		}
+		if got := built.Body[1].(docx.Paragraph).Props.Style; got != tc.want {
+			t.Errorf("text style %q: prose style = %q, want %q", tc.textStyle, got, tc.want)
+		}
+	}
+}

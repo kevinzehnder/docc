@@ -105,6 +105,7 @@ the pattern is a consequence of the style map, not something the block declares:
 | `div.<name>.total` | the total row of amount rendering |
 | `div.<name>.total.amount` | the amount cell of that total row |
 | `div.<name>.words` | the amount spelled out; needs the theme's `formats.amount_words` as well. Unmapped means no gloss, so a form inheriting a deed's theme can drop it |
+| `div.<name>.text` | prose under an amount (a paragraph without an amount label, e.g. "Konto IBAN …"); unmapped, it takes the block's style. A theme uses it to keep that prose out of the amount columns |
 | `div.<name>.line` | ruled rendering; styles the rule |
 | `div.<name>.label` | labelled rendering; styles the tabbed label |
 | `div.<name>.field` | field rendering — label first, then the value; styles the label column |

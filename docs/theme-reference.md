@@ -179,6 +179,7 @@ because a hand-edited theme full of twips is unreadable.
 | `size` | font size | `11pt` | The base size. |
 | `lang` | string | — | The proofing language, e.g. `de-CH`. Worth setting: Word otherwise spell-checks a German brief against the machine's locale. |
 | `auto_hyphenation` | bool | `false` | Enables document-wide automatic hyphenation (`w:autoHyphenation` in `word/settings.xml`) and explicitly allows it in paragraph defaults. Set `lang` for the renderer's language-specific dictionary; Word and LibreOffice may choose different breaks. No hyphens are inserted into source text. Inherited by child themes; explicit `false` turns it off. |
+| `nonbreaking_after` | list of strings | `[]` | Tokens such as `"Fr."` or `"CHF"` whose following space is written as a non-breaking space when a digit comes next, so an amount never wraps away from its currency. Only the rendered document changes; the source text is left as authored. Applies within one text run. |
 
 ## `formats`
 

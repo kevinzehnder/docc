@@ -21,6 +21,9 @@ type Document struct {
 	// AutoHyphenation enables automatic hyphenation in the viewing application.
 	// False preserves the OOXML default: no automatic hyphenation.
 	AutoHyphenation bool
+	// NonBreakingAfter lists tokens whose following space becomes a
+	// non-breaking space when a digit comes next ("Fr. 800'000.00").
+	NonBreakingAfter []string
 	// Properties are the core document properties (title, author).
 	Properties Properties
 	// Custom are document properties Word shows under File > Info > Advanced.
