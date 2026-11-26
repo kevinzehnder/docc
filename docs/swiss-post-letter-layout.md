@@ -99,11 +99,14 @@ size is **70 × 35 mm**.
 - positioning must be regression-tested by rendering, folding and checking a
   printed sample in the selected envelope.
 
-`starter-legal` places the same address **in the text flow** rather than in an
-anchored frame: it has no letterhead above the address, so a 38 mm spacer under
-the 22 mm top margin lands the first line at y = 60 mm in every renderer,
-including those that ignore `w:framePr`. A frame is only needed once something
-of variable height sits in the flow above the address.
+Both starters place the address **in the text flow** rather than in an
+anchored frame, so it lands at y = 60 mm in every renderer, including those
+that ignore `w:framePr` (WordCraft does). Nothing of variable height sits in
+the flow above it: `starter-legal` has no letterhead, and `starter-letter`
+keeps its sender block in `header: first`, inside a 30 mm top margin. An
+exact-height spacer paragraph covers the rest — 38 mm under a 22 mm margin,
+30 mm under a 30 mm one. A first-page header pushes the body only when it is
+taller than the top margin, so a letterhead must stay inside it.
 
 A right-window layout must be a separate, measured theme until `docc` supports
 conditional furniture/style selection. A boolean alone cannot change a theme’s

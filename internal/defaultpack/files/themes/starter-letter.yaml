@@ -11,8 +11,15 @@ description: Generic business and legal correspondence.
 
 page:
   size: A4
+  # Page one has its own header: the sender block. Every page keeps the
+  # footer, so it is declared for `first` and `default` alike.
+  title_page: true
+  # 30mm, not 20mm: the sender block in the first-page header ends near 24mm
+  # and must stay inside the margin. A header taller than the margin pushes
+  # the body down by however much it overhangs, which would move the address
+  # with it.
   margins:
-    top: 20mm
+    top: 30mm
     bottom: 20mm
     left: 25mm
     right: 25mm
@@ -57,11 +64,6 @@ styles:
     based_on: SenderName
     bold: false
 
-  SenderLineLast:
-    name: Sender Line Last
-    based_on: SenderLine
-    spacing: { after: 5mm }
-
   # ── Recipient address, positioned for a left-window envelope ───────────────
   # The address field. Swiss Post wants it black, non-bold, upright, left
   # aligned and sans serif, at 9-28pt with 10pt ideal, with no blank lines and
@@ -91,10 +93,23 @@ styles:
   # The address is framed out of the flow, so this spacing is what clears the
   # field rather than what follows it: the last address line plus the 12mm
   # bottom clearance the specification requires.
+  # Steps the flow down to the address window: 30mm top margin + 30mm puts
+  # the first address line at the 60mm Swiss Post target. Word can suppress
+  # space-before on the first paragraph of a page, so this is an empty
+  # paragraph of exact height rather than a space-before on the address.
+  AddressSpacer:
+    name: Address area spacer
+    based_on: Standard
+    size: 1pt
+    keep_next: true
+    spacing: { before: 0mm, after: 0mm, line: 30mm }
+
+  # Clear of the window: the window ends at 95mm, and a sheet folded to A5
+  # has play in a C5 envelope, so the date keeps well below it.
   DateLine:
     name: Date Line
     based_on: Standard
-    spacing: { before: 61mm, after: 0mm }
+    spacing: { before: 20mm, after: 0mm }
 
   SubjectLine:
     name: Subject
@@ -229,31 +244,28 @@ numbering:
 # Fixed furniture placed above the rendered markdown. A line whose fields are
 # all empty is dropped, so an optional organisation leaves no blank line.
 prologue:
-  - { style: SenderName, text: "{{ sender.name }}" }
-  - { style: SenderLine, text: "{{ sender.uid }}" }
-  - { style: SenderLine, text: "{{ sender.street }}" }
-  - { style: SenderLineLast, text: "{{ sender.postal_code }} {{ sender.city }}" }
-
   # Swiss Post address field — see docs/swiss-post-letter-layout.md.
   #
-  # Page-anchored rather than left in the flow: the window is at a fixed place
-  # on the envelope, so the address has to be at a fixed place on the sheet. In
-  # the flow its position is whatever the sender block above it happens to add
-  # up to, and one more sender line moves the address out of the window.
+  # In the text flow, not in an anchored frame. The sender block lives in the
+  # first-page header, which does not push the body while it fits inside the
+  # top margin, so nothing of variable height sits above the address: its
+  # place is the top margin plus the spacer, in every renderer. A frame would
+  # do the same in Word, but renderers that ignore w:framePr drop it back into
+  # the flow and the address leaves the window.
   #
-  # x is 25mm, not the specification's 20mm. The window is at least 100mm wide
-  # from 20mm, so text starting at 25mm sits inside it with 5mm to spare on the
-  # left — further from the window edge, not closer — and matches the body
-  # margin. Confirm against the actual envelope stock either way.
+  # Text starts at the 25mm page margin, not the specification's 20mm. The
+  # window is at least 100mm wide from 20mm, so this sits inside it with 5mm
+  # to spare on the left and matches the body margin. Confirm against the
+  # actual envelope stock either way.
   #
   # The delivery mode is the field's first line, not a block above it: it
-  # belongs in the window, so it shares the frame and the address geometry.
-  - { style: DeliveryMode, text: "Einschreiben", if_nonempty: registered,
-      frame: &addr { x: 25mm, y: 60mm, width: 95mm, h_anchor: page, v_anchor: page, wrap: around } }
-  - { style: AddressBlockFirst, text: "{{ recipient.salutation }} {{ recipient.name }}", frame: *addr }
-  - { style: AddressBlock, text: "{{ recipient.organization }}", frame: *addr }
-  - { style: AddressBlock, text: "{{ recipient.street }}", frame: *addr }
-  - { style: AddressBlock, text: "{{ recipient.postal_code }} {{ recipient.city }}", frame: *addr }
+  # belongs in the window, so it shares the address geometry.
+  - { style: AddressSpacer, text: "" }
+  - { style: DeliveryMode, text: "Einschreiben", if_nonempty: registered }
+  - { style: AddressBlockFirst, text: "{{ recipient.salutation }} {{ recipient.name }}" }
+  - { style: AddressBlock, text: "{{ recipient.organization }}" }
+  - { style: AddressBlock, text: "{{ recipient.street }}" }
+  - { style: AddressBlock, text: "{{ recipient.postal_code }} {{ recipient.city }}" }
 
   - { style: DateLine, text: "{{ sender.city }}, {{ date }}" }
   - { style: SubjectLine, text: "{{ subject }}" }
@@ -270,6 +282,17 @@ epilogue:
   - { style: BeilagenHeader, text: "Beilagen", if_nonempty: beilagen }
   - { style: BeilagenItem, text: "– {{ item }}", repeat: beilagen }
 
+# The sender block, top right of page one only. A firm replacing it with its
+# own letterhead keeps it here, inside the top margin, and the address does
+# not move.
+header:
+  first:
+    - { style: SenderName, text: "{{ sender.name }}" }
+    - { style: SenderLine, text: "{{ sender.uid }}" }
+    - { style: SenderLine, text: "{{ sender.street }}" }
+    - { style: SenderLine, text: "{{ sender.postal_code }} {{ sender.city }}" }
+
 footer:
-  default:
+  first: &footer
     - { style: FooterLine, text: "{{ sender.name }} · {{ sender.street }} · {{ sender.postal_code }} {{ sender.city }}" }
+  default: *footer
