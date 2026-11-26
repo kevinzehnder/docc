@@ -106,44 +106,48 @@ example: |
   document_type: ch_letter
   date: 2026-08-04
   sent: 2026-08-05
-  title: Sample correspondence
-  subject: Sample correspondence
+  title: Ausstehende Zahlung
+  subject: Ausstehende Zahlung aus Rechnung Nr. 2026-117
   registered: true
   closing: Freundliche Grüsse
   sender:
-    name: Your Organisation
+    name: Muster Treuhand AG
     uid: CHE-000.000.000
-    street: Your Street 1
+    street: Musterstrasse 1
     postal_code: "1000"
-    city: Your City
+    city: Musterstadt
   signee:
-    name: Your Name
-    title: Your Title
+    name: Anna Beispiel
+    title: Geschäftsführerin
   recipient:
-    salutation: Ms
-    name: Recipient Name
-    organization: Recipient Organisation
-    street: Recipient Street 5
+    salutation: Herr
+    name: Peter Beispiel
+    organization: Beispiel Immobilien AG
+    street: Beispielweg 5
     postal_code: "2000"
-    city: Recipient City
+    city: Beispielhausen
   beilagen:
-    - First enclosure
-    - Second enclosure
+    - Rechnung Nr. 2026-117 vom 3. Juni 2026
+    - Kontoauszug per 31. Juli 2026
   tags:
     - inkasso
   ---
 
-  Dear Recipient Name
+  Sehr geehrter Herr Beispiel
 
-  This is sample correspondence. Replace its metadata and prose with your own
-  content before sending it.
+  Unsere Rechnung Nr. 2026-117 vom 3. Juni 2026 ist seit dem 3. Juli 2026
+  fällig. Trotz unserer Zahlungserinnerung ist bis heute keine Zahlung
+  eingegangen.
 
-  # Background
+  # Sachverhalt
 
-  State the relevant facts here.
+  Die Rechnung betrifft die Buchführung für das Geschäftsjahr 2025. Der
+  offene Betrag beläuft sich auf CHF 4'800.00.
 
-  # Requested action
+  # Unser Anliegen
 
-  Explain what the recipient should do and by when.
+  Wir bitten Sie, den offenen Betrag bis am 31. August 2026 zu überweisen.
+  Sollte sich Ihre Zahlung mit diesem Schreiben gekreuzt haben, betrachten Sie
+  es bitte als gegenstandslos.
 
-  For questions, please contact us.
+  Für Fragen stehen wir Ihnen gerne zur Verfügung.

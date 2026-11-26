@@ -58,7 +58,7 @@ styles:
       line: 1.5
 
   Seitenzahl:
-    name: Page number
+    name: Seitenzahl
     based_on: Standard
     align: center
     spacing: { before: 0mm, after: 0mm, line: 1.0 }
@@ -81,7 +81,7 @@ styles:
   # sans serif, at 9-28pt with 10pt ideal. Standard is justified, so the
   # alignment is overridden here rather than inherited.
   LegalGericht:
-    name: Court Address
+    name: Gerichtsadresse
     based_on: Standard
     align: left
     size: 10pt
@@ -92,7 +92,7 @@ styles:
   # space-before on the first paragraph of a page, so this is an empty
   # paragraph of exact height rather than a space-before on the address.
   LegalAddressSpacer:
-    name: Address area spacer
+    name: Adressfeld Abstand
     based_on: Standard
     size: 1pt
     keep_next: true
@@ -101,21 +101,21 @@ styles:
   # Clear of the window: the window ends at 95mm, and a sheet folded to A5
   # has play in a C5 envelope, so the date keeps well below it.
   LegalDate:
-    name: Date Line
+    name: Ort und Datum
     based_on: Standard
     align: left
     keep_next: true
     spacing: { before: 20mm, after: 0mm }
 
   LegalCaseRef:
-    name: Case Reference
+    name: Geschäftsnummer
     based_on: Standard
     align: left
     keep_next: true
     spacing: { before: 6mm, after: 0mm }
 
   LegalDocTitle:
-    name: Document Title
+    name: Dokumenttitel
     based_on: Standard
     align: left
     indent: { right: 60mm }
@@ -126,14 +126,14 @@ styles:
 
   # ── Parties ───────────────────────────────────────────────────────────────
   LegalPlain:
-    name: Party Label
+    name: Parteibezeichnung
     based_on: Standard
     align: left
     keep_next: true
     spacing: { before: 6mm, after: 3mm }
 
   LegalPartyEntry:
-    name: Party Entry
+    name: Partei
     based_on: Standard
     align: left
     spacing: { before: 0mm, after: 0mm, line: 1.2 }
@@ -142,7 +142,7 @@ styles:
       - { pos: 160mm, align: right }
 
   LegalVertreter:
-    name: Party Representative
+    name: Parteivertreter
     based_on: Standard
     align: left
     spacing: { before: 1mm, after: 0mm }
@@ -152,18 +152,18 @@ styles:
   # heading of the body, and a renderer honouring that across the break moves
   # the Betreff onto page two.
   LegalBetreff:
-    name: Subject
+    name: Betreff
     based_on: Standard
     align: left
     spacing: { before: 10mm, after: 8mm }
 
   LegalSmall:
-    name: Party Address
+    name: Parteiadresse
     type: character
     size: 9.5pt
 
   LegalBold:
-    name: Party Name
+    name: Parteiname
     type: character
     bold: true
 
@@ -172,7 +172,7 @@ styles:
   # formula. An empty paragraph with a bottom border, inset from both margins
   # so the rule is centred and roughly a third of the text width.
   LegalSchlussLinie:
-    name: Closing Rule
+    name: Schlusslinie
     based_on: Standard
     indent: { left: 55mm, right: 55mm }
     spacing: { before: 10mm, after: 10mm }
@@ -180,12 +180,12 @@ styles:
       bottom: { style: single, width: 0.75 }
 
   LegalSchlussformel:
-    name: Closing Formula
+    name: Schlussformel
     based_on: Standard
     spacing: { before: 0mm, after: 10mm }
 
   LegalGruss:
-    name: Closing Greeting
+    name: Grusszeile
     based_on: Standard
     align: left
     keep_next: true
@@ -194,13 +194,13 @@ styles:
   # The gap is the signature space: nothing is drawn, the name simply sits
   # far enough below the greeting to sign between them.
   LegalUnterschrift:
-    name: Signature Name
+    name: Unterzeichner
     based_on: Standard
     align: left
     spacing: { before: 22mm, after: 0mm }
 
   LegalVermerk:
-    name: Filing Note
+    name: Vermerk
     based_on: Standard
     align: left
     bold: true
@@ -208,7 +208,7 @@ styles:
 
   # ── Beilagenverzeichnis ───────────────────────────────────────────────────
   LegalBeilagenTitel:
-    name: Enclosures Heading
+    name: Beilagen Titel
     based_on: Standard
     align: left
     size: 14pt
@@ -217,7 +217,7 @@ styles:
     spacing: { before: 0mm, after: 6mm }
 
   LegalBeilagenItem:
-    name: Enclosure Entry
+    name: Beilage
     based_on: Standard
     align: left
     spacing: { before: 0mm, after: 3mm }
