@@ -188,12 +188,12 @@ type Indent struct {
 // Tab is a tab stop.
 type Tab struct {
 	// Pos is a length from the left margin, or "end" (the right margin) or
-	// "half" (the middle of the text column). The named positions are what
-	// let one signature style serve themes with different margins: a dotted
-	// line to a fixed 158mm stops short on a wider page and runs into the
-	// margin on a narrower one.
+	// "half" (the middle of the text column), optionally shifted: "half-5mm",
+	// "end-10mm". The named positions are what let one signature style serve
+	// themes with different margins: a dotted line to a fixed 158mm stops
+	// short on a wider page and runs into the margin on a narrower one.
 	Pos Length `yaml:"-"`
-	// To is "end" or "half" when Pos named a position rather than a length.
+	// To is "end" or "half" when Pos named a position; Pos is then the shift.
 	To     string `yaml:"-"`
 	Align  string `yaml:"align"`
 	Leader string `yaml:"leader"`
@@ -220,9 +220,29 @@ func (t *Tab) UnmarshalYAML(unmarshal func(any) error) error {
 	if raw.Pos != nil && !ok {
 		return fmt.Errorf("tab pos must be a length with a unit, %q or %q, got %v", TabEnd, TabHalf, raw.Pos)
 	}
-	switch s {
-	case TabEnd, TabHalf:
-		t.To = s
+	for _, named := range []string{TabEnd, TabHalf} {
+		rest, ok := strings.CutPrefix(s, named)
+		if !ok {
+			continue
+		}
+		t.To = named
+		rest = strings.TrimSpace(rest)
+		if rest == "" {
+			return nil
+		}
+		sign := docx.Twips(1)
+		switch rest[0] {
+		case '-':
+			sign = -1
+		case '+':
+		default:
+			return fmt.Errorf("tab pos %q: write the shift as %s+5mm or %s-5mm", s, named, named)
+		}
+		shift, err := ParseLength(strings.TrimSpace(rest[1:]))
+		if err != nil || !shift.Set() {
+			return fmt.Errorf("tab pos %q: the shift needs a length with a unit", s)
+		}
+		t.Pos = Length{twips: sign * shift.twips, set: true}
 		return nil
 	}
 	pos, err := ParseLength(s)
@@ -237,9 +257,9 @@ func (t *Tab) UnmarshalYAML(unmarshal func(any) error) error {
 func (t Tab) Twips(textWidth docx.Twips) docx.Twips {
 	switch t.To {
 	case TabEnd:
-		return textWidth
+		return textWidth + t.Pos.Twips(0)
 	case TabHalf:
-		return textWidth / 2
+		return textWidth/2 + t.Pos.Twips(0)
 	}
 	return t.Pos.Twips(0)
 }

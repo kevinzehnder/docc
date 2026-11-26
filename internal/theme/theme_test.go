@@ -715,6 +715,8 @@ styles:
       - { pos: 75mm }
       - { pos: half }
       - { pos: end, align: right, leader: dot }
+      - { pos: half-5mm }
+      - { pos: "end - 10mm" }
 `)
 	th, err := set.Get("brief")
 	if err != nil {
@@ -731,8 +733,9 @@ styles:
 		}
 	}
 	tabs := line.Para.Tabs
-	if len(tabs) != 3 || tabs[0].Pos != docx.Mm(75) || tabs[1].Pos != width/2 || tabs[2].Pos != width {
-		t.Errorf("tabs = %+v, want 75mm, %d, %d", tabs, width/2, width)
+	if len(tabs) != 5 || tabs[0].Pos != docx.Mm(75) || tabs[1].Pos != width/2 || tabs[2].Pos != width ||
+		tabs[3].Pos != width/2-docx.Mm(5) || tabs[4].Pos != width-docx.Mm(10) {
+		t.Errorf("tabs = %+v, want 75mm, half, end, half-5mm, end-10mm", tabs)
 	}
 
 	if err := loadErr(t, "bad.yaml", "name: bad\nstyles:\n  x:\n    tabs: [{ pos: middle }]\n"); !strings.Contains(err.Error(), `"end"`) {
