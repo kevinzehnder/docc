@@ -19,9 +19,14 @@ frontmatter:
 
   case_ref:
     type: string
+    required: false
+    nullable: true
+    hint: "court reference in the format used by the issuing court; preserve it verbatim; omit or set to ~ if none has been assigned"
+
+  ort:
+    type: string
     required: true
-    pattern: '^[A-Z]{2}\.\d{4}\.\d+$'
-    hint: 'court reference in the form AA.YYYY.NNN, e.g. "ZG.2026.000"'
+    hint: 'the place the brief is written, printed before the date, e.g. "Baden"'
 
   gericht:
     type: court
@@ -35,6 +40,12 @@ frontmatter:
     type: string
     required: false
 
+  klaeger_vertreter_adresse:
+    type: string
+    required: false
+    nullable: true
+    hint: 'optional address of the plaintiff representative, printed after a forced line break; omit when no separate address line is wanted'
+
   beklagter:
     type: party
     required: true
@@ -45,6 +56,12 @@ frontmatter:
     nullable: true
     hint: 'set to ~ when the opposing party has no legal representative'
 
+  beklagter_vertreter_adresse:
+    type: string
+    required: false
+    nullable: true
+    hint: 'optional address of the defendant representative, printed after a forced line break; omit when no separate address line is wanted'
+
   betreff:
     type: string
     required: true
@@ -52,6 +69,32 @@ frontmatter:
   beilagen:
     type: list<string>
     default: []
+    hint: 'in the order they are cited; entry N is "Beilage N" in the body'
+
+  # ── Closing block ─────────────────────────────────────────────────────────
+  schlussformel:
+    type: string
+    required: false
+    hint: >-
+      the closing request, e.g. "Aufgrund der vorstehenden Erwägungen ersuche
+      ich Sie ... um Gutheissung der vorgenannten Rechtsbegehren". Omitted when
+      absent rather than guessed: the wording differs by procedural type and
+      addressee.
+
+  gruss:
+    type: string
+    default: Mit freundlichen Grüssen
+
+  unterzeichner:
+    type: string
+    required: true
+    hint: 'the signing lawyer as it appears under the signature, e.g. "lic. iur. Anna Beispiel"'
+
+  versandvermerk:
+    type: string
+    default: Im Doppel
+    hint: 'the filing note above the enclosures line; set to ~ to omit'
+    nullable: true
 
 types:
   court:
@@ -117,6 +160,8 @@ styles:
   ordered_list: Rechtsbegehrensliste
   bullet_list: Aufzaehlung
   "div.beweis": Beweismittel
+  # The bracketed label is set at the right tab stop in this character style.
+  "div.beweis.label": BeweismittelFundstelle
 
 # Numbering the markdown does not express. The headings carry an I. / A. / 1.
 # outline from RECHTSBEGEHREN onwards, and every paragraph of prose after that
@@ -135,7 +180,9 @@ render:
 
 blocks:
   beweis:
-    description: Beweismittelblock — one bracketed, labelled item per line.
+    description: >-
+      Beweismittelblock — one item per line, each prefixed with its bracketed
+      source label, e.g. "[Beilage 3]".
 
 spans:
   datum:
@@ -156,17 +203,17 @@ rules:
     severity: error
     args:
       div: beweis
-      pattern: '//\s*Beilage\s+\d+\s*$'
+      pattern: '^\s*\[[^\]\r\n]+\]\s+\S'
       on_missing: ignore
-    message: "Beweismittel without a Beilage reference"
-    hint: 'append a reference, e.g. "// Beilage 3"'
+    message: "Beweismittel without a bracketed label"
+    hint: 'prefix it with a label, e.g. "[Beilage 3]"'
 
   - id: LEG020
     check: cross_reference
     severity: warning
     args:
       div: beweis
-      pattern: '//\s*Beilage\s+(\d+)'
+      pattern: '(?i)^\s*\[Beilage\s+(\d+)\]'
       list_field: beilagen
       label: Beilage
 
@@ -180,33 +227,37 @@ example: |
   docc: 1
   document_type: ch_legal
   legal_doc_type: Klageschrift
-  case_ref: "EX.2026.001"
+  case_ref: "OZ.2026.58"
+  ort: Musterstadt
   date: 2026-03-11
   gericht:
     versand: EINSCHREIBEN
-    name: Example Civil Court
-    abteilung: Civil Division
-    street: Court Street 1
+    name: Bezirksgericht Musterstadt
+    abteilung: Zivilabteilung
+    street: Gerichtsweg 1
     postal_code: "1000"
-    city: Example City
+    city: Musterstadt
   klaeger:
-    name: "Claimant Example"
+    name: "Muster Bau AG"
     role: "Klägerin"
-    street: "Example Street 1"
+    street: "Musterstrasse 1"
     postal_code: "1000"
-    city: "Example City"
-  klaeger_vertreter: "Attorney Example, Example City"
+    city: "Musterstadt"
+  klaeger_vertreter: "lic. iur. Anna Beispiel,"
+  klaeger_vertreter_adresse: "Beispiel Rechtsanwälte, Hauptgasse 3, 1000 Musterstadt"
   beklagter:
-    name: "Respondent Example AG"
+    name: "Beispiel Immobilien AG"
     role: "Beklagte"
-    street: "Example Avenue 5"
+    street: "Beispielweg 5"
     postal_code: "2000"
-    city: "Sampletown"
+    city: "Beispielhausen"
   beklagter_vertreter: ~
-  betreff: "Contractual claim"
+  betreff: "Forderung aus Werkvertrag"
   beilagen:
-    - Contract dated 3 March 2024
-    - Acceptance record dated 12 June 2024
+    - Werkvertrag vom 3. März 2024
+    - Abnahmeprotokoll vom 12. Juni 2024
+  schlussformel: "Aufgrund der vorstehenden Erwägungen ersuche ich Sie um Gutheissung der vorgenannten Rechtsbegehren."
+  unterzeichner: "lic. iur. Anna Beispiel"
   tags:
     - Klageschrift
   ---
@@ -220,25 +271,25 @@ example: |
 
   ## Zuständigkeit
 
-  The court has jurisdiction because the respondent is established in Sampletown.
+  Das angerufene Gericht ist örtlich und sachlich zuständig, da die Beklagte ihren Sitz in Beispielhausen hat.
 
   # Sachverhalt
 
   ## Vertragsschluss
 
-  The parties entered into a contract on [3 March 2024]{.datum key=contract-date}.
+  Die Parteien schlossen am [3. März 2024]{.datum} einen Werkvertrag.
 
   ::: beweis
-  - Contract dated 3 March 2024 // Beilage 1
-  - Acceptance record dated 12 June 2024 // Beilage 2
+  - [Beilage 1] Werkvertrag vom 3. März 2024
+  - [Beilage 2] Abnahmeprotokoll vom 12. Juni 2024
   :::
 
   # Rechtliches
 
   ## Werklohnforderung
 
-  The claimant performed the agreed work, so the payment is due.
+  Die Klägerin hat die vereinbarten Arbeiten erbracht; der Werklohn ist fällig.
 
   # Fazit
 
-  The claim should be granted.
+  Die Klage ist gutzuheissen.

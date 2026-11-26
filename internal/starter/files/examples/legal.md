@@ -2,33 +2,37 @@
 docc: 1
 document_type: ch_legal
 legal_doc_type: Klageschrift
-case_ref: "EX.2026.001"
+case_ref: "OZ.2026.58"
+ort: Musterstadt
 date: 2026-03-11
 gericht:
   versand: EINSCHREIBEN
-  name: Example Civil Court
-  abteilung: Civil Division
-  street: Court Street 1
+  name: Bezirksgericht Musterstadt
+  abteilung: Zivilabteilung
+  street: Gerichtsweg 1
   postal_code: "1000"
-  city: Example City
+  city: Musterstadt
 klaeger:
-  name: "Claimant Example"
+  name: "Muster Bau AG"
   role: "Klägerin"
-  street: "Example Street 1"
+  street: "Musterstrasse 1"
   postal_code: "1000"
-  city: "Example City"
-klaeger_vertreter: "Attorney Example, Example City"
+  city: "Musterstadt"
+klaeger_vertreter: "lic. iur. Anna Beispiel,"
+klaeger_vertreter_adresse: "Beispiel Rechtsanwälte, Hauptgasse 3, 1000 Musterstadt"
 beklagter:
-  name: "Respondent Example AG"
+  name: "Beispiel Immobilien AG"
   role: "Beklagte"
-  street: "Example Avenue 5"
+  street: "Beispielweg 5"
   postal_code: "2000"
-  city: "Sampletown"
+  city: "Beispielhausen"
 beklagter_vertreter: ~
-betreff: "Contractual claim"
+betreff: "Forderung aus Werkvertrag"
 beilagen:
-  - Contract dated 3 March 2024
-  - Acceptance record dated 12 June 2024
+  - Werkvertrag vom 3. März 2024
+  - Abnahmeprotokoll vom 12. Juni 2024
+schlussformel: "Aufgrund der vorstehenden Erwägungen ersuche ich Sie um Gutheissung der vorgenannten Rechtsbegehren."
+unterzeichner: "lic. iur. Anna Beispiel"
 tags:
   - Klageschrift
 ---
@@ -42,25 +46,25 @@ tags:
 
 ## Zuständigkeit
 
-The court has jurisdiction because the respondent is established in Sampletown.
+Das angerufene Gericht ist örtlich und sachlich zuständig, da die Beklagte ihren Sitz in Beispielhausen hat.
 
 # Sachverhalt
 
 ## Vertragsschluss
 
-The parties entered into a contract on [3 March 2024]{.datum key=contract-date}.
+Die Parteien schlossen am [3. März 2024]{.datum} einen Werkvertrag.
 
 ::: beweis
-- Contract dated 3 March 2024 // Beilage 1
-- Acceptance record dated 12 June 2024 // Beilage 2
+- [Beilage 1] Werkvertrag vom 3. März 2024
+- [Beilage 2] Abnahmeprotokoll vom 12. Juni 2024
 :::
 
 # Rechtliches
 
 ## Werklohnforderung
 
-The claimant performed the agreed work, so the payment is due.
+Die Klägerin hat die vereinbarten Arbeiten erbracht; der Werklohn ist fällig.
 
 # Fazit
 
-The claim should be granted.
+Die Klage ist gutzuheissen.

@@ -99,6 +99,12 @@ size is **70 × 35 mm**.
 - positioning must be regression-tested by rendering, folding and checking a
   printed sample in the selected envelope.
 
+`starter-legal` places the same address **in the text flow** rather than in an
+anchored frame: it has no letterhead above the address, so a 38 mm spacer under
+the 22 mm top margin lands the first line at y = 60 mm in every renderer,
+including those that ignore `w:framePr`. A frame is only needed once something
+of variable height sits in the flow above the address.
+
 A right-window layout must be a separate, measured theme until `docc` supports
 conditional furniture/style selection. A boolean alone cannot change a theme’s
 fixed furniture geometry.
