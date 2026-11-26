@@ -195,6 +195,9 @@ type FramePr struct {
 	// HAnchor and VAnchor are "page" (default), "margin" or "text" — the
 	// column horizontally, the paragraph the box hangs on vertically.
 	HAnchor, VAnchor string
+	// VAlign is "top", "center" or "bottom": the box aligns to that edge of
+	// VAnchor's area, and Y is ignored.
+	VAlign string
 	// Wrap says how the text flow treats the box: "around" (default) flows
 	// beside it, "top_and_bottom" (also "notBeside", "none") clears the band it
 	// occupies, "front" and "behind" overlay it without moving any text.

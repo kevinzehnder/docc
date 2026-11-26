@@ -98,6 +98,7 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 	if err := e.buildFurniture(th.Epilogue, &e.out.Body); err != nil {
 		return nil, fmt.Errorf("epilogue: %w", err)
 	}
+	e.frameStyledParagraphs(e.out.Body)
 
 	e.out.Numbering = e.numbering
 	return e.out, nil
@@ -263,18 +264,12 @@ func validateFrames(th *theme.Theme) error {
 				continue
 			}
 			where := fmt.Sprintf("%s line %d (%s)", region, i+1, line.Style)
-			for _, anchor := range [][2]string{{"h_anchor", f.HAnchor}, {"v_anchor", f.VAnchor}} {
-				switch anchor[1] {
-				case "", "page", "margin", "text":
-				default:
-					bad = append(bad, fmt.Sprintf("%s: unknown %s %q — use page, margin or text", where, anchor[0], anchor[1]))
-				}
-			}
-			switch f.Wrap {
-			case "", "around", "top_and_bottom", "notBeside", "none", "front", "behind":
-			default:
-				bad = append(bad, fmt.Sprintf("%s: unknown wrap %q — use around, top_and_bottom, front or behind", where, f.Wrap))
-			}
+			bad = append(bad, frameProblems(where, f)...)
+		}
+	}
+	for _, name := range sortedKeys(th.Styles) {
+		if f := th.Styles[name].Frame; f != nil {
+			bad = append(bad, frameProblems("style "+name, f)...)
 		}
 	}
 	check("prologue", th.Prologue)
@@ -289,6 +284,29 @@ func validateFrames(th *theme.Theme) error {
 		return nil
 	}
 	return fmt.Errorf("theme %q places frames Word cannot position:\n  %s", th.Name, strings.Join(bad, "\n  "))
+}
+
+// frameProblems reports a frame's unknown anchors, alignment and wrap mode.
+func frameProblems(where string, f *theme.Frame) []string {
+	var bad []string
+	for _, anchor := range [][2]string{{"h_anchor", f.HAnchor}, {"v_anchor", f.VAnchor}} {
+		switch anchor[1] {
+		case "", "page", "margin", "text":
+		default:
+			bad = append(bad, fmt.Sprintf("%s: unknown %s %q — use page, margin or text", where, anchor[0], anchor[1]))
+		}
+	}
+	switch f.VAlign {
+	case "", "top", "center", "bottom":
+	default:
+		bad = append(bad, fmt.Sprintf("%s: unknown v_align %q — use top, center or bottom", where, f.VAlign))
+	}
+	switch f.Wrap {
+	case "", "around", "top_and_bottom", "notBeside", "none", "front", "behind":
+	default:
+		bad = append(bad, fmt.Sprintf("%s: unknown wrap %q — use around, top_and_bottom, front or behind", where, f.Wrap))
+	}
+	return bad
 }
 
 // validateSpanStyles checks that every `span.<type>` style key names a span
@@ -2020,6 +2038,22 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int,
 	return nil
 }
 
+// frameStyledParagraphs gives a body paragraph its style's frame, so a style
+// that carries one places every paragraph written in it. A frame the line
+// itself declares wins.
+func (e *emitter) frameStyledParagraphs(blocks []docx.Block) {
+	for i, b := range blocks {
+		p, ok := b.(docx.Paragraph)
+		if !ok || p.Props.Frame != nil {
+			continue
+		}
+		if st, ok := e.theme.Styles[p.Props.Style]; ok && st.Frame != nil {
+			p.Props.Frame = framePr(st.Frame)
+			blocks[i] = p
+		}
+	}
+}
+
 // framePr converts a theme frame; nil stays nil.
 func framePr(f *theme.Frame) *docx.FramePr {
 	if f == nil {
@@ -2032,6 +2066,7 @@ func framePr(f *theme.Frame) *docx.FramePr {
 		Y:       f.Y.Twips(0),
 		HAnchor: f.HAnchor,
 		VAnchor: f.VAnchor,
+		VAlign:  f.VAlign,
 		Wrap:    f.Wrap,
 	}
 }

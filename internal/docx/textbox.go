@@ -2,8 +2,9 @@ package docx
 
 // A framed paragraph is written as a floating text box (see FramePr). The box
 // needs a paragraph in the flow to hang on: it takes the next paragraph that is
-// not itself framed, as Word anchors a frame to the paragraph after it; failing
-// that the previous one; failing that, an empty paragraph of its own.
+// not itself framed, as Word anchors a frame to the paragraph after it — unless
+// that one starts a new page — failing that the previous one; failing that, an
+// empty paragraph of its own.
 
 const (
 	nsMC  = "http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -40,7 +41,14 @@ func writeBlocks(w *xw, d *Document, blocks []Block) {
 			continue
 		}
 		if ok {
-			hosted[i] = append(hosted[i], pending...)
+			// A box belongs to the page it was written on. When the next
+			// paragraph starts a new page, hanging the box on it would carry
+			// the box over too, so it hangs on the paragraph before instead.
+			host := i
+			if p.Props.PageBreak && lastFlow >= 0 {
+				host = lastFlow
+			}
+			hosted[host] = append(hosted[host], pending...)
 			pending = nil
 			lastFlow = i
 		}
@@ -105,9 +113,15 @@ func (b textBox) write(w *xw, d *Document) {
 	w.close("wp:posOffset")
 	w.close("wp:positionH")
 	w.open("wp:positionV", a("relativeFrom", relativeFrom(f.VAnchor, "paragraph")))
-	w.open("wp:posOffset")
-	w.text(itoa(int(f.Y.EMU())))
-	w.close("wp:posOffset")
+	if f.VAlign != "" {
+		w.open("wp:align")
+		w.text(f.VAlign)
+		w.close("wp:align")
+	} else {
+		w.open("wp:posOffset")
+		w.text(itoa(int(f.Y.EMU())))
+		w.close("wp:posOffset")
+	}
 	w.close("wp:positionV")
 	w.empty("wp:extent", ai("cx", width.EMU()), ai("cy", height.EMU()))
 	w.empty("wp:effectExtent", ai("l", 0), ai("t", 0), ai("r", 0), ai("b", 0))

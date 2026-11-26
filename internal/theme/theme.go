@@ -159,6 +159,11 @@ type Style struct {
 	// OutlineLevel sets the heading depth for the navigation pane and PDF
 	// bookmarks. 1 is the top level; omit for body text.
 	OutlineLevel int `yaml:"outline_level"`
+	// Frame places every paragraph of this style out of the flow, as a frame
+	// on a Word paragraph style does — for a line the body writes but the
+	// page decides where it goes, such as "Es folgt die Beurkundung." at the
+	// foot of the signature page.
+	Frame *Frame `yaml:"frame"`
 	// KeepNext stops a heading being stranded at the foot of a page.
 	KeepNext          bool `yaml:"keep_next"`
 	KeepLines         bool `yaml:"keep_lines"`
@@ -398,7 +403,11 @@ type Frame struct {
 	Height  Length `yaml:"height"`
 	HAnchor string `yaml:"h_anchor"`
 	VAnchor string `yaml:"v_anchor"`
-	Wrap    string `yaml:"wrap"`
+	// VAlign places the box at the top, center or bottom of what v_anchor
+	// names, instead of y below its top: `v_anchor: margin, v_align: bottom`
+	// sets a line on the last line of the text area, whatever fills the page.
+	VAlign string `yaml:"v_align"`
+	Wrap   string `yaml:"wrap"`
 }
 
 // Image is a picture placed in a line.

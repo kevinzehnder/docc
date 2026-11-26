@@ -1228,3 +1228,23 @@ func TestPairedSignatureBlock(t *testing.T) {
 		}
 	}
 }
+
+// A style with a frame places every body paragraph written in it.
+func TestStyleFramePlacesItsParagraphs(t *testing.T) {
+	th := testTheme()
+	th.Styles["Hinweis"] = theme.Style{Name: "Hinweis", BasedOn: "Standard", Frame: &theme.Frame{VAnchor: "margin", VAlign: "bottom"}}
+	sc := testSchema()
+	sc.Styles["div.hinweis"] = "Hinweis"
+	f, _ := parse.Parse("t.md", []byte("Text.\n\n::: hinweis\nEs folgt die Beurkundung.\n:::\n"))
+	built, err := Build(ir.Build(f, "test", map[string]any{}), sc, th, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out := xml(t, built); !strings.Contains(out, "<wp:align>bottom</wp:align>") {
+		t.Errorf("the styled paragraph was not framed:\n%s", out)
+	}
+	th.Styles["Hinweis"] = theme.Style{Name: "Hinweis", Frame: &theme.Frame{VAlign: "unten"}}
+	if err := Validate(sc, th); err == nil || !strings.Contains(err.Error(), `unknown v_align "unten"`) {
+		t.Errorf("expected a v_align error, got %v", err)
+	}
+}

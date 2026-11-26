@@ -388,6 +388,7 @@ LibreOffice does the same to a frame that ends a header.)
 | `height` | grows with the text | Fixed box height; text beyond it is clipped. |
 | `h_anchor` | `page` | What `x` counts from: `page`, `margin`, or `text` (the column). |
 | `v_anchor` | `page` | What `y` counts from: `page`, `margin`, or `text` (the paragraph the box hangs on). |
+| `v_align` | — | `top`, `center` or `bottom` of the `v_anchor` area instead of `y`: `v_anchor: margin, v_align: bottom` puts the box on the last line of the text area, whatever fills the page. |
 | `wrap` | `around` | How the flow treats the box: `around` flows beside it, `top_and_bottom` clears the band it occupies, `front` and `behind` overlay it and move no text. |
 
 Consecutive lines with identical frames share one box, so a multi-line block
@@ -395,13 +396,21 @@ repeats the same `frame:` on every line — most readably through a YAML anchor,
 `frame: &addr { … }` on the first and `frame: *addr` on the rest. A different
 frame starts a new box.
 
-A box hangs on the next paragraph in the flow (failing that, the previous one),
+A box hangs on the next paragraph in the flow — unless that one starts a new
+page, when it hangs on the one before, so it stays on the page it was written
+on — failing that, the previous one,
 which decides the page it appears on and is what `v_anchor: text` measures from.
 A page-anchored box does not move when the flow does, so the text below it has
 to be placed on its own: `wrap: front` with an exact-height spacer paragraph is
 the predictable pairing — the box sits where it is told, the spacer decides
 where the flow resumes, and neither depends on the other (see
 `starter-letter`).
+
+A **style** can carry a `frame:` too, as a Word paragraph style can. Every body
+paragraph in that style is then placed by it — for a line the markdown writes
+but the page positions, such as "Es folgt die Beurkundung." on the last line of
+the signature page (a block mapped to a style with `v_anchor: margin, v_align:
+bottom, wrap: top_and_bottom`).
 
 Frames work in `header:` and `footer:` too. A box in a first-page header can
 reach far below the header without pushing the body down, which is how a

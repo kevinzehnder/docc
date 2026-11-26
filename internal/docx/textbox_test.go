@@ -80,3 +80,29 @@ func TestFramesBecomeTextBoxes(t *testing.T) {
 		t.Error("header text box reuses a body drawing id")
 	}
 }
+
+// A box written before a paragraph that starts a new page stays on the page it
+// was written on, hung on the paragraph before; v_align replaces the offset.
+func TestBoxBeforePageBreakStaysOnItsPage(t *testing.T) {
+	notice := FramePr{VAnchor: "margin", VAlign: "bottom", Wrap: "top_and_bottom"}
+	next := P("Standard", "Bescheinigung")
+	next.Props.PageBreak = true
+	d := &Document{
+		Styles: []Style{{ID: "Standard", Name: "Standard", Type: StyleParagraph, Default: true}},
+		Body:   []Block{P("Standard", "Signatures"), framed("Es folgt die Beurkundung.", notice), next},
+	}
+	data, err := d.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := partOf(t, data, "word/document.xml")
+	// Boxes are written at the start of their host, so hung on "Signatures"
+	// the box comes before that text — and so before the page break.
+	sig, box := strings.Index(doc, ">Signatures<"), strings.Index(doc, "<wps:wsp>")
+	if box < 0 || box > sig {
+		t.Errorf("the box is not hung on the paragraph before the page break")
+	}
+	if !strings.Contains(doc, `<wp:positionV relativeFrom="margin"><wp:align>bottom</wp:align></wp:positionV>`) {
+		t.Errorf("v_align bottom not written as wp:align")
+	}
+}
