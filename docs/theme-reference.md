@@ -253,7 +253,7 @@ styles:
 | `align` | string | `left`, `center` (or `centre`), `right`, `justify` (or `both`). Omitting it inherits from `based_on`; writing `left` overrides an inherited justification. |
 | `spacing` | map | `before`, `after` (lengths) and `line` (line height). |
 | `indent` | map | `left`, `right`, `first_line`, `hanging`, all lengths. |
-| `tabs` | list | Tab stops: `pos` (length), `align` (`left`, `center`, `right`, `decimal`), `leader`. |
+| `tabs` | list | Tab stops: `pos` (a length from the left margin, or `end` for the right margin and `half` for the middle of the text column), `align` (`left`, `center`, `right`, `decimal`), `leader` (`dot`, `hyphen`, `underscore`). `end` and `half` are measured on the body's text column (`continuation_margins` when set), so a signature line drawn with `{ pos: end, align: right, leader: dot }` reaches the right margin in every theme that inherits it. |
 | `borders` | map | `top`, `bottom`, `left`, `right`, each with `style` (`none`, `single`, `double`, `dotted`, `dashed`), `width` (points), `space` (length), `color`. A bottom border alone is how a rule is drawn under a letterhead. |
 | `shading` | colour | Background fill. |
 | `outline_level` | int | Heading depth for the navigation pane and PDF bookmarks. `1` is the top level; omit for body text. |

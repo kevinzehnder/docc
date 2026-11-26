@@ -187,9 +187,61 @@ type Indent struct {
 
 // Tab is a tab stop.
 type Tab struct {
-	Pos    Length `yaml:"pos"`
+	// Pos is a length from the left margin, or "end" (the right margin) or
+	// "half" (the middle of the text column). The named positions are what
+	// let one signature style serve themes with different margins: a dotted
+	// line to a fixed 158mm stops short on a wider page and runs into the
+	// margin on a narrower one.
+	Pos Length `yaml:"-"`
+	// To is "end" or "half" when Pos named a position rather than a length.
+	To     string `yaml:"-"`
 	Align  string `yaml:"align"`
 	Leader string `yaml:"leader"`
+}
+
+// Tab positions named rather than measured.
+const (
+	TabEnd  = "end"
+	TabHalf = "half"
+)
+
+// UnmarshalYAML reads `pos` as a length or as one of the named positions.
+func (t *Tab) UnmarshalYAML(unmarshal func(any) error) error {
+	var raw struct {
+		Pos    any    `yaml:"pos"`
+		Align  string `yaml:"align"`
+		Leader string `yaml:"leader"`
+	}
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+	t.Align, t.Leader = raw.Align, raw.Leader
+	s, ok := raw.Pos.(string)
+	if raw.Pos != nil && !ok {
+		return fmt.Errorf("tab pos must be a length with a unit, %q or %q, got %v", TabEnd, TabHalf, raw.Pos)
+	}
+	switch s {
+	case TabEnd, TabHalf:
+		t.To = s
+		return nil
+	}
+	pos, err := ParseLength(s)
+	if err != nil {
+		return fmt.Errorf("tab pos: %w (or %q, %q)", err, TabEnd, TabHalf)
+	}
+	t.Pos = pos
+	return nil
+}
+
+// Twips resolves the stop against a text column of the given width.
+func (t Tab) Twips(textWidth docx.Twips) docx.Twips {
+	switch t.To {
+	case TabEnd:
+		return textWidth
+	case TabHalf:
+		return textWidth / 2
+	}
+	return t.Pos.Twips(0)
 }
 
 // Borders are paragraph borders. A bottom border alone is how a rule is drawn
@@ -565,6 +617,23 @@ func (p Page) PageSize() docx.PageSize {
 	}
 	size.Landscape = p.Landscape
 	return size
+}
+
+// TextWidth is the width of the body's text column: the page less its side
+// margins, taken from continuation_margins when the theme has them, since the
+// body — and the signatures at its end — sits in the continuation section.
+func (p Page) TextWidth() docx.Twips {
+	size := p.PageSize()
+	width := size.Width
+	if size.Landscape {
+		width = size.Height
+	}
+	m := p.Margins
+	if p.ContinuationMargins != nil {
+		m = p.ContinuationMargins.Merge(m)
+	}
+	dm := m.DocxMargins()
+	return width - dm.Left - dm.Right
 }
 
 // DocxMargins converts theme margins, defaulting to values that keep text on

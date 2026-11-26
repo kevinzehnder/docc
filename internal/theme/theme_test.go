@@ -700,3 +700,42 @@ func TestFormatsConfigured(t *testing.T) {
 		t.Errorf("date = %q, want %q", got, "Sonntag, 3 Mär 2024")
 	}
 }
+
+// A named tab position follows the theme's text column, continuation margins
+// included, so one signature style fits every page geometry.
+func TestNamedTabPositionsFollowTheTextColumn(t *testing.T) {
+	set := loadOne(t, "brief.yaml", `name: brief
+page:
+  size: A4
+  margins: { left: 30mm, right: 20mm }
+  continuation_margins: { left: 25mm }
+styles:
+  line:
+    tabs:
+      - { pos: 75mm }
+      - { pos: half }
+      - { pos: end, align: right, leader: dot }
+`)
+	th, err := set.Get("brief")
+	if err != nil {
+		t.Fatal(err)
+	}
+	width := docx.Mm(210) - docx.Mm(25) - docx.Mm(20)
+	if got := th.Page.TextWidth(); got != width {
+		t.Fatalf("text width = %d, want %d (continuation left margin)", got, width)
+	}
+	var line docx.Style
+	for _, s := range th.DocxStyles() {
+		if s.ID == "line" {
+			line = s
+		}
+	}
+	tabs := line.Para.Tabs
+	if len(tabs) != 3 || tabs[0].Pos != docx.Mm(75) || tabs[1].Pos != width/2 || tabs[2].Pos != width {
+		t.Errorf("tabs = %+v, want 75mm, %d, %d", tabs, width/2, width)
+	}
+
+	if err := loadErr(t, "bad.yaml", "name: bad\nstyles:\n  x:\n    tabs: [{ pos: middle }]\n"); !strings.Contains(err.Error(), `"end"`) {
+		t.Errorf("an unknown position should name the allowed ones, got: %v", err)
+	}
+}

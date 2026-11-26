@@ -1784,7 +1784,7 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int,
 	p.Props.Frame = framePr(line.Frame)
 	for _, t := range line.Tabs {
 		p.Props.Tabs = append(p.Props.Tabs, docx.TabStop{
-			Pos:    t.Pos.Twips(0),
+			Pos:    t.Twips(e.theme.Page.TextWidth()),
 			Align:  docx.TabAlign(t.Align),
 			Leader: t.Leader,
 		})
@@ -1836,7 +1836,7 @@ func (e *emitter) furnitureRunLine(line theme.Line, meta map[string]any, numID i
 	}
 	for _, t := range line.Tabs {
 		p.Props.Tabs = append(p.Props.Tabs, docx.TabStop{
-			Pos:    t.Pos.Twips(0),
+			Pos:    t.Twips(e.theme.Page.TextWidth()),
 			Align:  docx.TabAlign(t.Align),
 			Leader: t.Leader,
 		})

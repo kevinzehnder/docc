@@ -16,14 +16,15 @@ func (t *Theme) DocxStyles() []docx.Style {
 	}
 	sort.Strings(ids)
 
+	width := t.Page.TextWidth()
 	out := make([]docx.Style, 0, len(ids))
 	for _, id := range ids {
-		out = append(out, t.Styles[id].docxStyle(id))
+		out = append(out, t.Styles[id].docxStyle(id, width))
 	}
 	return out
 }
 
-func (s Style) docxStyle(id string) docx.Style {
+func (s Style) docxStyle(id string, textWidth docx.Twips) docx.Style {
 	name := s.Name
 	if name == "" {
 		name = id
@@ -45,7 +46,7 @@ func (s Style) docxStyle(id string) docx.Style {
 		Run:        s.runProps(),
 	}
 	if typ != docx.StyleCharacter {
-		st.Para = s.paraProps()
+		st.Para = s.paraProps(textWidth)
 	}
 	return st
 }
@@ -63,7 +64,7 @@ func (s Style) runProps() docx.RunProps {
 	}
 }
 
-func (s Style) paraProps() docx.ParaProps {
+func (s Style) paraProps(textWidth docx.Twips) docx.ParaProps {
 	line, rule := s.Spacing.Line.Spacing()
 	p := docx.ParaProps{
 		Align: docx.Align(alignName(s.Align)),
@@ -87,7 +88,7 @@ func (s Style) paraProps() docx.ParaProps {
 		ContextualSpacing:   s.ContextualSpacing,
 		SuppressAutoHyphens: docx.ToggleFrom(s.SuppressAutoHyphens),
 		Shading:             s.Shading,
-		Tabs:                docxTabs(s.Tabs),
+		Tabs:                docxTabs(s.Tabs, textWidth),
 		Borders:             s.Borders.docx(),
 	}
 	if s.OutlineLevel > 0 {
@@ -98,14 +99,14 @@ func (s Style) paraProps() docx.ParaProps {
 	return p
 }
 
-func docxTabs(tabs []Tab) []docx.TabStop {
+func docxTabs(tabs []Tab, textWidth docx.Twips) []docx.TabStop {
 	if len(tabs) == 0 {
 		return nil
 	}
 	out := make([]docx.TabStop, 0, len(tabs))
 	for _, t := range tabs {
 		out = append(out, docx.TabStop{
-			Pos:    t.Pos.Twips(0),
+			Pos:    t.Twips(textWidth),
 			Align:  docx.TabAlign(tabAlignName(t.Align)),
 			Leader: t.Leader,
 		})
