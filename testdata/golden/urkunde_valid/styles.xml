@@ -15,7 +15,7 @@
 </w:docDefaults>
 <w:style w:type="paragraph" w:styleId="Aufzaehlung">
 <w:name w:val="Bullet list"/>
-<w:basedOn w:val="Listenabsatz"/>
+<w:basedOn w:val="ListParagraph"/>
 <w:qFormat/>
 <w:pPr>
 <w:jc w:val="left"/>
@@ -81,7 +81,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="Beurkundungshinweis">
 <w:name w:val="Beurkundung notice"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="567" w:after="0"/>
@@ -91,7 +91,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="Code">
 <w:name w:val="Code"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0"/>
@@ -112,9 +112,9 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Listenabsatz">
+<w:style w:type="paragraph" w:styleId="ListParagraph">
 <w:name w:val="List paragraph"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:contextualSpacing/>
@@ -124,7 +124,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="Nummerierung">
 <w:name w:val="Numbered list"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="85"/>
@@ -140,9 +140,9 @@
 <w:u w:val="single"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Seitenzahl">
+<w:style w:type="paragraph" w:styleId="PageNumber">
 <w:name w:val="Page number"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0"/>
@@ -154,8 +154,8 @@
 <w:szCs w:val="16"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Standard" w:default="1">
-<w:name w:val="Standard"/>
+<w:style w:type="paragraph" w:styleId="Normal" w:default="1">
+<w:name w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="142" w:line="276" w:lineRule="auto"/>
@@ -163,9 +163,9 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Titel">
+<w:style w:type="paragraph" w:styleId="Title">
 <w:name w:val="Title"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -182,7 +182,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="TitelRule">
 <w:name w:val="Title rule"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -195,10 +195,10 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift1">
+<w:style w:type="paragraph" w:styleId="Heading1">
 <w:name w:val="heading 1"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -218,10 +218,10 @@
 <w:szCs w:val="28"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift2">
+<w:style w:type="paragraph" w:styleId="Heading2">
 <w:name w:val="heading 2"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -241,10 +241,10 @@
 <w:szCs w:val="22"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift3">
+<w:style w:type="paragraph" w:styleId="Heading3">
 <w:name w:val="heading 3"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -277,7 +277,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="Unterschriftsort">
 <w:name w:val="Signature place and date"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="567" w:after="454"/>
@@ -287,7 +287,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="Unterschriftsrolle">
 <w:name w:val="Signature role"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -298,7 +298,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="UrkBeurkundet">
 <w:name w:val="Beurkundet in/am"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -312,7 +312,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="UrkErrichtet">
 <w:name w:val="Urkunde errichtet von"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -335,7 +335,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="UrkRule">
 <w:name w:val="Urkunde rule"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -366,9 +366,9 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Zitat">
+<w:style w:type="paragraph" w:styleId="Quote">
 <w:name w:val="Quote"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:ind w:left="567" w:right="567"/>

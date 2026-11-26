@@ -32,7 +32,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Titel"/>
+<w:pStyle w:val="Title"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Kaufvertrag</w:t>
@@ -53,7 +53,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift1"/>
+<w:pStyle w:val="Heading1"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Vertragsparteien</w:t>
@@ -61,7 +61,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Verkäuferschaft</w:t>
@@ -151,7 +151,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Käuferschaft</w:t>
@@ -188,7 +188,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift1"/>
+<w:pStyle w:val="Heading1"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Kaufobjekt</w:t>
@@ -196,7 +196,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Verkäuferschaft verkauft an die Käuferschaft, und diese übernimmt als Alleineigentümerin, das nachstehend beschriebene Grundstück:</w:t>
@@ -226,7 +226,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Es gelten die Grenzen laut den öffentlichen Grundbuchplänen. Der Wortlaut der im Grundbuch eingetragenen Vormerkungen, Anmerkungen und Dienstbarkeiten ist den Parteien aufgrund der Begründungsbelege bekannt; sie verzichten auf deren Verlesung.</w:t>
@@ -234,7 +234,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift1"/>
+<w:pStyle w:val="Heading1"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Kaufpreis</w:t>
@@ -242,7 +242,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Der Kaufpreis setzt sich wie folgt zusammen:</w:t>
@@ -360,7 +360,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Tilgung des Kaufpreises</w:t>
@@ -368,7 +368,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Der Kaufpreis wird wie folgt getilgt:</w:t>
@@ -376,7 +376,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift3"/>
+<w:pStyle w:val="Heading3"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Anzahlung</w:t>
@@ -429,7 +429,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift3"/>
+<w:pStyle w:val="Heading3"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Sicherstellung der Grundstückgewinnsteuer</w:t>
@@ -479,7 +479,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift3"/>
+<w:pStyle w:val="Heading3"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Restkaufpreis</w:t>
@@ -532,7 +532,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Zahlungsversprechen</w:t>
@@ -540,7 +540,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Käuferschaft hat anlässlich der Vertragsunterzeichnung ein unwiderrufliches Zahlungsversprechen eines schweizerischen Bankinstitutes über den Restkaufpreis vorzulegen. Die Urkundsperson ist ermächtigt, diesen Vertrag dem Grundbuchamt zur Eintragung anzumelden, sobald das Zahlungsversprechen vorliegt.</w:t>
@@ -548,7 +548,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift1"/>
+<w:pStyle w:val="Heading1"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Schlussbestimmungen</w:t>
@@ -556,7 +556,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Nutzen und Gefahr</w:t>
@@ -564,7 +564,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Nutzen und Gefahr gehen am </w:t>
@@ -578,7 +578,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Gewährleistung</w:t>
@@ -586,7 +586,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Vertragsparteien sind von der Urkundsperson auf die Art. 192–196 sowie 197–210 OR über die Rechts- und Sachgewährleistung hingewiesen worden.</w:t>
@@ -594,7 +594,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Jede Gewährspflicht der Verkäuferschaft für Rechts- und Sachmängel wird wegbedungen, soweit die Mängel nicht arglistig verschwiegen wurden. Die Käuferschaft übernimmt das Vertragsobjekt im ihr bekannten, gegenwärtigen Zustand.</w:t>
@@ -602,7 +602,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Gebäudeversicherung</w:t>
@@ -610,7 +610,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die obligatorische Brandversicherung bei der Aargauischen Gebäudeversicherung bleibt bestehen und geht auf die Käuferschaft über.</w:t>
@@ -618,7 +618,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Unterhalts- und Erneuerungsfonds</w:t>
@@ -626,7 +626,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die für das Vertragsobjekt geleisteten Beiträge in den Unterhalts- und Erneuerungsfonds der Stockwerkeigentümergemeinschaft sind im Kaufpreis inbegriffen.</w:t>
@@ -634,7 +634,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Mietverhältnisse</w:t>
@@ -642,7 +642,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Verkäuferschaft bestätigt, dass für das Vertragsobjekt per Übergang von Nutzen und Gefahr weder Miet- noch Pachtverträge bestehen.</w:t>
@@ -650,7 +650,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Grundstückgewinnsteuer</w:t>
@@ -658,7 +658,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Parteien bestätigen, § 234a des kantonalen Steuergesetzes zu kennen. Zur Sicherstellung der Grundstückgewinnsteuer überweist die Käuferschaft unter Anrechnung an den Kaufpreis den unter Ziff. III.1 aufgeführten Betrag an das Steueramt des Kantons Aargau.</w:t>
@@ -666,7 +666,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Vertragskosten</w:t>
@@ -674,7 +674,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Kosten dieses Vertrages (Beurkundung, Grundbuchamt) werden von den Parteien in solidarischer Haftung je zur Hälfte getragen.</w:t>
@@ -682,7 +682,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift2"/>
+<w:pStyle w:val="Heading2"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Grundbuchanmeldung</w:t>
@@ -690,7 +690,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Urkundsperson ist ermächtigt und beauftragt, alle mit dieser Urkunde zusammenhängenden Belege zu unterzeichnen und die Anmeldung beim Grundbuchamt Baden vorzunehmen.</w:t>
@@ -698,7 +698,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Baden, den </w:t>
@@ -791,7 +791,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Es folgt die Beurkundung.</w:t>
@@ -799,7 +799,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift1"/>
+<w:pStyle w:val="Heading1"/>
 <w:pageBreakBefore/>
 </w:pPr>
 <w:r>
@@ -808,7 +808,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Dr. iur. David Muster, Urkundsperson des Kantons Aargau, mit Büro in Baden, bescheinigt:</w:t>
@@ -901,7 +901,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Protokoll-Nr. </w:t>

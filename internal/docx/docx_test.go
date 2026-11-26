@@ -496,3 +496,48 @@ func tail(s string, n int) string {
 	}
 	return s[len(s)-n:]
 }
+
+// A style named like a built-in takes Word's ID even when another style
+// already holds that ID as its own; the displaced one moves to ID_2, and
+// every reference to either follows. The claim goes by order, so the output
+// does not depend on map iteration anywhere upstream.
+func TestCanonicalStyleIDCollision(t *testing.T) {
+	styles := []Style{
+		{ID: "Standard", Name: "Standard", Default: true},
+		{ID: "Heading1", Name: "Custom Heading", BasedOn: "Standard"},
+		{ID: "Ueberschrift1", Name: "heading 1", BasedOn: "Heading1", Next: "Standard"},
+		{ID: "Heading1_2", Name: "Squatter"},
+		{ID: "Zweite", Name: "Heading 1"}, // loses: Ueberschrift1 claimed it first
+	}
+	got := canonicalStyleIDs(styles)
+	want := map[string]string{
+		"Standard":      "Normal",
+		"Ueberschrift1": "Heading1",
+		"Heading1":      "Heading1_3",
+	}
+	if len(got) != len(want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s -> %q, want %q", k, got[k], v)
+		}
+	}
+
+	d := &Document{Styles: styles, Body: []Block{
+		Paragraph{Props: ParaProps{Style: "Heading1"}},
+		Paragraph{Props: ParaProps{Style: "Ueberschrift1"}},
+	}}
+	data, err := d.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := partOf(t, data, "word/document.xml")
+	if !strings.Contains(doc, `<w:pStyle w:val="Heading1_3"/></w:pPr></w:p><w:p><w:pPr><w:pStyle w:val="Heading1"/>`) {
+		t.Errorf("body references not renamed:\n%s", doc)
+	}
+	st := partOf(t, data, "word/styles.xml")
+	if !strings.Contains(st, `w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Heading1_3"/><w:next w:val="Normal"/>`) {
+		t.Errorf("style references not renamed:\n%s", st)
+	}
+}

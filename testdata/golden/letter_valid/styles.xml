@@ -24,7 +24,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="AddressBlockFirst">
 <w:name w:val="Address First"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0" w:line="288" w:lineRule="auto"/>
@@ -37,7 +37,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="BeilagenHeader">
 <w:name w:val="Enclosures Heading"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -50,7 +50,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="BeilagenItem">
 <w:name w:val="Enclosure"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="57"/>
@@ -58,9 +58,9 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="ClosingLine">
+<w:style w:type="paragraph" w:styleId="Closing">
 <w:name w:val="Closing"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -70,7 +70,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="Code">
 <w:name w:val="Code"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0"/>
@@ -83,7 +83,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="DateLine">
 <w:name w:val="Date Line"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="3458" w:after="0"/>
@@ -92,7 +92,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="DeliveryMode">
 <w:name w:val="Delivery Mode"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0" w:line="288" w:lineRule="auto"/>
@@ -108,7 +108,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="FooterLine">
 <w:name w:val="Footer Line"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0"/>
@@ -120,9 +120,9 @@
 <w:szCs w:val="16"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Listenabsatz">
+<w:style w:type="paragraph" w:styleId="ListParagraph">
 <w:name w:val="List Paragraph"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:contextualSpacing/>
@@ -151,7 +151,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="SenderName">
 <w:name w:val="Sender Name"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0"/>
@@ -165,9 +165,9 @@
 <w:szCs w:val="16"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="SignatureBlock">
+<w:style w:type="paragraph" w:styleId="Signature">
 <w:name w:val="Signature"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="680" w:after="0" w:line="312" w:lineRule="auto"/>
@@ -176,15 +176,15 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="SignatureName">
 <w:name w:val="Signature Name"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0" w:line="312" w:lineRule="auto"/>
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Standard" w:default="1">
-<w:name w:val="Standard"/>
+<w:style w:type="paragraph" w:styleId="Normal" w:default="1">
+<w:name w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="198" w:line="288" w:lineRule="auto"/>
@@ -193,8 +193,8 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="SubjectLine">
 <w:name w:val="Subject"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -207,10 +207,10 @@
 <w:szCs w:val="28"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift1">
+<w:style w:type="paragraph" w:styleId="Heading1">
 <w:name w:val="heading 1"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -224,10 +224,10 @@
 <w:szCs w:val="26"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift2">
+<w:style w:type="paragraph" w:styleId="Heading2">
 <w:name w:val="heading 2"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -241,10 +241,10 @@
 <w:szCs w:val="23"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift3">
+<w:style w:type="paragraph" w:styleId="Heading3">
 <w:name w:val="heading 3"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -260,9 +260,9 @@
 <w:szCs w:val="22"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Zitat">
+<w:style w:type="paragraph" w:styleId="Quote">
 <w:name w:val="Quote"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:ind w:left="567" w:right="567"/>

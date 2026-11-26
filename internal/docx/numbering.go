@@ -153,7 +153,7 @@ func (n Numbering) empty() bool {
 
 // writeNumbering renders the numbering.xml part.
 func (d *Document) writeNumbering() []byte {
-	w := &xw{}
+	w := &xw{ids: d.styleIDs}
 	w.header()
 	w.open("w:numbering", nsAttrs()...)
 
@@ -219,7 +219,7 @@ func writeNumLevel(w *xw, lvl NumLevel) {
 	}
 
 	if lvl.ParagraphStyle != "" {
-		w.empty("w:pStyle", a("w:val", lvl.ParagraphStyle))
+		w.empty("w:pStyle", a("w:val", w.styleID(lvl.ParagraphStyle)))
 	}
 
 	text := lvl.Text

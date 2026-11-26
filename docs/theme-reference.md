@@ -203,6 +203,13 @@ dependency and a table is four lines of YAML.
 The map key is the style id a schema's `styles:` map names. Everything below is
 optional; a style that sets nothing inherits the document defaults.
 
+In the `.docx` a style whose `name` is a Word built-in (`heading 1`,
+`List Paragraph`, `Quote`, `Title`, …) is written under Word's own id
+(`Heading1`, `ListParagraph`, …), and the `default: true` style becomes
+`Normal`, so tools that address built-ins by id find them. The key is
+unaffected everywhere else. A style whose own key collides with such an id is
+written as `<key>_2`.
+
 ```yaml
 styles:
   Ueberschrift1:

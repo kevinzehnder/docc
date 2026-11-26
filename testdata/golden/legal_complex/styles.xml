@@ -15,7 +15,7 @@
 </w:docDefaults>
 <w:style w:type="paragraph" w:styleId="Beweismittel">
 <w:name w:val="Beweismittel"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="57" w:after="57" w:line="264" w:lineRule="auto"/>
@@ -29,7 +29,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="Code">
 <w:name w:val="Code"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0"/>
@@ -42,7 +42,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LH_Addr">
 <w:name w:val="Letterhead Address"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="0" w:line="252" w:lineRule="auto"/>
@@ -65,7 +65,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LH_Kanzlei">
 <w:name w:val="Letterhead Firm"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
@@ -93,7 +93,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LH_Rule">
 <w:name w:val="Letterhead Rule"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:pBdr>
@@ -105,7 +105,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalBeilagenItem">
 <w:name w:val="Enclosure Entry"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="170"/>
@@ -115,7 +115,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalBeilagenTitel">
 <w:name w:val="Enclosures Heading"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -131,7 +131,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalBetreff">
 <w:name w:val="Subject"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -142,7 +142,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalBodyStart">
 <w:name w:val="Legal Body Start"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0"/>
@@ -159,7 +159,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalCaseRef">
 <w:name w:val="Case Reference"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="567" w:after="0"/>
@@ -169,7 +169,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalDate">
 <w:name w:val="Date Line"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="4422" w:after="0"/>
@@ -179,7 +179,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalDocTitle">
 <w:name w:val="Document Title"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -195,7 +195,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalGericht">
 <w:name w:val="Court Address"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="0" w:line="276" w:lineRule="auto"/>
@@ -208,7 +208,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalGruss">
 <w:name w:val="Closing Greeting"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -219,7 +219,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalPartyEntry">
 <w:name w:val="Party Entry"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:tabs>
@@ -232,7 +232,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalPlain">
 <w:name w:val="Party Label"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -243,7 +243,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalSchlussLinie">
 <w:name w:val="Closing Rule"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:pBdr>
@@ -256,7 +256,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalSchlussformel">
 <w:name w:val="Closing Formula"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="567"/>
@@ -273,7 +273,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalUnterschrift">
 <w:name w:val="Signature Name"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="1247" w:after="0"/>
@@ -283,7 +283,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalVermerk">
 <w:name w:val="Filing Note"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="680" w:after="0"/>
@@ -296,7 +296,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalVersand">
 <w:name w:val="Versandart"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="0" w:after="0" w:line="276" w:lineRule="auto"/>
@@ -312,7 +312,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="LegalVertreter">
 <w:name w:val="Party Representative"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:before="57" w:after="0"/>
@@ -321,9 +321,9 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Listenabsatz">
+<w:style w:type="paragraph" w:styleId="ListParagraph">
 <w:name w:val="List Paragraph"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:contextualSpacing/>
@@ -333,7 +333,7 @@
 </w:style>
 <w:style w:type="paragraph" w:styleId="Rechtsbegehren">
 <w:name w:val="Rechtsbegehren"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="170"/>
@@ -341,8 +341,8 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Standard" w:default="1">
-<w:name w:val="Standard"/>
+<w:style w:type="paragraph" w:styleId="Normal" w:default="1">
+<w:name w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:spacing w:after="198" w:line="300" w:lineRule="auto"/>
@@ -350,10 +350,10 @@
 </w:pPr>
 <w:rPr/>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift1">
+<w:style w:type="paragraph" w:styleId="Heading1">
 <w:name w:val="heading 1"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -373,10 +373,10 @@
 <w:szCs w:val="24"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift2">
+<w:style w:type="paragraph" w:styleId="Heading2">
 <w:name w:val="heading 2"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -395,10 +395,10 @@
 <w:szCs w:val="22"/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Ueberschrift3">
+<w:style w:type="paragraph" w:styleId="Heading3">
 <w:name w:val="heading 3"/>
-<w:basedOn w:val="Standard"/>
-<w:next w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:keepNext/>
@@ -417,9 +417,9 @@
 <w:iCs/>
 </w:rPr>
 </w:style>
-<w:style w:type="paragraph" w:styleId="Zitat">
+<w:style w:type="paragraph" w:styleId="Quote">
 <w:name w:val="Quote"/>
-<w:basedOn w:val="Standard"/>
+<w:basedOn w:val="Normal"/>
 <w:qFormat/>
 <w:pPr>
 <w:ind w:left="567" w:right="567"/>

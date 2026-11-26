@@ -635,10 +635,36 @@ func TestConsecutiveListsRestart(t *testing.T) {
 	}
 }
 
+// The theme key Ueberschrift1 is named "heading 1", so it is written under
+// Word's ID Heading1; the default style Standard becomes Normal. References
+// follow the rename, or Word falls back to a style that is not the theme's.
 func TestHeadingUsesMappedStyle(t *testing.T) {
-	doc := xml(t, build(t, "---\nx: 1\n---\n\n# Rechtsbegehren\n"))
-	if !strings.Contains(doc, `<w:pStyle w:val="Ueberschrift1"/>`) {
-		t.Errorf("heading did not get the mapped style:\n%s", doc)
+	d := build(t, "---\nx: 1\n---\n\n# Rechtsbegehren\n\n1. eins\n")
+	doc := xml(t, d)
+	if !strings.Contains(doc, `<w:pStyle w:val="Heading1"/>`) {
+		t.Errorf("heading did not get the canonical style ID:\n%s", doc)
+	}
+	data, err := d.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	styles := partOf(t, data, "word/styles.xml")
+	for _, want := range []string{
+		`w:styleId="Normal" w:default="1"><w:name w:val="Normal"/>`,
+		`w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/>`,
+	} {
+		if !strings.Contains(styles, want) {
+			t.Errorf("styles.xml lacks %s", want)
+		}
+	}
+	numbering := partOf(t, data, "word/numbering.xml")
+	if !strings.Contains(numbering, `<w:pStyle w:val="ListParagraph"/>`) {
+		t.Errorf("numbering level does not name ListParagraph:\n%s", numbering)
+	}
+	for _, stale := range []string{`"Ueberschrift1"`, `"Standard"`, `"Listenabsatz"`} {
+		if strings.Contains(styles+doc+numbering, stale) {
+			t.Errorf("theme key %s leaked into the output", stale)
+		}
 	}
 }
 

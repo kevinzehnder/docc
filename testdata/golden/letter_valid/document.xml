@@ -96,7 +96,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Sehr geehrte Frau Muster</w:t>
@@ -104,7 +104,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Wir vertreten die Muster Handels AG in der oben genannten Angelegenheit. Namens und im Auftrag unserer Mandantin gelangen wir wie folgt an Sie.</w:t>
@@ -112,7 +112,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift1"/>
+<w:pStyle w:val="Heading1"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Ausgangslage</w:t>
@@ -120,7 +120,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Unsere Mandantin stellte Ihnen am 3. Juni 2026 die Rechnung Nr. 2026-114 über CHF 8'400.— zu. Die Zahlungsfrist von 30 Tagen ist unbenutzt abgelaufen.</w:t>
@@ -128,7 +128,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Eine Zahlungserinnerung vom 1. Juli 2026 blieb ebenfalls unbeantwortet.</w:t>
@@ -136,7 +136,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Ueberschrift1"/>
+<w:pStyle w:val="Heading1"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Aufforderung</w:t>
@@ -144,7 +144,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Wir fordern Sie hiermit auf:</w:t>
@@ -152,7 +152,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Listenabsatz"/>
+<w:pStyle w:val="ListParagraph"/>
 <w:numPr>
 <w:ilvl w:val="0"/>
 <w:numId w:val="1"/>
@@ -164,7 +164,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Listenabsatz"/>
+<w:pStyle w:val="ListParagraph"/>
 <w:numPr>
 <w:ilvl w:val="0"/>
 <w:numId w:val="1"/>
@@ -176,7 +176,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Sollte die Zahlung ausbleiben, ist unsere Mandantin gehalten, die Betreibung einzuleiten. Die damit verbundenen Kosten gingen zu Ihren Lasten.</w:t>
@@ -184,7 +184,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Zitat"/>
+<w:pStyle w:val="Quote"/>
 <w:ind w:left="567"/>
 </w:pPr>
 <w:r>
@@ -193,7 +193,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="Standard"/>
+<w:pStyle w:val="Normal"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Für Rückfragen stehen wir Ihnen gerne zur Verfügung.</w:t>
@@ -201,7 +201,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="ClosingLine"/>
+<w:pStyle w:val="Closing"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Freundliche Grüsse</w:t>
@@ -209,7 +209,7 @@
 </w:p>
 <w:p>
 <w:pPr>
-<w:pStyle w:val="SignatureBlock"/>
+<w:pStyle w:val="Signature"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Dr. iur. Anna Beispiel</w:t>

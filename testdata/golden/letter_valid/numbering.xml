@@ -6,7 +6,7 @@
 <w:lvl w:ilvl="0">
 <w:start w:val="1"/>
 <w:numFmt w:val="decimal"/>
-<w:pStyle w:val="Listenabsatz"/>
+<w:pStyle w:val="ListParagraph"/>
 <w:lvlText w:val="%1."/>
 <w:lvlJc w:val="left"/>
 <w:pPr>
@@ -16,7 +16,7 @@
 <w:lvl w:ilvl="1">
 <w:start w:val="1"/>
 <w:numFmt w:val="lowerLetter"/>
-<w:pStyle w:val="Listenabsatz"/>
+<w:pStyle w:val="ListParagraph"/>
 <w:lvlText w:val="%2."/>
 <w:lvlJc w:val="left"/>
 <w:pPr>
@@ -26,7 +26,7 @@
 <w:lvl w:ilvl="2">
 <w:start w:val="1"/>
 <w:numFmt w:val="lowerRoman"/>
-<w:pStyle w:val="Listenabsatz"/>
+<w:pStyle w:val="ListParagraph"/>
 <w:lvlText w:val="%3."/>
 <w:lvlJc w:val="left"/>
 <w:pPr>

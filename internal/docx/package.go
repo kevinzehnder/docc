@@ -185,6 +185,7 @@ func (d *Document) buildParts() (map[string][]byte, error) {
 	}
 
 	d.assignDrawingIDs()
+	d.styleIDs = canonicalStyleIDs(d.Styles)
 
 	parts["[Content_Types].xml"] = d.writeContentTypes()
 	parts["_rels/.rels"] = d.writeRootRels()

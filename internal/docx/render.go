@@ -24,7 +24,7 @@ func nsAttrs() []attr {
 
 // writeDocument renders the word/document.xml part.
 func (d *Document) writeDocument() []byte {
-	w := &xw{}
+	w := &xw{ids: d.styleIDs}
 	w.header()
 	w.open("w:document", nsAttrs()...)
 	w.open("w:body")
@@ -130,7 +130,7 @@ func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 	w.open("w:pPr")
 
 	if p.Style != "" {
-		w.empty("w:pStyle", a("w:val", p.Style))
+		w.empty("w:pStyle", a("w:val", w.styleID(p.Style)))
 	}
 	if p.KeepNext {
 		w.empty("w:keepNext")
@@ -335,7 +335,7 @@ func writeRunProps(w *xw, r RunProps, inBody bool) {
 
 	w.open("w:rPr")
 	if r.Style != "" {
-		w.empty("w:rStyle", a("w:val", r.Style))
+		w.empty("w:rStyle", a("w:val", w.styleID(r.Style)))
 	}
 	if r.Font != "" {
 		w.empty("w:rFonts", a("w:ascii", r.Font), a("w:hAnsi", r.Font), a("w:cs", r.Font))
@@ -494,7 +494,7 @@ func (t Table) write(w *xw, d *Document) {
 
 	w.open("w:tblPr")
 	if t.Style != "" {
-		w.empty("w:tblStyle", a("w:val", t.Style))
+		w.empty("w:tblStyle", a("w:val", w.styleID(t.Style)))
 	}
 	total := Twips(0)
 	for _, cw := range t.Widths {
@@ -614,7 +614,7 @@ func writeTableBorders(w *xw, name string, b *TableBorders) {
 // ---------------------------------------------------------------------------
 
 func (d *Document) writeHeaderFooter(hf HeaderFooter, root string) []byte {
-	w := &xw{}
+	w := &xw{ids: d.styleIDs}
 	w.header()
 	w.open(root, nsAttrs()...)
 	// A header part with no paragraph is invalid, the same as a table cell.

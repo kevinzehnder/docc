@@ -15,6 +15,17 @@ import (
 type xw struct {
 	b     bytes.Buffer
 	stack []string
+	// ids renames style IDs on output (see canonicalStyleIDs). Every style
+	// reference is written through styleID so none can miss the rename.
+	ids map[string]string
+}
+
+// styleID returns the ID a style is written under.
+func (w *xw) styleID(id string) string {
+	if c, ok := w.ids[id]; ok {
+		return c
+	}
+	return id
 }
 
 type attr struct {

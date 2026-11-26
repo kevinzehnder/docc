@@ -31,6 +31,8 @@ type Document struct {
 	Custom []CustomProperty
 
 	media []mediaFile
+	// styleIDs is canonicalStyleIDs(Styles), set when the parts are built.
+	styleIDs map[string]string
 }
 
 // CustomProperty is one named value in the custom document properties part.
