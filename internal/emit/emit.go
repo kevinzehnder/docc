@@ -1042,6 +1042,9 @@ func (e *emitter) sharedNumID(defName string) (numID, levels int) {
 
 func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 	style := e.style("div."+d.Name, "paragraph")
+	if e.style("div."+d.Name+".amount", "div."+d.Name+".line") != "" {
+		keepLeadIn(*out)
+	}
 	if amountStyle := e.style("div." + d.Name + ".amount"); amountStyle != "" {
 		e.amountDiv(d, out, depth, style, amountStyle, e.style("div."+d.Name+".total"))
 		return
@@ -1245,6 +1248,22 @@ func (e *emitter) ruledDiv(d ir.Div, out *[]docx.Block, depth int, style, lineSt
 				})
 			}
 		}
+	}
+}
+
+// keepLeadIn keeps the paragraph just written with the block about to follow.
+// "Der Kaufpreis beträgt" before the amounts, "Baden, den ___" before the
+// signatures: a lead-in left alone at the foot of a page while what it
+// introduces starts the next one reads as a sentence broken off. Amount and
+// signature blocks keep their own lines together, so this one link is what
+// carries the lead-in across.
+func keepLeadIn(out []docx.Block) {
+	if len(out) == 0 {
+		return
+	}
+	if p, ok := out[len(out)-1].(docx.Paragraph); ok {
+		p.Props.KeepNext = true
+		out[len(out)-1] = p
 	}
 }
 

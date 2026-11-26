@@ -243,6 +243,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Normal"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Der Kaufpreis setzt sich wie folgt zusammen:</w:t>
@@ -377,6 +378,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Heading3"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Anzahlung</w:t>
@@ -430,6 +432,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Heading3"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Sicherstellung der Grundstückgewinnsteuer</w:t>
@@ -480,6 +483,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Heading3"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Restkaufpreis</w:t>
@@ -699,6 +703,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Normal"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Baden, den </w:t>
@@ -865,6 +870,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Nummerierung"/>
+<w:keepNext/>
 <w:numPr>
 <w:ilvl w:val="0"/>
 <w:numId w:val="4"/>
