@@ -297,6 +297,7 @@ func (d *Document) assignDrawingIDs() {
 	for _, f := range d.Footers {
 		visit(f.Blocks)
 	}
+	d.nextShapeID = id
 }
 
 func (d *Document) writeContentTypes() []byte {

@@ -33,6 +33,10 @@ type Document struct {
 	media []mediaFile
 	// styleIDs is canonicalStyleIDs(Styles), set when the parts are built.
 	styleIDs map[string]string
+	// nextShapeID continues the drawing ids past the pictures for the text
+	// boxes, which are numbered as they are written. assignDrawingIDs resets
+	// it on every build.
+	nextShapeID int
 }
 
 // CustomProperty is one named value in the custom document properties part.
@@ -174,16 +178,26 @@ type Indent struct {
 	ExplicitHanging bool
 }
 
-// FramePr positions a paragraph as a floating frame. This is how the address
-// block lands in the envelope window: a frame reflows correctly and needs a
-// fraction of the XML that an equivalent text box does.
+// FramePr places a paragraph at a fixed position, out of the text flow — the
+// address in the envelope window, a letterhead column beside the body.
+//
+// It is written as a floating text box, not as a w:framePr. Word honours both,
+// but WordCraft lays a framed body paragraph into the flow as if the frame
+// were not there, and LibreOffice drops a frame that ends a header into it. A
+// page-anchored text box lands where it is told in all three. Consecutive
+// paragraphs with identical frames share one box, the way Word joins frames.
 type FramePr struct {
+	// Width and Height size the box. Zero width runs to the right margin;
+	// zero height grows with the content.
 	Width, Height Twips
-	// X and Y are absolute offsets from HAnchor and VAnchor.
+	// X and Y are offsets from HAnchor and VAnchor.
 	X, Y Twips
-	// HAnchor and VAnchor are "page", "margin" or "text".
+	// HAnchor and VAnchor are "page" (default), "margin" or "text" — the
+	// column horizontally, the paragraph the box hangs on vertically.
 	HAnchor, VAnchor string
-	// Wrap is "around", "none", "notBeside", "auto".
+	// Wrap says how the text flow treats the box: "around" (default) flows
+	// beside it, "top_and_bottom" (also "notBeside", "none") clears the band it
+	// occupies, "front" and "behind" overlay it without moving any text.
 	Wrap string
 }
 

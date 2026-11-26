@@ -1125,3 +1125,34 @@ func TestRenderNumberingLivesInStyles(t *testing.T) {
 		t.Errorf("with the default style named, the Randziffer stays on the paragraph, got %+v", n)
 	}
 }
+
+// A misspelt wrap or anchor would fall back to the writer's default and put
+// the box somewhere nobody asked for.
+func TestValidateCatchesBadFrame(t *testing.T) {
+	th := testTheme()
+	th.Prologue = []theme.Line{{Style: "Standard", Text: "x", Frame: &theme.Frame{Wrap: "behnd", VAnchor: "column"}}}
+	err := Validate(testSchema(), th)
+	if err == nil || !strings.Contains(err.Error(), `unknown wrap "behnd"`) || !strings.Contains(err.Error(), `unknown v_anchor "column"`) {
+		t.Fatalf("expected wrap and anchor errors, got: %v", err)
+	}
+}
+
+// A line built from runs is placed by its frame like any other; it used to
+// lose the frame and land in the flow.
+func TestRunLineKeepsFrame(t *testing.T) {
+	th := testTheme()
+	th.Prologue = []theme.Line{{
+		Style: "Standard",
+		Runs:  []theme.LineRun{{Text: "Kanzlei ", Bold: true}, {Text: "{{ vertreter }}"}},
+		Frame: &theme.Frame{},
+	}}
+	f, _ := parse.Parse("t.md", []byte("---\nx: 1\n---\n\nBody.\n"))
+	doc := ir.Build(f, "test", map[string]any{"vertreter": "Muster"})
+	built, err := Build(doc, testSchema(), th, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out := xml(t, built); !strings.Contains(out, "<wps:txbx>") {
+		t.Errorf("the run line was not placed in a text box:\n%s", out)
+	}
+}

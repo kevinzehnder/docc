@@ -132,6 +132,9 @@ func Validate(sc *schema.Schema, th *theme.Theme) error {
 	if err := validateNumbering(th); err != nil {
 		errs = append(errs, err)
 	}
+	if err := validateFrames(th); err != nil {
+		errs = append(errs, err)
+	}
 	return errors.Join(errs...)
 }
 
@@ -246,6 +249,46 @@ func validateNumbering(th *theme.Theme) error {
 	sort.Strings(bad)
 	return fmt.Errorf("theme %q defines numbering Word cannot render:\n  %s",
 		th.Name, strings.Join(bad, "\n  "))
+}
+
+// validateFrames rejects frame values the writer would otherwise map to its
+// default without a word: a misspelt `wrap: behnd` puts the text box in front
+// of the body instead of behind it, and nobody sees why.
+func validateFrames(th *theme.Theme) error {
+	var bad []string
+	check := func(region string, lines []theme.Line) {
+		for i, line := range lines {
+			f := line.Frame
+			if f == nil {
+				continue
+			}
+			where := fmt.Sprintf("%s line %d (%s)", region, i+1, line.Style)
+			for _, anchor := range [][2]string{{"h_anchor", f.HAnchor}, {"v_anchor", f.VAnchor}} {
+				switch anchor[1] {
+				case "", "page", "margin", "text":
+				default:
+					bad = append(bad, fmt.Sprintf("%s: unknown %s %q — use page, margin or text", where, anchor[0], anchor[1]))
+				}
+			}
+			switch f.Wrap {
+			case "", "around", "top_and_bottom", "notBeside", "none", "front", "behind":
+			default:
+				bad = append(bad, fmt.Sprintf("%s: unknown wrap %q — use around, top_and_bottom, front or behind", where, f.Wrap))
+			}
+		}
+	}
+	check("prologue", th.Prologue)
+	check("epilogue", th.Epilogue)
+	for _, key := range sortedKeys(th.Header) {
+		check("header:"+key, th.Header[key])
+	}
+	for _, key := range sortedKeys(th.Footer) {
+		check("footer:"+key, th.Footer[key])
+	}
+	if len(bad) == 0 {
+		return nil
+	}
+	return fmt.Errorf("theme %q places frames Word cannot position:\n  %s", th.Name, strings.Join(bad, "\n  "))
 }
 
 // validateSpanStyles checks that every `span.<type>` style key names a span
@@ -1738,17 +1781,7 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int,
 	if numID != 0 {
 		p.Props.Numbering = &docx.NumRef{ID: numID}
 	}
-	if line.Frame != nil {
-		p.Props.Frame = &docx.FramePr{
-			Width:   line.Frame.Width.Twips(0),
-			Height:  line.Frame.Height.Twips(0),
-			X:       line.Frame.X.Twips(0),
-			Y:       line.Frame.Y.Twips(0),
-			HAnchor: line.Frame.HAnchor,
-			VAnchor: line.Frame.VAnchor,
-			Wrap:    line.Frame.Wrap,
-		}
-	}
+	p.Props.Frame = framePr(line.Frame)
 	for _, t := range line.Tabs {
 		p.Props.Tabs = append(p.Props.Tabs, docx.TabStop{
 			Pos:    t.Pos.Twips(0),
@@ -1773,6 +1806,22 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int,
 	return nil
 }
 
+// framePr converts a theme frame; nil stays nil.
+func framePr(f *theme.Frame) *docx.FramePr {
+	if f == nil {
+		return nil
+	}
+	return &docx.FramePr{
+		Width:   f.Width.Twips(0),
+		Height:  f.Height.Twips(0),
+		X:       f.X.Twips(0),
+		Y:       f.Y.Twips(0),
+		HAnchor: f.HAnchor,
+		VAnchor: f.VAnchor,
+		Wrap:    f.Wrap,
+	}
+}
+
 // furnitureRunLine builds a paragraph whose formatting changes partway through.
 //
 // A run whose fields are all empty is dropped individually, so a party with no
@@ -1780,7 +1829,7 @@ func (e *emitter) furnitureLine(line theme.Line, meta map[string]any, numID int,
 // that would have preceded it goes with it, rather than leaving a gap.
 func (e *emitter) furnitureRunLine(line theme.Line, meta map[string]any, numID int, out *[]docx.Block) error {
 	p := docx.Paragraph{
-		Props: docx.ParaProps{Style: line.Style, PageBreak: line.PageBreak},
+		Props: docx.ParaProps{Style: line.Style, PageBreak: line.PageBreak, Frame: framePr(line.Frame)},
 	}
 	if numID != 0 {
 		p.Props.Numbering = &docx.NumRef{ID: numID}

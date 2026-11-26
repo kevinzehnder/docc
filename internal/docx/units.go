@@ -129,3 +129,6 @@ var A4 = PageSize{Width: Mm(210), Height: Mm(297)}
 
 // Letter is included for completeness; Swiss practice does not use it.
 var Letter = PageSize{Width: Mm(215.9), Height: Mm(279.4)}
+
+// EMU converts to English Metric Units, DrawingML's unit: 635 to the twip.
+func (t Twips) EMU() EMU { return EMU(t) * 635 }

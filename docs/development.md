@@ -32,7 +32,9 @@ change with the compiler rather than being versioned as a separate product.
 It supports styles, numbered and bulleted lists, tables with spans and borders,
 headers and footers (including a distinct first page), embedded images, and
 absolutely positioned frames — which is how the address block lands in the
-envelope window.
+envelope window. A frame is written as a page-anchored text box rather than a
+`w:framePr`: WordCraft ignores a framed body paragraph and LibreOffice drops a
+frame that ends a header into the flow, while all three place a text box.
 
 Output is **deterministic**: identical input produces byte-identical output.
 Archive timestamps are fixed, parts are written in sorted order, and identifiers

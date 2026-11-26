@@ -373,7 +373,7 @@ prologue:
   - { style: LH_Rule, text: "" }
 
   # Partner column, floated into the right margin. Consecutive paragraphs
-  # carrying the same frame merge into one frame, so each line repeats it.
+  # carrying the same frame share one text box, so each line repeats it.
   - { style: LH_AddrBold, text: "Musterstrasse 1", frame: &pcol { x: 148mm, y: 40mm, width: 45mm, h_anchor: page, v_anchor: page, wrap: around } }
   - { style: LH_AddrBold, text: "5000 Aarau", frame: *pcol }
   - { style: LH_Addr, text: "Telefon 000 000 00 00", frame: *pcol }

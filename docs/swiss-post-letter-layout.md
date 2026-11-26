@@ -103,14 +103,15 @@ size is **70 × 35 mm**.
 - positioning must be regression-tested by rendering, folding and checking a
   printed sample in the selected envelope.
 
-Both starters place the address **in the text flow** rather than in an
-anchored frame, so it lands at y = 60 mm in every renderer, including those
-that ignore `w:framePr` (WordCraft does). Nothing of variable height sits in
-the flow above it: `starter-legal` has no letterhead, and `starter-letter`
-keeps its sender block in `header: first`, inside a 30 mm top margin. An
-exact-height spacer paragraph covers the rest — 38 mm under a 22 mm margin,
-30 mm under a 30 mm one. A first-page header pushes the body only when it is
-taller than the top margin, so a letterhead must stay inside it.
+Both starters place the address in a page-anchored `frame:` at x = 25 mm,
+y = 60 mm, which docc writes as a text box — Word, WordCraft and LibreOffice all
+put it there (measured: first line at 60.7 mm in WordCraft, 60.4 mm in
+LibreOffice). `wrap: front` keeps the box out of the flow's way, and an
+exact-height spacer paragraph sets where the flow resumes, so the date sits
+near 103 mm whatever the address's length or whatever a letterhead adds above
+it. A first-page header pushes the body only when it is taller than the top
+margin, so a letterhead must stay inside it — or float its tall parts in frames
+of its own.
 
 A right-window layout must be a separate, measured theme until `docc` supports
 conditional furniture/style selection. A boolean alone cannot change a theme’s

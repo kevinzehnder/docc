@@ -67,8 +67,8 @@ styles:
   # ── Recipient address, positioned for a left-window envelope ───────────────
   # The address field. Swiss Post wants it black, non-bold, upright, left
   # aligned and sans serif, at 9-28pt with 10pt ideal, with no blank lines and
-  # a uniform 1-1.5mm between them. The vertical position comes from the
-  # spacer above, so there is no spacing here to carry it.
+  # a uniform 1-1.5mm between them. The position comes from the frame on the
+  # prologue lines, so there is no spacing here to carry it.
   #
   # line: 1.08 is a 4.6mm pitch at 10pt, about 1mm between lines. Five lines
   # (Einschreiben plus four) then end near 82.5mm, keeping the 12mm the
@@ -95,23 +95,24 @@ styles:
     based_on: AddressBlockFirst
     spacing: { before: 0mm, after: 0mm, line: 1.08 }
 
-  # Steps the flow down to the address window: 30mm top margin + 30mm puts
-  # the first address line at the 60mm Swiss Post target. Word can suppress
-  # space-before on the first paragraph of a page, so this is an empty
-  # paragraph of exact height rather than a space-before on the address.
+  # Steps the flow past the address field to the date: 30mm top margin + 73mm
+  # puts the date near 103mm, clear of the window's 95mm bottom edge with
+  # room for the play of a sheet folded to A5 in a C5 envelope. The address
+  # box is out of the flow, so the date stays there however many lines the
+  # address has. Word can suppress space-before on the first paragraph of a
+  # page, so this is an empty paragraph of exact height rather than a
+  # space-before on the date.
   AddressSpacer:
     name: Adressfeld Abstand
     based_on: Standard
     size: 1pt
     keep_next: true
-    spacing: { before: 0mm, after: 0mm, line: 30mm }
+    spacing: { before: 0mm, after: 0mm, line: 73mm }
 
-  # Clear of the window: the window ends at 95mm, and a sheet folded to A5
-  # has play in a C5 envelope, so the date keeps well below it.
   DateLine:
     name: Ort und Datum
     based_on: Standard
-    spacing: { before: 20mm, after: 0mm }
+    spacing: { before: 0mm, after: 0mm }
 
   SubjectLine:
     name: Betreff
@@ -248,12 +249,12 @@ numbering:
 prologue:
   # Swiss Post address field — see docs/swiss-post-letter-layout.md.
   #
-  # In the text flow, not in an anchored frame. The sender block lives in the
-  # first-page header, which does not push the body while it fits inside the
-  # top margin, so nothing of variable height sits above the address: its
-  # place is the top margin plus the spacer, in every renderer. A frame would
-  # do the same in Word, but renderers that ignore w:framePr drop it back into
-  # the flow and the address leaves the window.
+  # A page-anchored frame — written as a text box, which Word, WordCraft and
+  # LibreOffice all place exactly — so the address sits at 60mm whatever is
+  # above it, and the flow below does not move with its length. `wrap:
+  # front` keeps the flow out of the box's way entirely: the spacer, not the
+  # box, decides where the date goes. Consecutive lines with the same frame
+  # share one box, so every line repeats it through the YAML anchor.
   #
   # Text starts at the 25mm page margin, not the specification's 20mm. The
   # window is at least 100mm wide from 20mm, so this sits inside it with 5mm
@@ -263,11 +264,12 @@ prologue:
   # The delivery mode is the field's first line, not a block above it: it
   # belongs in the window, so it shares the address geometry.
   - { style: AddressSpacer, text: "" }
-  - { style: DeliveryMode, text: "Einschreiben", if_nonempty: registered }
-  - { style: AddressBlockFirst, text: "{{ recipient.salutation }} {{ recipient.name }}" }
-  - { style: AddressBlock, text: "{{ recipient.organization }}" }
-  - { style: AddressBlock, text: "{{ recipient.street }}" }
-  - { style: AddressBlock, text: "{{ recipient.postal_code }} {{ recipient.city }}" }
+  - { style: DeliveryMode, text: "Einschreiben", if_nonempty: registered,
+      frame: &addr { x: 25mm, y: 60mm, width: 95mm, wrap: front } }
+  - { style: AddressBlockFirst, text: "{{ recipient.salutation }} {{ recipient.name }}", frame: *addr }
+  - { style: AddressBlock, text: "{{ recipient.organization }}", frame: *addr }
+  - { style: AddressBlock, text: "{{ recipient.street }}", frame: *addr }
+  - { style: AddressBlock, text: "{{ recipient.postal_code }} {{ recipient.city }}", frame: *addr }
 
   - { style: DateLine, text: "{{ sender.city }}, {{ date }}" }
   - { style: SubjectLine, text: "{{ subject }}" }

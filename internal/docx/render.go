@@ -29,9 +29,7 @@ func (d *Document) writeDocument() []byte {
 	w.open("w:document", nsAttrs()...)
 	w.open("w:body")
 
-	for _, b := range d.Body {
-		b.writeBlock(w, d)
-	}
+	writeBlocks(w, d, d.Body)
 
 	// The section properties close the body. Word treats a body without them as
 	// damaged, so this is written whether or not geometry was configured.
@@ -107,9 +105,17 @@ func (h HeaderFooter) hfType() HeaderFooterType {
 // Paragraph
 // ---------------------------------------------------------------------------
 
-func (p Paragraph) write(w *xw, d *Document) {
+func (p Paragraph) write(w *xw, d *Document) { p.writeHosting(w, d, nil) }
+
+// writeHosting writes the paragraph with the text boxes anchored to it. They
+// come first, so a box positioned relative to its paragraph measures from the
+// paragraph's start.
+func (p Paragraph) writeHosting(w *xw, d *Document, boxes []textBox) {
 	w.open("w:p")
 	writeParaProps(w, p.Props, true, d)
+	for _, b := range boxes {
+		b.write(w, d)
+	}
 	for _, r := range p.Runs {
 		r.write(w, d)
 	}
@@ -140,9 +146,6 @@ func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 	}
 	if p.PageBreak {
 		w.empty("w:pageBreakBefore")
-	}
-	if p.Frame != nil {
-		writeFramePr(w, p.Frame)
 	}
 	if p.Numbering != nil {
 		w.open("w:numPr")
@@ -228,40 +231,10 @@ func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 
 func (p ParaProps) isZero() bool {
 	return p.Style == "" && p.Align == "" && p.Spacing == (Spacing{}) &&
-		p.Indent == (Indent{}) && p.Frame == nil && p.Numbering == nil &&
+		p.Indent == (Indent{}) && p.Numbering == nil &&
 		p.SectionBreak == nil && len(p.Tabs) == 0 && p.Borders == nil && !p.KeepNext && !p.KeepLines &&
 		!p.PageBreak && !p.ContextualSpacing && p.SuppressAutoHyphens == ToggleInherit &&
 		p.Shading == "" && p.OutlineLevel == nil
-}
-
-func writeFramePr(w *xw, f *FramePr) {
-	attrs := []attr{}
-	if f.Width != 0 {
-		attrs = append(attrs, ai("w:w", f.Width))
-	}
-	if f.Height != 0 {
-		attrs = append(attrs, ai("w:h", f.Height), a("w:hRule", "exact"))
-	}
-	hAnchor := f.HAnchor
-	if hAnchor == "" {
-		hAnchor = "page"
-	}
-	vAnchor := f.VAnchor
-	if vAnchor == "" {
-		vAnchor = "page"
-	}
-	wrap := f.Wrap
-	if wrap == "" {
-		wrap = "around"
-	}
-	attrs = append(attrs,
-		a("w:hAnchor", hAnchor),
-		a("w:vAnchor", vAnchor),
-		ai("w:x", f.X),
-		ai("w:y", f.Y),
-		a("w:wrap", wrap),
-	)
-	w.empty("w:framePr", attrs...)
 }
 
 // writeToggle emits a toggle property. Explicitly off is written as
@@ -591,9 +564,7 @@ func (c TableCell) write(w *xw, d *Document, width Twips, span int) {
 	if len(c.Blocks) == 0 {
 		Paragraph{}.write(w, d)
 	}
-	for _, b := range c.Blocks {
-		b.writeBlock(w, d)
-	}
+	writeBlocks(w, d, c.Blocks)
 
 	w.close("w:tc")
 }
@@ -621,9 +592,7 @@ func (d *Document) writeHeaderFooter(hf HeaderFooter, root string) []byte {
 	if len(hf.Blocks) == 0 {
 		Paragraph{}.write(w, d)
 	}
-	for _, b := range hf.Blocks {
-		b.writeBlock(w, d)
-	}
+	writeBlocks(w, d, hf.Blocks)
 	w.close(root)
 	return w.bytes()
 }

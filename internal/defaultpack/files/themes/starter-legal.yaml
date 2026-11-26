@@ -89,25 +89,26 @@ styles:
     size: 10pt
     spacing: { before: 0mm, after: 0mm, line: 1.08 }
 
-  # Steps the flow down to the address window: 22mm top margin + 38mm puts
-  # the first address line at the 60mm Swiss Post target. Word can suppress
-  # space-before on the first paragraph of a page, so this is an empty
-  # paragraph of exact height rather than a space-before on the address.
+  # Steps the flow past the address field to the date: 22mm top margin + 81mm
+  # puts the date near 103mm, clear of the window's 95mm bottom edge with
+  # room for the play of a sheet folded to A5 in a C5 envelope. The address
+  # box is out of the flow, so the date stays there however many lines the
+  # address has. Word can suppress space-before on the first paragraph of a
+  # page, so this is an empty paragraph of exact height rather than a
+  # space-before on the date.
   LegalAddressSpacer:
     name: Adressfeld Abstand
     based_on: Standard
     size: 1pt
     keep_next: true
-    spacing: { before: 0mm, after: 0mm, line: 38mm }
+    spacing: { before: 0mm, after: 0mm, line: 81mm }
 
-  # Clear of the window: the window ends at 95mm, and a sheet folded to A5
-  # has play in a C5 envelope, so the date keeps well below it.
   LegalDate:
     name: Ort und Datum
     based_on: Standard
     align: left
     keep_next: true
-    spacing: { before: 20mm, after: 0mm }
+    spacing: { before: 0mm, after: 0mm }
 
   LegalCaseRef:
     name: Geschäftsnummer
@@ -391,12 +392,12 @@ numbering:
 prologue:
   # Swiss Post address field — see docs/swiss-post-letter-layout.md.
   #
-  # In the text flow, not in an anchored frame. With no letterhead above it
-  # the flow position is fixed — top margin plus the spacer — and a flow
-  # paragraph lands in the same place in every renderer. A frame is only
-  # needed once something of variable height sits above the address; a firm
-  # adding its banner as `header: first` does not move it, since a header
-  # does not push the body.
+  # A page-anchored frame — written as a text box, which Word, WordCraft and
+  # LibreOffice all place exactly — so the address sits at 60mm whatever a
+  # firm puts above it, and the flow below does not move with its length.
+  # `wrap: front` keeps the flow out of the box's way entirely: the spacer,
+  # not the box, decides where the date goes. Consecutive lines with the same
+  # frame share one box, so every line repeats it through the YAML anchor.
   #
   # The Versandart is the field's first line, not a separate block above it: it
   # belongs in the window, so it shares the address geometry.
@@ -407,11 +408,12 @@ prologue:
   # margin. Confirm against the actual envelope stock, as the specification
   # requires either way.
   - { style: LegalAddressSpacer, text: "" }
-  - { style: LegalVersand, text: "{{ gericht.versand }}" }
-  - { style: LegalGericht, text: "{{ gericht.name }}" }
-  - { style: LegalGericht, text: "{{ gericht.abteilung }}" }
-  - { style: LegalGericht, text: "{{ gericht.street }}" }
-  - { style: LegalGericht, text: "{{ gericht.postal_code }} {{ gericht.city }}" }
+  - { style: LegalVersand, text: "{{ gericht.versand }}",
+      frame: &addr { x: 25mm, y: 60mm, width: 95mm, wrap: front } }
+  - { style: LegalGericht, text: "{{ gericht.name }}", frame: *addr }
+  - { style: LegalGericht, text: "{{ gericht.abteilung }}", frame: *addr }
+  - { style: LegalGericht, text: "{{ gericht.street }}", frame: *addr }
+  - { style: LegalGericht, text: "{{ gericht.postal_code }} {{ gericht.city }}", frame: *addr }
 
   # The place the brief is written, not the court's town.
   - { style: LegalDate, text: "{{ ort }}, {{ date }}" }

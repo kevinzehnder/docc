@@ -103,7 +103,7 @@ than a third level.
 `prologue:` and `epilogue:` are the paragraphs around the body — letterhead,
 address block, subject, closing, enclosures. A line interpolates metadata with
 `{{ field.path }}`, `repeat:` emits one paragraph per element of a list field,
-`frame:` positions a line absolutely, and `page_break: true` starts a new page,
+`frame:` positions a line absolutely (see [Frames](#frames)), and `page_break: true` starts a new page,
 which is how a cover page ends and the body begins on sheet two.
 
 `numbering:` gives a line a Word list number from a definition in the theme.
@@ -349,7 +349,7 @@ whose numbering restarts at a section break still counts to the end.
 | `style` | string | — | A style id from `styles:`. |
 | `text` | string | — | The paragraph's text, with `{{ }}` interpolation. Ignored when `runs` is set. |
 | `runs` | list | — | A paragraph whose formatting changes partway through. See below. |
-| `frame` | map | — | Positions **this line** as a floating frame: `x`, `y`, `width`, `height`, `h_anchor`, `v_anchor`, `wrap`. This is how an address block reaches the envelope window without a text box. A frame applies to the line that declares it and no other — Word joins consecutive paragraphs with identical frame properties into one frame, so a multi-line block repeats the same `frame:` on every line, most readably through a YAML anchor: `frame: &col { … }` on the first, `frame: *col` on the rest. |
+| `frame` | map | — | Places **this line** at a fixed position, out of the text flow. See [Frames](#frames). |
 | `image` | map | — | A picture: `path` (relative to the theme file), `width`, `height`, `alt`. |
 | `repeat` | string | — | A list field, emitting one paragraph per element. Inside the text, `{{ item }}` is the element. |
 | `if_nonempty` | string | — | Emits the line only when the named field has a value — for a heading that must disappear along with the empty list it introduces. |
@@ -371,6 +371,41 @@ whose numbering restarts at a section break still counts to the end.
 | `tab` | bool | `false` | A tab stop before the text. |
 | `break` | bool | `false` | A line break before the text. |
 | `omit_if_empty` | bool | `true` | Drops just this run when its interpolation is empty, leaving the rest of the line intact. Inert on a literal run, for the same reason, and warned about the same way — a literal run goes only with the line around it. |
+
+### Frames
+
+`frame:` takes a furniture line out of the text flow and puts it at a fixed
+place on the page — the address in the envelope window, a partner column beside
+the body, a note at a given spot. It is written as a floating text box, which
+Word, WordCraft and LibreOffice all position exactly. (Word's older `w:framePr`
+is not used: WordCraft lays a framed body paragraph into the flow, and
+LibreOffice does the same to a frame that ends a header.)
+
+| Key | Default | Meaning |
+|---|---|---|
+| `x`, `y` | `0` | Offset of the box's top-left corner from the anchors. |
+| `width` | to the right margin | Box width. |
+| `height` | grows with the text | Fixed box height; text beyond it is clipped. |
+| `h_anchor` | `page` | What `x` counts from: `page`, `margin`, or `text` (the column). |
+| `v_anchor` | `page` | What `y` counts from: `page`, `margin`, or `text` (the paragraph the box hangs on). |
+| `wrap` | `around` | How the flow treats the box: `around` flows beside it, `top_and_bottom` clears the band it occupies, `front` and `behind` overlay it and move no text. |
+
+Consecutive lines with identical frames share one box, so a multi-line block
+repeats the same `frame:` on every line — most readably through a YAML anchor,
+`frame: &addr { … }` on the first and `frame: *addr` on the rest. A different
+frame starts a new box.
+
+A box hangs on the next paragraph in the flow (failing that, the previous one),
+which decides the page it appears on and is what `v_anchor: text` measures from.
+A page-anchored box does not move when the flow does, so the text below it has
+to be placed on its own: `wrap: front` with an exact-height spacer paragraph is
+the predictable pairing — the box sits where it is told, the spacer decides
+where the flow resumes, and neither depends on the other (see
+`starter-letter`).
+
+Frames work in `header:` and `footer:` too. A box in a first-page header can
+reach far below the header without pushing the body down, which is how a
+letterhead column sits beside the address.
 
 ## Inheritance
 
