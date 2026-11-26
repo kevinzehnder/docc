@@ -372,6 +372,7 @@ render:
 | `heading_numbering` | rule | Numbers headings by markdown level: level 1 takes the definition's level 0. |
 | `paragraph_numbering` | rule | Numbers top-level paragraphs of prose at level 0, continuously, across the headings between them. |
 | `page_break_before_headings` | list | Headings that start a new page. |
+| `unnumbered_single_item_lists` | bool | A numbered list of one item renders as plain paragraphs, without its "1." — numbering marks a sequence, and one item is none. Lists of two or more, and a list starting at another number, stay numbered. |
 
 Each rule:
 

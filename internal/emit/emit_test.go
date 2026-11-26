@@ -1254,3 +1254,30 @@ func TestStyleFramePlacesItsParagraphs(t *testing.T) {
 		t.Errorf("expected a v_align error, got %v", err)
 	}
 }
+
+// With unnumbered_single_item_lists a numbered list of one item loses its
+// "1."; two items keep their numbers.
+func TestSingleItemListUnnumbered(t *testing.T) {
+	sc := testSchema()
+	sc.Render.UnnumberedSingleItemLists = true
+	numbered := func(src string) int {
+		f, _ := parse.Parse("t.md", []byte(src))
+		built, err := Build(ir.Build(f, "test", map[string]any{}), sc, testTheme(), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		for _, b := range built.Body {
+			if p, ok := b.(docx.Paragraph); ok && p.Props.Numbering != nil {
+				n++
+			}
+		}
+		return n
+	}
+	if n := numbered("1. Die Eigentumsübertragung.\n\n   Herr Beat Beispiel\n"); n != 0 {
+		t.Errorf("a one-item list kept %d numbers", n)
+	}
+	if n := numbered("1. Die Eigentumsübertragung.\n2. Die Löschung.\n"); n != 2 {
+		t.Errorf("a two-item list has %d numbers, want 2", n)
+	}
+}

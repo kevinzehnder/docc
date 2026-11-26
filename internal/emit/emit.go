@@ -918,6 +918,11 @@ func (e *emitter) blockTo(b ir.Block, out *[]docx.Block, depth int) {
 // list emits a list, allocating a fresh numId at the top level so consecutive
 // lists restart rather than continuing one another.
 func (e *emitter) list(l ir.List, out *[]docx.Block, depth int, numName string) {
+	if l.Ordered && len(l.Items) == 1 && l.Start <= 1 && numName == "" &&
+		e.schema.Render.UnnumberedSingleItemLists {
+		e.blocks(l.Items[0].Blocks, out, depth)
+		return
+	}
 	if numName == "" {
 		numName = "ordered_list"
 		if !l.Ordered {

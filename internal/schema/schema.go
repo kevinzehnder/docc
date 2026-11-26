@@ -78,6 +78,11 @@ type Render struct {
 	// certification follows the signatures on a fresh sheet whatever the
 	// signatures happen to fill.
 	PageBreakBeforeHeadings []string `yaml:"page_break_before_headings"`
+	// UnnumberedSingleItemLists sets a numbered list of one item as plain
+	// paragraphs. A registration request numbers what it registers because
+	// the items have an order — but one item is not a sequence, and a lone
+	// "1." reads as if a second had been lost.
+	UnnumberedSingleItemLists bool `yaml:"unnumbered_single_item_lists"`
 }
 
 // NumberingRule selects a list definition from the theme and says where in the
