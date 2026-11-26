@@ -742,3 +742,23 @@ styles:
 		t.Errorf("an unknown position should name the allowed ones, got: %v", err)
 	}
 }
+
+// A child theme's text survives the merge byte for byte. go-yaml wrote a string
+// with a tab unquoted, so "Die Urkundsperson:\t\t" stopped the theme loading
+// and a trailing tab — a signature line's dotted rule — vanished silently.
+func TestExtendsKeepsTabsInText(t *testing.T) {
+	set := loadOne(t,
+		"_house.yaml", parentTheme,
+		"brief.yaml", "name: brief\nextends: _house\nepilogue:\n"+
+			"  - { style: body, text: \"Die Urkundsperson:\\t\\t\" }\n"+
+			"  - { style: body, text: \"{{ author }}\\t\\t\" }\n")
+	th, err := set.Get("brief")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range []string{"Die Urkundsperson:\t\t", "{{ author }}\t\t"} {
+		if got := th.Epilogue[i].Text; got != want {
+			t.Errorf("epilogue[%d] = %q, want %q", i, got, want)
+		}
+	}
+}

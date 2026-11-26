@@ -10,6 +10,7 @@
 package theme
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -596,7 +597,7 @@ func decode(r *rawTheme, doc map[string]any) (*Theme, error) {
 	} else {
 		merged["extends"] = r.extends
 	}
-	b, err := yaml.Marshal(merged)
+	b, err := yaml.MarshalWithOptions(merged, quoteStrings)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", r.path, err)
 	}
@@ -606,6 +607,15 @@ func decode(r *rawTheme, doc map[string]any) (*Theme, error) {
 	}
 	return &t, nil
 }
+
+// quoteStrings writes every string as a JSON string, which is a valid YAML
+// double-quoted scalar. go-yaml writes a string containing a tab unquoted, and
+// reading it back either fails ("Die Urkundsperson:\t\t" turns into a mapping)
+// or drops the trailing tabs without a word — and a trailing tab is how a
+// signature line asks for its dotted rule.
+var quoteStrings = yaml.CustomMarshaler[string](func(s string) ([]byte, error) {
+	return json.Marshal(s)
+})
 
 func joinNames(raw map[string]*rawTheme) string {
 	out := make([]string, 0, len(raw))
