@@ -315,13 +315,37 @@ func numberedParagraphs(t *testing.T, d *docx.Document) []struct {
 			NumID, Level int
 			Text         string
 		}{Text: text.String()}
-		if p.Props.Numbering != nil {
-			entry.NumID = p.Props.Numbering.ID
-			entry.Level = p.Props.Numbering.Level
+		if n := effectiveNumbering(d, p); n != nil {
+			entry.NumID = n.ID
+			entry.Level = n.Level
 		}
 		out = append(out, entry)
 	}
 	return out
+}
+
+// effectiveNumbering is the number a paragraph shows, resolved as Word does:
+// its own numPr (numId 0 switches numbering off), else the nearest one up its
+// style's basedOn chain.
+func effectiveNumbering(d *docx.Document, p docx.Paragraph) *docx.NumRef {
+	if p.Props.Numbering != nil {
+		return p.Props.Numbering
+	}
+	byID := map[string]docx.Style{}
+	for _, st := range d.Styles {
+		byID[st.ID] = st
+	}
+	for id, hops := p.Props.Style, 0; id != "" && hops <= len(byID); hops++ {
+		st, ok := byID[id]
+		if !ok {
+			return nil
+		}
+		if st.Para.Numbering != nil {
+			return st.Para.Numbering
+		}
+		id = st.BasedOn
+	}
+	return nil
 }
 
 // renderSchema is testSchema with an outline over the headings and a marginal
@@ -987,5 +1011,91 @@ func TestAmountBlockProseStyle(t *testing.T) {
 		if got := built.Body[1].(docx.Paragraph).Props.Style; got != tc.want {
 			t.Errorf("text style %q: prose style = %q, want %q", tc.textStyle, got, tc.want)
 		}
+	}
+}
+
+// Render numbering lives in the styles its definition names, so a heading or
+// a Randziffer paragraph added later in Word or WordCraft is numbered by
+// applying the style. Before this, every number was written onto its
+// paragraph: a "heading 1" added by hand had no I., and one typed after a
+// numbered paragraph kept that paragraph's Randziffer.
+func TestRenderNumberingLivesInStyles(t *testing.T) {
+	build := func(th *theme.Theme) *docx.Document {
+		t.Helper()
+		f, ds := parse.Parse("t.md", []byte("---\nx: 1\n---\n\n# Intro\n\n# START\n\nFirst.\n\n## Sub\n\nSecond.\n"))
+		if ds.HasErrors() {
+			t.Fatalf("parse: %+v", ds)
+		}
+		built, err := Build(ir.Build(f, "test", map[string]any{}), renderSchema(), th, Options{})
+		if err != nil {
+			t.Fatalf("build: %v", err)
+		}
+		return built
+	}
+	paras := func(d *docx.Document) map[string]docx.Paragraph {
+		out := map[string]docx.Paragraph{}
+		for _, blk := range d.Body {
+			if p, ok := blk.(docx.Paragraph); ok {
+				var text strings.Builder
+				for _, r := range p.Runs {
+					for _, item := range r.Items {
+						if s, ok := item.(docx.Text); ok {
+							text.WriteString(string(s))
+						}
+					}
+				}
+				out[text.String()] = p
+			}
+		}
+		return out
+	}
+	styleNum := func(d *docx.Document, id string) *docx.NumRef {
+		for _, st := range d.Styles {
+			if st.ID == id {
+				return st.Para.Numbering
+			}
+		}
+		t.Fatalf("no style %q", id)
+		return nil
+	}
+
+	th := renderTheme()
+	th.Styles["Randziffertext"] = theme.Style{Name: "Randziffertext", BasedOn: "Standard"}
+	th.Styles["Eingerueckt"] = theme.Style{Name: "Eingerueckt", BasedOn: "Randziffertext"}
+	th.Numbering["Margin"] = theme.NumFormat{Format: "decimal", Text: "%1", Style: "Randziffertext"}
+	d := build(th)
+	ps := paras(d)
+
+	h1, h2 := styleNum(d, "Ueberschrift1"), styleNum(d, "Ueberschrift2")
+	if h1 == nil || h1.ID == 0 || h1.Level != 0 || h2 == nil || h2.ID != h1.ID || h2.Level != 1 {
+		t.Fatalf("heading styles carry %+v / %+v, want one outline instance at levels 0 and 1", h1, h2)
+	}
+	if n := ps["START"].Props.Numbering; n != nil {
+		t.Errorf("a numbered heading repeats its style's numbering on the paragraph: %+v", n)
+	}
+	if n := ps["Intro"].Props.Numbering; n == nil || n.ID != 0 {
+		t.Errorf("a heading before the marker must switch its style's numbering off, got %+v", n)
+	}
+
+	rz := styleNum(d, "Randziffertext")
+	if rz == nil || rz.ID == 0 || rz.ID == h1.ID {
+		t.Fatalf("Randziffertext carries %+v, want its own instance", rz)
+	}
+	for _, text := range []string{"First.", "Second."} {
+		if p := ps[text]; p.Props.Style != "Randziffertext" || p.Props.Numbering != nil {
+			t.Errorf("%q: style %q, direct numbering %+v; want Randziffertext and none", text, p.Props.Style, p.Props.Numbering)
+		}
+	}
+	if n := styleNum(d, "Eingerueckt"); n == nil || n.ID != 0 {
+		t.Errorf("a style based on a numbered one must switch numbering off, got %+v", n)
+	}
+
+	// The default style is never numbered: everything inherits from it.
+	d = build(renderTheme())
+	if n := styleNum(d, "Standard"); n != nil {
+		t.Errorf("the default style was numbered: %+v", n)
+	}
+	if n := paras(d)["First."].Props.Numbering; n == nil || n.ID == 0 {
+		t.Errorf("with the default style named, the Randziffer stays on the paragraph, got %+v", n)
 	}
 }

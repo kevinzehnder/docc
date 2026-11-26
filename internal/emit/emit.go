@@ -456,6 +456,10 @@ type emitter struct {
 	// every list of a kind shares one definition.
 	abstractByName      map[string]int
 	continuationSection docx.Section
+	// numberedStyles are the styles a render rule numbers through the style
+	// itself (see linkStyles). A paragraph in one of them that the rule leaves
+	// unnumbered has to switch the inherited number off.
+	numberedStyles map[string]bool
 }
 
 // style resolves a style-map key to a style id, falling back through a chain of
@@ -487,6 +491,9 @@ func (e *emitter) blocks(blocks []ir.Block, out *[]docx.Block, depth int) {
 func (e *emitter) body(blocks []ir.Block, out *[]docx.Block) {
 	headings := e.renderRule(e.schema.Render.HeadingNumbering)
 	paragraphs := e.renderRule(e.schema.Render.ParagraphNumbering)
+	e.linkStyles(headings)
+	e.linkStyles(paragraphs)
+	e.unnumberDerivedStyles()
 
 	for _, b := range blocks {
 		headings.arrive(b)
@@ -500,11 +507,15 @@ func (e *emitter) body(blocks []ir.Block, out *[]docx.Block) {
 		case ir.Heading:
 			if headings.active {
 				// Markdown level 1 is the definition's level 0.
-				headings.apply(e, produced, v.Level-1)
+				headings.apply(e, produced, v.Level-1, false)
+			} else {
+				e.suppressStyleNumbering(produced)
 			}
 		case ir.Para:
 			if paragraphs.active {
-				paragraphs.apply(e, produced, 0)
+				paragraphs.apply(e, produced, 0, true)
+			} else {
+				e.suppressStyleNumbering(produced)
 			}
 		}
 
@@ -534,6 +545,9 @@ type renderState struct {
 	// levels is how many levels the definition declares. A heading deeper than
 	// that gets no label rather than a fabricated one.
 	levels int
+	// linked holds, per level, the style that carries this rule's numbering
+	// itself; "" where the level is numbered paragraph by paragraph instead.
+	linked []string
 }
 
 func (e *emitter) renderRule(rule *schema.NumberingRule) *renderState {
@@ -591,10 +605,116 @@ func (s *renderState) startIfMarker(b ir.Block) {
 	}
 }
 
-// apply attaches the rule's numbering instance to the first paragraph a block
-// produced, allocating the instance on first use so a document that never
-// reaches the marker carries no definition it does not use.
-func (s *renderState) apply(e *emitter, produced []docx.Block, level int) {
+// linkStyles puts a render rule's numbering into the styles its definition
+// names, rather than onto each paragraph.
+//
+// Numbering written onto a paragraph belongs to that paragraph alone. A heading
+// added later in Word or WordCraft, with the "heading 1" style applied, gets no
+// I. — and a heading typed after a numbered paragraph keeps that paragraph's
+// Randziffer, because applying a style does not remove direct numbering. Held
+// in the style, the number comes with the style, as Word's own outline
+// numbering does: the level's `style:` in numbering.xml points at the style,
+// and the style's numPr points back.
+//
+// The default paragraph style is never linked. Every other style inherits from
+// it, so the cover, the closing block and the page number would all be
+// numbered; such a level stays numbered paragraph by paragraph.
+//
+// The instance is allocated here rather than on first use: the styles refer to
+// it whether or not this document reaches the marker, and a heading added by
+// hand still has to find it.
+func (e *emitter) linkStyles(s *renderState) {
+	if s.rule == nil {
+		return
+	}
+	def, ok := e.theme.Numbering[s.rule.Definition]
+	if !ok {
+		return
+	}
+	levels := def.Flatten()
+	linked := make([]string, len(levels))
+	found := false
+	for i, lvl := range levels {
+		st, ok := e.theme.Styles[lvl.Style]
+		if !ok || st.Default || st.Type == "character" || e.numberedStyles[lvl.Style] {
+			continue
+		}
+		linked[i] = lvl.Style
+		found = true
+	}
+	if !found {
+		return
+	}
+	s.numID, s.levels = e.sharedNumID(s.rule.Definition)
+	s.linked = linked
+	if e.numberedStyles == nil {
+		e.numberedStyles = map[string]bool{}
+	}
+	for i, id := range linked {
+		if id == "" {
+			continue
+		}
+		e.numberedStyles[id] = true
+		for j := range e.out.Styles {
+			if e.out.Styles[j].ID == id {
+				e.out.Styles[j].Para.Numbering = &docx.NumRef{ID: s.numID, Level: i}
+			}
+		}
+	}
+}
+
+// unnumberDerivedStyles switches numbering off in every style based on a
+// numbered one. A style inherits its parent's numPr, so a quotation style
+// based on the Randziffer style would otherwise number each quotation.
+func (e *emitter) unnumberDerivedStyles() {
+	if len(e.numberedStyles) == 0 {
+		return
+	}
+	parent := map[string]string{}
+	for _, st := range e.out.Styles {
+		parent[st.ID] = st.BasedOn
+	}
+	derived := func(id string) bool {
+		for seen := 0; id != "" && seen < len(parent); seen++ {
+			id = parent[id]
+			if e.numberedStyles[id] {
+				return true
+			}
+		}
+		return false
+	}
+	for i, st := range e.out.Styles {
+		if !e.numberedStyles[st.ID] && st.Para.Numbering == nil && derived(st.ID) {
+			e.out.Styles[i].Para.Numbering = &docx.NumRef{ID: 0}
+		}
+	}
+}
+
+// suppressStyleNumbering switches off the number a block's first paragraph
+// would inherit from a numbered style: a heading before the marker, or after
+// the end of the outline, is written in the same style but must stay
+// unnumbered.
+func (e *emitter) suppressStyleNumbering(produced []docx.Block) {
+	for i, blk := range produced {
+		p, isPara := blk.(docx.Paragraph)
+		if !isPara || p.Props.Numbering != nil {
+			continue
+		}
+		if e.numberedStyles[p.Props.Style] {
+			p.Props.Numbering = &docx.NumRef{ID: 0}
+			produced[i] = p
+		}
+		return
+	}
+}
+
+// apply numbers the first paragraph a block produced. Where the level's style
+// carries the numbering, the paragraph is put in that style — restyle says the
+// rule may change it, which a paragraph rule does and a heading rule does not —
+// and needs nothing else. Otherwise the instance goes onto the paragraph,
+// allocated on first use so a document that never reaches the marker carries
+// no definition it does not use.
+func (s *renderState) apply(e *emitter, produced []docx.Block, level int, restyle bool) {
 	if level < 0 {
 		return
 	}
@@ -611,6 +731,16 @@ func (s *renderState) apply(e *emitter, produced []docx.Block, level int) {
 		p, isPara := blk.(docx.Paragraph)
 		if !isPara || p.Props.Numbering != nil {
 			continue
+		}
+		if level < len(s.linked) && s.linked[level] != "" {
+			switch {
+			case p.Props.Style == s.linked[level]:
+				return
+			case restyle:
+				p.Props.Style = s.linked[level]
+				produced[i] = p
+				return
+			}
 		}
 		p.Props.Numbering = &docx.NumRef{ID: s.numID, Level: level}
 		produced[i] = p

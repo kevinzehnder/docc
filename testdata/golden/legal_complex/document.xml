@@ -388,10 +388,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">RECHTSBEGEHREN</w:t>
@@ -448,10 +444,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">BEGRÜNDUNG</w:t>
@@ -460,10 +452,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Zuständigkeit</w:t>
@@ -496,10 +484,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Prozessvoraussetzungen</w:t>
@@ -532,10 +516,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Sachverhalt</w:t>
@@ -544,10 +524,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Vertragsschluss</w:t>
@@ -613,10 +589,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Ausführung der Arbeiten</w:t>
@@ -649,10 +621,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Abnahme und Mängel</w:t>
@@ -709,10 +677,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Zahlungsverzug</w:t>
@@ -781,10 +745,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Rechtliches</w:t>
@@ -793,10 +753,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Werklohnforderung</w:t>
@@ -829,10 +785,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Verzugszins</w:t>
@@ -865,10 +817,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Mängeleinrede der Beklagten</w:t>
@@ -901,10 +849,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Fazit</w:t>

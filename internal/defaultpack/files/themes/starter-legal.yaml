@@ -226,7 +226,7 @@ styles:
   Ueberschrift1:
     name: heading 1
     based_on: Standard
-    next: Standard
+    next: Randziffertext
     align: left
     outline_level: 1
     size: 14pt
@@ -238,7 +238,7 @@ styles:
   Ueberschrift2:
     name: heading 2
     based_on: Standard
-    next: Standard
+    next: Randziffertext
     align: left
     outline_level: 2
     size: 12pt
@@ -249,13 +249,22 @@ styles:
   Ueberschrift3:
     name: heading 3
     based_on: Standard
-    next: Standard
+    next: Randziffertext
     align: left
     outline_level: 3
     size: 12pt
     bold: true
     keep_next: true
     spacing: { before: 6mm, after: 1.5mm }
+
+  # Prose carrying a Randziffer. A style of its own rather than Standard,
+  # because the number lives in the style: applying it — or pressing Enter
+  # after a heading, whose `next` it is — numbers the paragraph in Word and
+  # WordCraft alike. Standard is the base of every other style, so a number
+  # held there would reach the cover and the closing block too.
+  Randziffertext:
+    name: Randziffertext
+    based_on: Standard
 
   Rechtsbegehren:
     name: Rechtsbegehren
@@ -345,7 +354,7 @@ numbering:
     suffix: tab
     indent: 0mm
     hanging: 10mm
-    style: Standard
+    style: Randziffertext
 
   # The Beilagenverzeichnis. One shared instance numbers the whole index, so
   # the numbers are the Beilage numbers the body cites — and adding an entry

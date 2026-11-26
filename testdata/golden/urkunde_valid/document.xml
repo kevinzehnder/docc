@@ -54,10 +54,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Vertragsparteien</w:t>
@@ -66,10 +62,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Verkäuferschaft</w:t>
@@ -160,10 +152,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Käuferschaft</w:t>
@@ -201,10 +189,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Kaufobjekt</w:t>
@@ -251,10 +235,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Kaufpreis</w:t>
@@ -381,10 +361,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Tilgung des Kaufpreises</w:t>
@@ -401,10 +377,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift3"/>
-<w:numPr>
-<w:ilvl w:val="2"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Anzahlung</w:t>
@@ -458,10 +430,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift3"/>
-<w:numPr>
-<w:ilvl w:val="2"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Sicherstellung der Grundstückgewinnsteuer</w:t>
@@ -512,10 +480,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift3"/>
-<w:numPr>
-<w:ilvl w:val="2"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Restkaufpreis</w:t>
@@ -569,10 +533,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Zahlungsversprechen</w:t>
@@ -589,10 +549,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Schlussbestimmungen</w:t>
@@ -601,10 +557,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Nutzen und Gefahr</w:t>
@@ -627,10 +579,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Gewährleistung</w:t>
@@ -655,10 +603,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Gebäudeversicherung</w:t>
@@ -675,10 +619,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Unterhalts- und Erneuerungsfonds</w:t>
@@ -695,10 +635,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Mietverhältnisse</w:t>
@@ -715,10 +651,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Grundstückgewinnsteuer</w:t>
@@ -735,10 +667,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Vertragskosten</w:t>
@@ -755,10 +683,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Ueberschrift2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Grundbuchanmeldung</w:t>
@@ -877,10 +801,6 @@
 <w:pPr>
 <w:pStyle w:val="Ueberschrift1"/>
 <w:pageBreakBefore/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="1"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Bescheinigung</w:t>
