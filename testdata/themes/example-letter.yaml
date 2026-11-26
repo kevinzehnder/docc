@@ -5,7 +5,7 @@
 #
 # Where example-legal exercises frames and mixed-formatting runs, this one
 # exercises the other half of the furniture model — an epilogue, a repeated
-# list field, a footer, and a boolean rendered through `formats`.
+# list field, a footer, and a line a boolean switches on or off.
 name: example-letter
 description: Muster & Partner business and legal correspondence.
 
@@ -248,7 +248,7 @@ prologue:
   #
   # The delivery mode is the field's first line, not a block above it: it
   # belongs in the window, so it shares the frame and the address geometry.
-  - { style: DeliveryMode, text: "Einschreiben: {{ registered }}",
+  - { style: DeliveryMode, text: "Einschreiben", if_nonempty: registered,
       frame: &addr { x: 25mm, y: 60mm, width: 95mm, h_anchor: page, v_anchor: page, wrap: around } }
   - { style: AddressBlockFirst, text: "{{ recipient.salutation }} {{ recipient.name }}", frame: *addr }
   - { style: AddressBlock, text: "{{ recipient.organization }}", frame: *addr }
