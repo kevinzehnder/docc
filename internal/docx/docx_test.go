@@ -42,7 +42,7 @@ func sample() *Document {
 				ID: "Heading1", Name: "heading 1", Type: StyleParagraph,
 				BasedOn: "Standard", Next: "Standard", QFormat: true,
 				Run:  RunProps{Bold: ToggleOn, Size: FontPt(14)},
-				Para: ParaProps{Spacing: Spacing{Before: Pt(12), After: Pt(6)}, KeepNext: true},
+				Para: ParaProps{Spacing: Spacing{Before: Pt(12), After: Pt(6)}, KeepNext: ToggleOn},
 			},
 		},
 		Numbering: num,

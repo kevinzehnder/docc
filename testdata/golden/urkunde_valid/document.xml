@@ -354,6 +354,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragWorte"/>
+<w:keepNext w:val="0"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">(Franken achthundertfünfundsechzigtausend)</w:t>
@@ -424,6 +425,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:keepNext w:val="0"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Aargauische Kantonalbank, IBAN CH00 0000 0000 0000 0000 0, lautend auf die Verkäuferschaft.</w:t>
@@ -475,6 +477,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:keepNext w:val="0"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Steueramt des Kantons Aargau, 5001 Aarau.</w:t>
@@ -529,6 +532,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:keepNext w:val="0"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Aargauische Kantonalbank, IBAN CH00 0000 0000 0000 0000 0, lautend auf die Verkäuferschaft, spätestens innert zehn Tagen nach Eintrag dieses Vertrages im Tagebuch des Grundbuchamtes.</w:t>

@@ -216,8 +216,9 @@ type ParaProps struct {
 	Tabs         []TabStop
 	Borders      *ParaBorders
 	// KeepNext keeps this paragraph on the same page as the next, which is
-	// what stops a heading being orphaned at a page break.
-	KeepNext  bool
+	// what stops a heading being orphaned at a page break. Explicitly off
+	// overrides a style that keeps.
+	KeepNext  Toggle
 	KeepLines bool
 	PageBreak bool
 	// ContextualSpacing suppresses spacing between paragraphs of the same

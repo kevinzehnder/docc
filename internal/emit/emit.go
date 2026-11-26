@@ -825,7 +825,7 @@ func (e *emitter) blockTo(b ir.Block, out *[]docx.Block, depth int) {
 		if style == "" {
 			// Without a mapped style the heading would be indistinguishable
 			// from body text, so carry the emphasis directly.
-			p.Props.KeepNext = true
+			p.Props.KeepNext = docx.ToggleOn
 			for i := range p.Runs {
 				p.Runs[i].Props.Bold = docx.ToggleOn
 			}
@@ -1046,7 +1046,9 @@ func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 		keepLeadIn(*out)
 	}
 	if amountStyle := e.style("div." + d.Name + ".amount"); amountStyle != "" {
+		start := len(*out)
 		e.amountDiv(d, out, depth, style, amountStyle, e.style("div."+d.Name+".total"))
+		releaseTail((*out)[start:])
 		return
 	}
 	if d.HasClass(PairClass) {
@@ -1262,8 +1264,24 @@ func keepLeadIn(out []docx.Block) {
 		return
 	}
 	if p, ok := out[len(out)-1].(docx.Paragraph); ok {
-		p.Props.KeepNext = true
+		p.Props.KeepNext = docx.ToggleOn
 		out[len(out)-1] = p
+	}
+}
+
+// releaseTail lets the page break after an amount block. Its lines keep with
+// one another — a figure parted from its words is the thing to prevent — but
+// the last of them keeping with whatever follows chained the block to the
+// next heading and the paragraph after it, until the chain was too long for
+// the page and the renderer broke it at the chapter heading instead, leaving
+// "III. Kaufpreis" alone at the foot of a half-empty page.
+func releaseTail(block []docx.Block) {
+	for i := len(block) - 1; i >= 0; i-- {
+		if p, ok := block[i].(docx.Paragraph); ok {
+			p.Props.KeepNext = docx.ToggleOff
+			block[i] = p
+			return
+		}
 	}
 }
 

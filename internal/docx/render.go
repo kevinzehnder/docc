@@ -138,9 +138,7 @@ func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 	if p.Style != "" {
 		w.empty("w:pStyle", a("w:val", w.styleID(p.Style)))
 	}
-	if p.KeepNext {
-		w.empty("w:keepNext")
-	}
+	writeToggle(w, "w:keepNext", p.KeepNext)
 	if p.KeepLines {
 		w.empty("w:keepLines")
 	}
@@ -232,7 +230,7 @@ func writeParaProps(w *xw, p ParaProps, inBody bool, d *Document) {
 func (p ParaProps) isZero() bool {
 	return p.Style == "" && p.Align == "" && p.Spacing == (Spacing{}) &&
 		p.Indent == (Indent{}) && p.Numbering == nil &&
-		p.SectionBreak == nil && len(p.Tabs) == 0 && p.Borders == nil && !p.KeepNext && !p.KeepLines &&
+		p.SectionBreak == nil && len(p.Tabs) == 0 && p.Borders == nil && p.KeepNext == ToggleInherit && !p.KeepLines &&
 		!p.PageBreak && !p.ContextualSpacing && p.SuppressAutoHyphens == ToggleInherit &&
 		p.Shading == "" && p.OutlineLevel == nil
 }

@@ -82,7 +82,7 @@ func (s Style) paraProps(textWidth docx.Twips) docx.ParaProps {
 			FirstLine: s.Indent.FirstLine.Twips(0),
 			Hanging:   s.Indent.Hanging.Twips(0),
 		},
-		KeepNext:            s.KeepNext,
+		KeepNext:            keepNext(s.KeepNext),
 		KeepLines:           s.KeepLines,
 		PageBreak:           s.PageBreakBefore,
 		ContextualSpacing:   s.ContextualSpacing,
@@ -273,4 +273,13 @@ func (n NumFormat) AbstractNum() docx.AbstractNum {
 		def.MultiLevelType = "singleLevel"
 	}
 	return def
+}
+
+// keepNext maps a style's keep_next: set keeps, unset inherits. A style has no
+// use for an explicit off — that is for a paragraph overriding its style.
+func keepNext(on bool) docx.Toggle {
+	if on {
+		return docx.ToggleOn
+	}
+	return docx.ToggleInherit
 }
