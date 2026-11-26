@@ -195,7 +195,7 @@ styles:
     based_on: Standard
     bold: true
     keep_next: true
-    spacing: { before: 15mm, after: 2mm }
+    spacing: { before: 10mm, after: 2mm }
 
   BeilagenItem:
     name: Beilage
