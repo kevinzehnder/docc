@@ -302,6 +302,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 </w:pPr>
 <w:r>
 <w:rPr>
@@ -325,6 +326,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 <w:jc w:val="right"/>
 </w:pPr>
 <w:r>
@@ -397,6 +399,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 </w:pPr>
 <w:r>
 <w:rPr>
@@ -420,6 +423,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 <w:jc w:val="right"/>
 </w:pPr>
 <w:r>
@@ -488,6 +492,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragTotal"/>
+<w:ind w:left="0" w:hanging="0"/>
 </w:pPr>
 <w:r>
 <w:rPr>
@@ -511,6 +516,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragTotal"/>
+<w:ind w:left="0" w:hanging="0"/>
 <w:jc w:val="right"/>
 </w:pPr>
 <w:r>
@@ -609,6 +615,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 </w:pPr>
 <w:r>
 <w:rPr>
@@ -632,6 +639,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 <w:jc w:val="right"/>
 </w:pPr>
 <w:r>
@@ -718,6 +726,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 </w:pPr>
 <w:r>
 <w:rPr>
@@ -741,6 +750,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 <w:jc w:val="right"/>
 </w:pPr>
 <w:r>
@@ -830,6 +840,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 </w:pPr>
 <w:r>
 <w:rPr>
@@ -853,6 +864,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
+<w:ind w:left="0" w:hanging="0"/>
 <w:jc w:val="right"/>
 </w:pPr>
 <w:r>

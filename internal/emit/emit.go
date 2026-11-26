@@ -1292,8 +1292,14 @@ func (e *emitter) amountLine(style string, pp docx.ParaProps, description []docx
 	cellPara := func(props docx.ParaProps, runs []docx.Run) []docx.Block {
 		return []docx.Block{docx.Paragraph{Props: props, Runs: runs}}
 	}
-	plain := docx.ParaProps{Style: style}
-	right := docx.ParaProps{Style: style, Align: docx.AlignRight}
+	// The currency and figure cells take the line's font and spacing but not
+	// its indent: a form indents its value column (the Anmeldung, 42mm), and
+	// in a 10mm cell that indent stacks the letters one above the other. The
+	// description cell keeps it, which puts the text where the tabbed line had
+	// it.
+	flush := docx.Indent{ExplicitLeft: true, ExplicitHanging: true}
+	plain := docx.ParaProps{Style: style, Indent: flush}
+	right := docx.ParaProps{Style: style, Align: docx.AlignRight, Indent: flush}
 	noMargin := &docx.CellMargins{}
 	return docx.Table{
 		Widths: []docx.Twips{descCol, currencyCol, figureCol},
