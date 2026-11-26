@@ -107,13 +107,19 @@ the pattern is a consequence of the style map, not something the block declares:
 | `div.<name>.words` | the amount spelled out; needs the theme's `formats.amount_words` as well. Unmapped means no gloss, so a form inheriting a deed's theme can drop it |
 | `div.<name>.text` | prose under an amount (a paragraph without an amount label, e.g. "Konto IBAN …"); unmapped, it takes the block's style. A theme uses it to keep that prose out of the amount columns |
 | `div.<name>.line` | ruled rendering; styles the rule |
+| `div.<name>.pair` | with `{.pair}` on the block (`::: unterschriften {.pair}`): two list items to a row — a row of rules in this style, the names beneath. An odd last item gets a row of its own, on the left |
+| `div.<name>.pair.name` | the names row of `{.pair}` rendering; unmapped, it takes the block's style |
 | `div.<name>.label` | labelled rendering; styles the tabbed label |
 | `div.<name>.field` | field rendering — label first, then the value; styles the label column |
 
 Map exactly one of `.amount`, `.line`, `.label` and `.field` per block. They are
 tried in that order and only the first takes effect, so mapping two is rejected
 rather than resolved. `docc describe` reports which pattern each block ended up
-with.
+with. `.pair` is not a pattern of its own but a per-block choice beside
+`.line`: the same block renders ruled, one name per line, unless the author
+writes `{.pair}` on it — so a rule requiring the block keeps working either
+way. The rule style's first tab stop must end the left rule, since a name alone
+in its row gets only that one.
 
 ### Multiple paragraphs in a list item
 

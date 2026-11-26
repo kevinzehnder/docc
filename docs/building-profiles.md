@@ -267,6 +267,11 @@ prologue/epilogue. Notes that bite:
     style declares, so a stop with no leader followed by one with
     `leader: dot` gives a gap and then a rule — a signature line whose shape
     is entirely the theme's business. Do not let anyone type the dots.
+  - **paired** (`div.<name>.pair` and `.pair.name`, used when the block
+    carries `{.pair}`): two signatories side by side, a rule above each
+    name. The rule style's stops draw both rules — e.g. `half-5mm` with an
+    underscore leader, `half+5mm`, `end` with an underscore leader — and the
+    name style's one stop (`half+5mm`) puts the second name under its rule.
 - `formats.amount_words: "(Franken %s)"` spells every amount out beneath its
   figure, rendered from the figure itself. Deeds repeat sums in words so they
   cannot be altered after signing; generating them means the words and the

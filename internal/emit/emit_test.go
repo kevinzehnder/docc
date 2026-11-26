@@ -1156,3 +1156,75 @@ func TestRunLineKeepsFrame(t *testing.T) {
 		t.Errorf("the run line was not placed in a text box:\n%s", out)
 	}
 }
+
+// `{.pair}` sets signatories two to a row — the rules, then the names beneath
+// — and leaves an odd last one alone on the left; prose stays full width. The
+// same block without the class keeps the one-per-line ruled rendering.
+func TestPairedSignatureBlock(t *testing.T) {
+	th := testTheme()
+	th.Styles["Rolle"] = theme.Style{Name: "Rolle", BasedOn: "Standard"}
+	th.Styles["Linie"] = theme.Style{Name: "Linie", BasedOn: "Standard", Tabs: []theme.Tab{{To: theme.TabEnd, Leader: "dot", Align: "right"}}}
+	th.Styles["Linien"] = theme.Style{Name: "Linien", BasedOn: "Standard", Tabs: []theme.Tab{
+		{To: theme.TabHalf, Leader: "underscore"}, {To: theme.TabHalf}, {To: theme.TabEnd, Align: "right", Leader: "underscore"},
+	}}
+	th.Styles["Namen"] = theme.Style{Name: "Namen", BasedOn: "Standard", Tabs: []theme.Tab{{To: theme.TabHalf}}}
+	sc := testSchema()
+	sc.Styles["div.sig"] = "Rolle"
+	sc.Styles["div.sig.line"] = "Linie"
+	sc.Styles["div.sig.pair"] = "Linien"
+	sc.Styles["div.sig.pair.name"] = "Namen"
+
+	render := func(src string) []docx.Paragraph {
+		f, _ := parse.Parse("t.md", []byte(src))
+		built, err := Build(ir.Build(f, "test", map[string]any{}), sc, th, Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var ps []docx.Paragraph
+		for _, b := range built.Body {
+			if p, ok := b.(docx.Paragraph); ok {
+				ps = append(ps, p)
+			}
+		}
+		return ps
+	}
+	tabs := func(p docx.Paragraph) int {
+		n := 0
+		for _, r := range p.Runs {
+			for _, it := range r.Items {
+				if _, ok := it.(docx.Tab); ok {
+					n++
+				}
+			}
+		}
+		return n
+	}
+
+	got := render("::: sig {.pair}\nBaden, den\n\n- Anna\n- Beat\n- Clara\n:::\n")
+	want := []struct {
+		style string
+		text  string
+		tabs  int
+	}{
+		{"Rolle", "Baden, den", 0},
+		{"Linien", "", 3},
+		{"Namen", "AnnaBeat", 1},
+		{"Linien", "", 1},
+		{"Namen", "Clara", 0},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d paragraphs, want %d", len(got), len(want))
+	}
+	for i, w := range want {
+		if got[i].Props.Style != w.style || text(got[i]) != w.text || tabs(got[i]) != w.tabs {
+			t.Errorf("paragraph %d = %s %q with %d tabs, want %s %q with %d", i,
+				got[i].Props.Style, text(got[i]), tabs(got[i]), w.style, w.text, w.tabs)
+		}
+	}
+
+	for _, p := range render("::: sig\n- Anna\n- Beat\n:::\n") {
+		if p.Props.Style != "Linie" {
+			t.Errorf("without {.pair} a name rendered as %s, want the ruled Linie", p.Props.Style)
+		}
+	}
+}

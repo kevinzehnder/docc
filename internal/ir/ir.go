@@ -56,9 +56,21 @@ type ListItem struct {
 type Div struct {
 	Name string
 	// ID is the `#id` from the attribute block, empty when absent.
-	ID     string
-	Line   int
-	Blocks []Block
+	ID string
+	// Classes are the `.class` entries from the attribute block, in order.
+	Classes []string
+	Line    int
+	Blocks  []Block
+}
+
+// HasClass reports whether the block carries `.name` in its attributes.
+func (d Div) HasClass(name string) bool {
+	for _, c := range d.Classes {
+		if c == name {
+			return true
+		}
+	}
+	return false
 }
 
 // Table is a grid. The first row is a header when Header is set.

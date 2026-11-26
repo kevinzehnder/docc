@@ -52,7 +52,11 @@ func block(f *parse.File, n ast.Node) Block {
 		return list
 
 	case *parse.Div:
-		return Div{Name: v.Name, ID: v.Attr.ID, Line: lineOf(f, v), Blocks: blocks(f, v)}
+		var classes []string
+		for _, c := range v.Attr.Classes {
+			classes = append(classes, c.Name)
+		}
+		return Div{Name: v.Name, ID: v.Attr.ID, Classes: classes, Line: lineOf(f, v), Blocks: blocks(f, v)}
 
 	case *ast.Blockquote:
 		return Quote{Line: lineOf(f, v), Blocks: blocks(f, v)}

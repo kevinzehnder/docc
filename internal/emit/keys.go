@@ -84,6 +84,8 @@ func StyleKeys(sc *schema.Schema) []StyleKey {
 var blockSuffixes = []struct{ suffix, purpose, fallback, pattern string }{
 	{".amount", "selects amount rendering; styles the amount column", "", "amount"},
 	{".line", "selects ruled rendering; styles the rule", "", "ruled"},
+	{".pair", "styles the rule row when the block carries `{.pair}`: two signatories to a row, the names beneath", "", ""},
+	{".pair.name", "styles the names row of `{.pair}` rendering; falls back to the block's style", "", ""},
 	{".label", "selects labelled rendering; styles the tabbed label", "", "labelled"},
 	{".field", "selects field rendering — label first, then the value; styles the label column", "", "field"},
 	{".total", "styles the total row of amount rendering", "", ""},

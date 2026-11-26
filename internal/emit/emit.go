@@ -1046,6 +1046,12 @@ func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 		e.amountDiv(d, out, depth, style, amountStyle, e.style("div."+d.Name+".total"))
 		return
 	}
+	if d.HasClass(PairClass) {
+		if pairStyle := e.style("div." + d.Name + ".pair"); pairStyle != "" {
+			e.pairedDiv(d, out, depth, style, pairStyle, e.style("div."+d.Name+".pair.name", "div."+d.Name))
+			return
+		}
+	}
 	if lineStyle := e.style("div." + d.Name + ".line"); lineStyle != "" {
 		e.ruledDiv(d, out, depth, style, lineStyle)
 		return
@@ -1238,6 +1244,73 @@ func (e *emitter) ruledDiv(d ir.Div, out *[]docx.Block, depth int, style, lineSt
 					Runs:  runs,
 				})
 			}
+		}
+	}
+}
+
+// PairClass is the class that asks a block for paired rendering:
+// `::: unterschriften {.pair}`.
+const PairClass = "pair"
+
+// pairedDiv renders a ruled block two signatories to a row: a paragraph of
+// rules — the line style's tab leaders — and beneath it a paragraph of the
+// names, each under its rule. An odd last signatory gets a row of its own,
+// on the left. Prose in the block renders full width in the block's style, as
+// in ruledDiv.
+//
+// The rule row writes one tab per stop for a pair and only the first for a
+// single name, so the line style's first stop must end the left rule.
+func (e *emitter) pairedDiv(d ir.Div, out *[]docx.Block, depth int, style, lineStyle, nameStyle string) {
+	stops := len(e.tabStops(lineStyle))
+	row := func(names [][]docx.Run) {
+		tabs := 1
+		if len(names) == 2 {
+			tabs = stops
+		}
+		var rule []docx.Run
+		for range tabs {
+			rule = append(rule, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+		}
+		*out = append(*out, docx.Paragraph{Props: docx.ParaProps{Style: lineStyle}, Runs: rule})
+		runs := names[0]
+		if len(names) == 2 {
+			runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+			runs = append(runs, names[1]...)
+		}
+		*out = append(*out, docx.Paragraph{Props: docx.ParaProps{Style: nameStyle}, Runs: runs})
+	}
+
+	for _, block := range d.Blocks {
+		list, isList := block.(ir.List)
+		if !isList {
+			var inner []docx.Block
+			e.blockTo(block, &inner, depth)
+			for _, blk := range inner {
+				if p, ok := blk.(docx.Paragraph); ok {
+					p.Props.Style = style
+					blk = p
+				}
+				*out = append(*out, blk)
+			}
+			continue
+		}
+		var pending [][]docx.Run
+		for _, item := range list.Items {
+			for _, b := range item.Blocks {
+				para, isPara := b.(ir.Para)
+				if !isPara {
+					e.blockTo(b, out, depth)
+					continue
+				}
+				pending = append(pending, e.runs(para.Inlines, docx.RunProps{}))
+				if len(pending) == 2 {
+					row(pending)
+					pending = nil
+				}
+			}
+		}
+		if len(pending) > 0 {
+			row(pending)
 		}
 	}
 }
