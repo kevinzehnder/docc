@@ -264,8 +264,11 @@ func at(list []string, i int) string {
 
 // collapse tidies the whitespace an empty substitution leaves behind, so a
 // missing organisation does not turn "Muster GmbH, Bern" into ", Bern".
+//
+// Tabs are left alone: a tab in a furniture line is layout — the stop that
+// draws a signature line's dotted rule in "{{ name }}\t\t" — not slack.
 func collapse(s string) string {
-	s = strings.TrimSpace(s)
+	s = strings.Trim(s, " \n\r")
 	for _, fix := range []struct{ from, to string }{
 		{"  ", " "},
 		{" ,", ","},

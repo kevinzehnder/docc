@@ -367,6 +367,13 @@ func TestExpand(t *testing.T) {
 			wantRefs: 2,
 		},
 		{
+			// A signature line: the trailing tabs draw the dotted rule.
+			name:     "trailing tabs survive",
+			in:       "{{ sender.name }}\t\t",
+			wantText: "Beispiel AG\t\t",
+			wantRefs: 1,
+		},
+		{
 			name:         "every field empty",
 			in:           "{{ recipient.organization }}",
 			wantText:     "",
