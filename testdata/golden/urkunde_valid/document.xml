@@ -1107,6 +1107,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Unterschriftslinie"/>
+<w:keepNext w:val="0"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Herr </w:t>

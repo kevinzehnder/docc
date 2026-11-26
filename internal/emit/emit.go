@@ -1078,11 +1078,12 @@ func (e *emitter) div(d ir.Div, out *[]docx.Block, depth int) {
 		releaseTail((*out)[start:])
 		return
 	}
-	if d.HasClass(PairClass) {
-		if pairStyle := e.style("div." + d.Name + ".pair"); pairStyle != "" {
-			e.pairedDiv(d, out, depth, style, pairStyle, e.style("div."+d.Name+".pair.name", "div."+d.Name))
-			return
-		}
+	// `{.pair}` chooses paired rendering where a block has both; a block
+	// that maps only `.pair` has nothing else to be and renders paired.
+	if pairStyle := e.style("div." + d.Name + ".pair"); pairStyle != "" &&
+		(d.HasClass(PairClass) || e.style("div."+d.Name+".line") == "") {
+		e.pairedDiv(d, out, depth, style, pairStyle, e.style("div."+d.Name+".pair.name", "div."+d.Name))
+		return
 	}
 	if lineStyle := e.style("div." + d.Name + ".line"); lineStyle != "" {
 		e.ruledDiv(d, out, depth, style, lineStyle)
@@ -1244,9 +1245,21 @@ func (e *emitter) tabStops(styleID string) []theme.Tab {
 // line is not content the author should be typing, and a document whose dots
 // are literal text cannot have its signatories checked or reordered.
 func (e *emitter) ruledDiv(d ir.Div, out *[]docx.Block, depth int, style, lineStyle string) {
+	// A side's lines keep together and with their role, but the page may
+	// turn between one side and the next, as the office's deeds turn it: the
+	// sellers sign at the foot of one page, the buyers on the next, rather
+	// than the whole block leaving half a page empty.
+	lastLine := -1
 	for _, block := range d.Blocks {
 		list, isList := block.(ir.List)
 		if !isList {
+			if lastLine >= 0 {
+				if p, ok := (*out)[lastLine].(docx.Paragraph); ok {
+					p.Props.KeepNext = docx.ToggleOff
+					(*out)[lastLine] = p
+				}
+				lastLine = -1
+			}
 			var inner []docx.Block
 			e.blockTo(block, &inner, depth)
 			for _, blk := range inner {
@@ -1275,6 +1288,7 @@ func (e *emitter) ruledDiv(d ir.Div, out *[]docx.Block, depth int, style, lineSt
 					Props: docx.ParaProps{Style: lineStyle},
 					Runs:  runs,
 				})
+				lastLine = len(*out) - 1
 			}
 		}
 	}

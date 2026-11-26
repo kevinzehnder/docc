@@ -1227,6 +1227,12 @@ func TestPairedSignatureBlock(t *testing.T) {
 			t.Errorf("without {.pair} a name rendered as %s, want the ruled Linie", p.Props.Style)
 		}
 	}
+	// A block mapping only `.pair` has nothing else to be: paired without
+	// the class.
+	delete(sc.Styles, "div.sig.line")
+	if got := render("::: sig\n- Baden, den\n- Die Urkundsperson\n:::\n"); len(got) != 2 || got[1].Props.Style != "Namen" {
+		t.Errorf("a pair-only block did not render paired: %d paragraphs", len(got))
+	}
 }
 
 // A style with a frame places every body paragraph written in it.
