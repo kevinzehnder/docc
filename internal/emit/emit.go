@@ -1318,20 +1318,33 @@ func (e *emitter) amountLine(style string, pp docx.ParaProps, description []docx
 // currency.
 var amountGap = docx.Mm(5)
 
+// endsSentence reports whether a paragraph's text ends with a full stop,
+// question or exclamation mark.
+func endsSentence(runs []docx.Run) bool {
+	last := lastText(runs)
+	return strings.HasSuffix(last, ".") || strings.HasSuffix(last, "?") || strings.HasSuffix(last, "!")
+}
+
 // endsWithColon reports whether a paragraph's text ends with a colon.
 func endsWithColon(runs []docx.Run) bool {
+	return strings.HasSuffix(lastText(runs), ":")
+}
+
+// lastText is the paragraph's text up to its last visible character, or ""
+// when it ends in something other than text — a tab, a picture.
+func lastText(runs []docx.Run) string {
 	for i := len(runs) - 1; i >= 0; i-- {
 		for j := len(runs[i].Items) - 1; j >= 0; j-- {
 			t, ok := runs[i].Items[j].(docx.Text)
 			if !ok {
-				return false
+				return ""
 			}
 			if s := strings.TrimRight(string(t), " \u00a0"); s != "" {
-				return strings.HasSuffix(s, ":")
+				return s
 			}
 		}
 	}
-	return false
+	return ""
 }
 
 // keepLeadIn keeps the paragraph just written with the block about to follow.
@@ -1340,11 +1353,15 @@ func endsWithColon(runs []docx.Run) bool {
 // introduces starts the next one reads as a sentence broken off. Amount and
 // signature blocks keep their own lines together, so this one link is what
 // carries the lead-in across.
+//
+// Only an unfinished sentence is a lead-in. The last clause of a contract
+// ends with a full stop, and chaining it as well pulled it over the page with
+// the signatures and left half a page empty.
 func keepLeadIn(out []docx.Block) {
 	if len(out) == 0 {
 		return
 	}
-	if p, ok := out[len(out)-1].(docx.Paragraph); ok {
+	if p, ok := out[len(out)-1].(docx.Paragraph); ok && !endsSentence(p.Runs) {
 		p.Props.KeepNext = docx.ToggleOn
 		out[len(out)-1] = p
 	}

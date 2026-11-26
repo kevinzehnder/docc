@@ -1233,7 +1233,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Nummerierung"/>
-<w:keepNext/>
 <w:numPr>
 <w:ilvl w:val="0"/>
 <w:numId w:val="4"/>
