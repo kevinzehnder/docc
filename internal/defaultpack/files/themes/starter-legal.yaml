@@ -75,17 +75,19 @@ styles:
     bold: true
     caps: true
     size: 10pt
-    spacing: { before: 0mm, after: 0mm, line: 1.15 }
+    spacing: { before: 0mm, after: 0mm, line: 1.08 }
 
   # Swiss Post wants the address black, non-bold, upright, left aligned and
   # sans serif, at 9-28pt with 10pt ideal. Standard is justified, so the
-  # alignment is overridden here rather than inherited.
+  # alignment is overridden here rather than inherited. line: 1.08 is a 4.6mm
+  # pitch, about 1mm between lines, so five lines end near 82.5mm and keep the
+  # specification's 12mm above the window's 95mm bottom edge.
   LegalGericht:
     name: Gerichtsadresse
     based_on: Standard
     align: left
     size: 10pt
-    spacing: { before: 0mm, after: 0mm, line: 1.15 }
+    spacing: { before: 0mm, after: 0mm, line: 1.08 }
 
   # Steps the flow down to the address window: 22mm top margin + 38mm puts
   # the first address line at the 60mm Swiss Post target. Word can suppress

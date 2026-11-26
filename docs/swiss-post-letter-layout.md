@@ -94,7 +94,11 @@ size is **70 × 35 mm**.
 `starter-letter` is the reference C5 left-window starter theme:
 
 - recipient text begins at x = 25 mm (5 mm inside the field's 20 mm left edge) and is targeted at y = 60 mm;
-- recipient text uses a black 10 pt sans-serif address style;
+- recipient text uses a black 10 pt sans-serif address style at 1.08 line
+  spacing — a 4.6 mm pitch, about 1 mm between lines — so the longest address
+  the starters print (`Einschreiben` plus four lines) ends near y = 82.5 mm,
+  12.5 mm above the window's bottom edge (measured in WordCraft and
+  LibreOffice; at the earlier 1.15–1.2 it ended at 83.7–84.6 mm);
 - the letter body and recipient address share a balanced 25 mm left/right margin;
 - positioning must be regression-tested by rendering, folding and checking a
   printed sample in the selected envelope.

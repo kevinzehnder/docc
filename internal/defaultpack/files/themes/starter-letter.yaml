@@ -67,8 +67,13 @@ styles:
   # ── Recipient address, positioned for a left-window envelope ───────────────
   # The address field. Swiss Post wants it black, non-bold, upright, left
   # aligned and sans serif, at 9-28pt with 10pt ideal, with no blank lines and
-  # a uniform 1-1.5mm between them. The vertical position comes from the frame
-  # on the prologue lines, so there is no spacing here to carry it.
+  # a uniform 1-1.5mm between them. The vertical position comes from the
+  # spacer above, so there is no spacing here to carry it.
+  #
+  # line: 1.08 is a 4.6mm pitch at 10pt, about 1mm between lines. Five lines
+  # (Einschreiben plus four) then end near 82.5mm, keeping the 12mm the
+  # specification asks for above the window's 95mm bottom edge; at 1.2 they
+  # ended near 84.6mm.
   DeliveryMode:
     name: Versandart
     based_on: Standard
@@ -76,23 +81,20 @@ styles:
     bold: true
     caps: true
     size: 10pt
-    spacing: { before: 0mm, after: 0mm, line: 1.2 }
+    spacing: { before: 0mm, after: 0mm, line: 1.08 }
 
   AddressBlockFirst:
     name: Adresse erste Zeile
     based_on: Standard
     align: left
     size: 10pt
-    spacing: { before: 0mm, after: 0mm, line: 1.2 }
+    spacing: { before: 0mm, after: 0mm, line: 1.08 }
 
   AddressBlock:
     name: Adresse
     based_on: AddressBlockFirst
-    spacing: { before: 0mm, after: 0mm, line: 1.2 }
+    spacing: { before: 0mm, after: 0mm, line: 1.08 }
 
-  # The address is framed out of the flow, so this spacing is what clears the
-  # field rather than what follows it: the last address line plus the 12mm
-  # bottom clearance the specification requires.
   # Steps the flow down to the address window: 30mm top margin + 30mm puts
   # the first address line at the 60mm Swiss Post target. Word can suppress
   # space-before on the first paragraph of a page, so this is an empty
