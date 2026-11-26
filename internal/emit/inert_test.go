@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/theme"
 )
 
@@ -74,5 +75,35 @@ func TestStarterThemesCarryNoInertFlags(t *testing.T) {
 		if found := InertFurnitureFlags(th); len(found) > 0 {
 			t.Errorf("theme %s:\n  %s", name, strings.Join(found, "\n  "))
 		}
+	}
+}
+
+func TestDefaultStyleNumbering(t *testing.T) {
+	th := &theme.Theme{
+		Name: "t",
+		Styles: map[string]theme.Style{
+			"Standard":       {Default: true},
+			"Randziffertext": {BasedOn: "Standard"},
+		},
+		Numbering: map[string]theme.NumFormat{
+			"Rz":      {Style: "Standard"},
+			"Outline": {Style: "Randziffertext", Levels: []theme.NumFormat{{Style: "Standard"}}},
+		},
+	}
+	sc := &schema.Schema{Type: "s"}
+	sc.Render.ParagraphNumbering = &schema.NumberingRule{Definition: "Rz"}
+	sc.Render.HeadingNumbering = &schema.NumberingRule{Definition: "Outline"}
+
+	got := DefaultStyleNumbering(sc, th)
+	if len(got) != 2 ||
+		!strings.Contains(got[0], `render.heading_numbering: theme "t" numbering "Outline" level 1`) ||
+		!strings.Contains(got[1], `render.paragraph_numbering: theme "t" numbering "Rz" level 0`) {
+		t.Fatalf("got %q", got)
+	}
+
+	th.Numbering["Rz"] = theme.NumFormat{Style: "Randziffertext"}
+	th.Numbering["Outline"] = theme.NumFormat{Style: "Randziffertext"}
+	if got := DefaultStyleNumbering(sc, th); len(got) != 0 {
+		t.Errorf("a dedicated style is reported: %q", got)
 	}
 }

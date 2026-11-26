@@ -402,4 +402,5 @@ declares. Broadly:
 | `DOC030`–`DOC037` | The markup contract — blocks, spans, ids, references |
 | `DOC038`–`DOC041` | `fields:` blanks |
 | `DOC042` | A required span type appears nowhere in the document |
+| `DOC043` | `docc doctor`: render numbering names the default style, so paragraphs added in Word go unnumbered |
 | `DOC099` | A rule fired but its schema gave it no `id` |

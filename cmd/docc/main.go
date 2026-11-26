@@ -1003,6 +1003,7 @@ var explanations = map[string]string{
 	"DOC040": "a `.docc-field` span is missing its `key=`, or names a field the schema does not declare. The key ties the blank to its `fields:` entry.",
 	"DOC041": "the schema declares a field with a completion stage the compiler does not know. Use `handwritten` or `before-execution`.",
 	"DOC042": "a span type the schema requires appears nowhere in the document. Unlike a block's `required_spans`, this asks only that the value be stated and marked somewhere in the body — write it into the prose and annotate it.",
+	"DOC043": "a render numbering level (`render.heading_numbering` or `render.paragraph_numbering`) names the theme's default paragraph style. Every other style is based on the default, so docc cannot hold the number in it and writes it onto each paragraph instead: the built document is numbered correctly, but a paragraph added later in Word or WordCraft is not. Give the level a style of its own based on the default — the starter-legal theme's `Randziffertext` — and name it in the numbering definition's `style:`. Reported by `docc doctor` as a warning; `--strict` makes it bind.",
 	"DOC099": "a check the schema selected reported a problem but the schema gave the rule no `id:`. Add one to `rules:` so the diagnostic has a stable code.",
 }
 

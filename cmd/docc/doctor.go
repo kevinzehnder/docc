@@ -61,8 +61,10 @@ type doctorTheme struct {
 }
 
 type doctorProblem struct {
-	Type    string `json:"type"`
-	Theme   string `json:"theme,omitempty"`
+	Type  string `json:"type"`
+	Theme string `json:"theme,omitempty"`
+	// Code is set on findings `docc explain` documents.
+	Code    string `json:"code,omitempty"`
 	Message string `json:"message"`
 }
 
@@ -202,6 +204,13 @@ func diagnose(cf commonFlags, start string) (*doctorReport, error) {
 				rep.Problems = append(rep.Problems, doctorProblem{
 					Type: sc.Type, Theme: sc.Theme, Message: err.Error(),
 				})
+				break
+			}
+			th, _ := themes.Get(sc.Theme)
+			for _, w := range emit.DefaultStyleNumbering(sc, th) {
+				rep.Warnings = append(rep.Warnings, doctorProblem{
+					Type: sc.Type, Theme: sc.Theme, Code: "DOC043", Message: w,
+				})
 			}
 		}
 		rep.Types = append(rep.Types, entry)
@@ -276,6 +285,9 @@ func printDoctor(rep *doctorReport) {
 			if label == "" {
 				label = "theme " + w.Theme
 			}
+			if w.Code != "" {
+				label += ": " + w.Code
+			}
 			fmt.Printf("  %s: %s\n", label, w.Message)
 		}
 	}
@@ -293,7 +305,11 @@ func printDoctor(rep *doctorReport) {
 		}
 		// emit.Validate joins its findings with newlines; keep them under the
 		// indent rather than printing one very long line.
-		for line := range strings.SplitSeq(p.Message, "\n") {
+		msg := p.Message
+		if p.Code != "" {
+			msg = p.Code + ": " + msg
+		}
+		for line := range strings.SplitSeq(msg, "\n") {
 			fmt.Printf("    %s\n", line)
 		}
 	}

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kevinzehnder/docc/internal/schema"
 	"github.com/kevinzehnder/docc/internal/theme"
 )
 
@@ -102,4 +103,40 @@ func inertLineReason(line theme.Line) string {
 		}
 	}
 	return ""
+}
+
+// DefaultStyleNumbering reports render numbering levels that name the default
+// paragraph style. linkStyles never puts numbering there — every style is
+// based on the default, so the cover and the closing block would be numbered
+// too — and falls back to numbering each paragraph directly. The document
+// renders correctly, but a paragraph added later in Word or WordCraft gets no
+// number. A warning, not an error: `--strict` binds it.
+func DefaultStyleNumbering(sc *schema.Schema, th *theme.Theme) []string {
+	var out []string
+	for _, r := range []struct {
+		key  string
+		rule *schema.NumberingRule
+	}{
+		{"heading_numbering", sc.Render.HeadingNumbering},
+		{"paragraph_numbering", sc.Render.ParagraphNumbering},
+	} {
+		if r.rule == nil {
+			continue
+		}
+		def, ok := th.Numbering[r.rule.Definition]
+		if !ok {
+			continue // validateRender reports it
+		}
+		for i, lvl := range def.Flatten() {
+			if st, ok := th.Styles[lvl.Style]; !ok || !st.Default {
+				continue
+			}
+			out = append(out, fmt.Sprintf(
+				"render.%s: theme %q numbering %q level %d names the default style %q, so the number is written "+
+					"onto each paragraph and a paragraph added later in Word is not numbered — "+
+					"give the level a style of its own, based on %q",
+				r.key, th.Name, r.rule.Definition, i, lvl.Style, lvl.Style))
+		}
+	}
+	return out
 }
