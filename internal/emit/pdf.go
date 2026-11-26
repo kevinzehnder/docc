@@ -84,6 +84,13 @@ func convertOnce(binary, docxPath, pdfPath string, timeout time.Duration, verbos
 		return err
 	}
 	defer func() { _ = os.RemoveAll(workDir) }()
+	// The profile goes into a file:// URL, which needs an absolute path: a
+	// relative one reads as `file://tmp/...` — "tmp" taken for a host — and
+	// soffice waits forever on a profile it cannot open.
+	workDir, err = filepath.Abs(workDir)
+	if err != nil {
+		return err
+	}
 	profile := filepath.Join(workDir, "profile")
 
 	// The binary comes from exec.LookPath and the paths are the caller's own
@@ -96,6 +103,7 @@ func convertOnce(binary, docxPath, pdfPath string, timeout time.Duration, verbos
 		"--outdir", workDir,
 		docxPath,
 	)
+	bound(cmd)
 	out, err := cmd.CombinedOutput()
 	if verbose && len(out) > 0 {
 		fmt.Fprintln(os.Stderr, strings.TrimSpace(string(out)))
@@ -138,6 +146,7 @@ func convertWordcraftOnce(binary, docxPath, pdfPath string, timeout time.Duratio
 	produced := filepath.Join(workDir, "doc.pdf")
 
 	cmd := exec.CommandContext(ctx, binary, "convert", docxPath, produced, "--strict") //nolint:gosec // fixed argv, no shell
+	bound(cmd)
 	out, err := cmd.CombinedOutput()
 	if verbose && len(out) > 0 {
 		fmt.Fprintln(os.Stderr, strings.TrimSpace(string(out)))
@@ -162,6 +171,15 @@ func convertWordcraftOnce(binary, docxPath, pdfPath string, timeout time.Duratio
 		return fmt.Errorf("move converted PDF: %w", err)
 	}
 	return nil
+}
+
+// bound makes the context's timeout actually end the run. Killing the direct
+// child is not enough when it has started children of its own that inherit the
+// output pipe: CombinedOutput then waits for them. The process group goes
+// down with it, and WaitDelay caps the wait for whatever is left.
+func bound(cmd *exec.Cmd) {
+	killGroupOnCancel(cmd)
+	cmd.WaitDelay = 5 * time.Second
 }
 
 // verifyPDF checks the output really is a PDF and not a truncated write.

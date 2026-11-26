@@ -112,3 +112,39 @@ func TestFindConverter(t *testing.T) {
 		t.Errorf("findConverter(\"\") = %+v, %v; want wordcraft first", c, err)
 	}
 }
+
+// A converter that starts a child holding the output pipe must still be
+// stopped by the timeout. soffice is exactly that: a wrapper script around
+// soffice.bin.
+func TestConvertTimeoutStopsGrandchildren(t *testing.T) {
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skip("sh is unavailable")
+	}
+	bin := fakeConverter(t, `sleep 60 & wait`)
+	start := time.Now()
+	err := convertWordcraftOnce(bin, filepath.Join(t.TempDir(), "doc.docx"),
+		filepath.Join(t.TempDir(), "out.pdf"), 200*time.Millisecond, false)
+	if err == nil || !strings.Contains(err.Error(), "timed out") {
+		t.Fatalf("err = %v, want a timeout", err)
+	}
+	if elapsed := time.Since(start); elapsed > 10*time.Second {
+		t.Fatalf("timeout took %s to return", elapsed)
+	}
+}
+
+// soffice is given its profile as a file:// URL; a relative output path must
+// not turn into a relative URL.
+func TestConvertOnceProfileURLIsAbsolute(t *testing.T) {
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skip("sh is unavailable")
+	}
+	t.Chdir(t.TempDir())
+	if err := os.Mkdir("out", 0o750); err != nil {
+		t.Fatal(err)
+	}
+	bin := fakeConverter(t, `echo "$1" >&2; exit 1`)
+	err := convertOnce(bin, "doc.docx", filepath.Join("out", "result.pdf"), 5*time.Second, false)
+	if err == nil || !strings.Contains(err.Error(), "-env:UserInstallation=file:///") {
+		t.Fatalf("err = %v, want an absolute file:/// profile URL", err)
+	}
+}
