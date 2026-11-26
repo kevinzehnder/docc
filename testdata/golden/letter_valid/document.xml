@@ -189,6 +189,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Normal"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Wir fordern Sie hiermit auf:</w:t>

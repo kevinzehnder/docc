@@ -197,6 +197,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Normal"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Verkäuferschaft verkauft an die Käuferschaft, und diese übernimmt als Alleineigentümerin, das nachstehend beschriebene Grundstück:</w:t>
@@ -249,6 +250,31 @@
 <w:t xml:space="preserve">Der Kaufpreis setzt sich wie folgt zusammen:</w:t>
 </w:r>
 </w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="8504" w:type="dxa"/>
+<w:tblLayout w:type="fixed"/>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="6123"/>
+<w:gridCol w:w="567"/>
+<w:gridCol w:w="1814"/>
+</w:tblGrid>
+<w:tr>
+<w:trPr>
+<w:cantSplit/>
+</w:trPr>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="6123" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="283" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
@@ -260,18 +286,47 @@
 <w:r>
 <w:t xml:space="preserve">für die 4½-Zimmerwohnung Nr. 11, GB Baden Nr. 4711</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="567" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
 </w:rPr>
 <w:t xml:space="preserve">Fr.</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1814" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+<w:jc w:val="right"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
@@ -279,6 +334,9 @@
 <w:t xml:space="preserve">820'000.00</w:t>
 </w:r>
 </w:p>
+</w:tc>
+</w:tr>
+</w:tbl>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragWorte"/>
@@ -287,6 +345,31 @@
 <w:t xml:space="preserve">(Franken achthundertzwanzigtausend)</w:t>
 </w:r>
 </w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="8504" w:type="dxa"/>
+<w:tblLayout w:type="fixed"/>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="6123"/>
+<w:gridCol w:w="567"/>
+<w:gridCol w:w="1814"/>
+</w:tblGrid>
+<w:tr>
+<w:trPr>
+<w:cantSplit/>
+</w:trPr>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="6123" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="283" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
@@ -298,18 +381,47 @@
 <w:r>
 <w:t xml:space="preserve">für den Autoeinstellplatz Nr. 11, GB Baden Nr. 4725</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="567" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
 </w:rPr>
 <w:t xml:space="preserve">Fr.</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1814" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+<w:jc w:val="right"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
@@ -317,6 +429,9 @@
 <w:t xml:space="preserve">45'000.00</w:t>
 </w:r>
 </w:p>
+</w:tc>
+</w:tr>
+</w:tbl>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragWorte"/>
@@ -325,6 +440,31 @@
 <w:t xml:space="preserve">(Franken fünfundvierzigtausend)</w:t>
 </w:r>
 </w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="8504" w:type="dxa"/>
+<w:tblLayout w:type="fixed"/>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="6123"/>
+<w:gridCol w:w="567"/>
+<w:gridCol w:w="1814"/>
+</w:tblGrid>
+<w:tr>
+<w:trPr>
+<w:cantSplit/>
+</w:trPr>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="6123" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="283" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragTotal"/>
@@ -332,18 +472,47 @@
 <w:r>
 <w:t xml:space="preserve">Ausmachend den Kaufpreis von</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="567" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragTotal"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="BetragTotalZahl"/>
 </w:rPr>
 <w:t xml:space="preserve">Fr.</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1814" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="BetragTotal"/>
+<w:jc w:val="right"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="BetragTotalZahl"/>
@@ -351,6 +520,9 @@
 <w:t xml:space="preserve">865'000.00</w:t>
 </w:r>
 </w:p>
+</w:tc>
+</w:tr>
+</w:tbl>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragWorte"/>
@@ -371,6 +543,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Normal"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Der Kaufpreis wird wie folgt getilgt:</w:t>
@@ -385,6 +558,31 @@
 <w:t xml:space="preserve">Anzahlung</w:t>
 </w:r>
 </w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="8504" w:type="dxa"/>
+<w:tblLayout w:type="fixed"/>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="6123"/>
+<w:gridCol w:w="567"/>
+<w:gridCol w:w="1814"/>
+</w:tblGrid>
+<w:tr>
+<w:trPr>
+<w:cantSplit/>
+</w:trPr>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="6123" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="283" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
@@ -395,18 +593,47 @@
 <w:r>
 <w:t xml:space="preserve">30. September 2026</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="567" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
 </w:rPr>
 <w:t xml:space="preserve">Fr.</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1814" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+<w:jc w:val="right"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
@@ -414,6 +641,9 @@
 <w:t xml:space="preserve">86'500.00</w:t>
 </w:r>
 </w:p>
+</w:tc>
+</w:tr>
+</w:tbl>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragWorte"/>
@@ -440,6 +670,31 @@
 <w:t xml:space="preserve">Sicherstellung der Grundstückgewinnsteuer</w:t>
 </w:r>
 </w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="8504" w:type="dxa"/>
+<w:tblLayout w:type="fixed"/>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="6123"/>
+<w:gridCol w:w="567"/>
+<w:gridCol w:w="1814"/>
+</w:tblGrid>
+<w:tr>
+<w:trPr>
+<w:cantSplit/>
+</w:trPr>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="6123" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="283" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
@@ -447,18 +702,47 @@
 <w:r>
 <w:t xml:space="preserve">zahlbar bei Vertragsunterzeichnung</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="567" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
 </w:rPr>
 <w:t xml:space="preserve">Fr.</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1814" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+<w:jc w:val="right"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
@@ -466,6 +750,9 @@
 <w:t xml:space="preserve">25'950.00</w:t>
 </w:r>
 </w:p>
+</w:tc>
+</w:tr>
+</w:tbl>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragWorte"/>
@@ -492,6 +779,31 @@
 <w:t xml:space="preserve">Restkaufpreis</w:t>
 </w:r>
 </w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="8504" w:type="dxa"/>
+<w:tblLayout w:type="fixed"/>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="6123"/>
+<w:gridCol w:w="567"/>
+<w:gridCol w:w="1814"/>
+</w:tblGrid>
+<w:tr>
+<w:trPr>
+<w:cantSplit/>
+</w:trPr>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="6123" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="283" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Betragszeile"/>
@@ -502,18 +814,47 @@
 <w:r>
 <w:t xml:space="preserve">15. Dezember 2026</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="567" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
 </w:rPr>
 <w:t xml:space="preserve">Fr.</w:t>
 </w:r>
-<w:r>
-<w:tab/>
-</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1814" w:type="dxa"/>
+<w:tcMar>
+<w:top w:w="0" w:type="dxa"/>
+<w:left w:w="0" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/>
+<w:right w:w="0" w:type="dxa"/>
+</w:tcMar>
+<w:vAlign w:val="bottom"/>
+</w:tcPr>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Betragszeile"/>
+<w:jc w:val="right"/>
+</w:pPr>
 <w:r>
 <w:rPr>
 <w:rStyle w:val="Betrag"/>
@@ -521,6 +862,9 @@
 <w:t xml:space="preserve">752'550.00</w:t>
 </w:r>
 </w:p>
+</w:tc>
+</w:tr>
+</w:tbl>
 <w:p>
 <w:pPr>
 <w:pStyle w:val="BetragWorte"/>
@@ -719,6 +1063,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Unterschriftsrolle"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Verkäuferschaft:</w:t>
@@ -773,6 +1118,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Unterschriftsrolle"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Die Käuferschaft:</w:t>
@@ -818,6 +1164,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Normal"/>
+<w:keepNext/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Dr. iur. David Muster, Urkundsperson des Kantons Aargau, mit Büro in Baden, bescheinigt:</w:t>

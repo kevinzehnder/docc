@@ -836,10 +836,19 @@ func (e *emitter) blockTo(b ir.Block, out *[]docx.Block, depth int) {
 		*out = append(*out, p)
 
 	case ir.Para:
-		*out = append(*out, docx.Paragraph{
+		p := docx.Paragraph{
 			Props: docx.ParaProps{Style: e.style("paragraph")},
 			Runs:  e.runs(v.Inlines, docx.RunProps{}),
-		})
+		}
+		// "Der Kaufpreis wird wie folgt getilgt:" introduces what follows, and
+		// left at the foot of a page it is a sentence broken off — the same
+		// reasoning as a heading's keep_next. A renderer that does not carry a
+		// heading over with a paragraph that just misses the page needs this
+		// link too: it makes heading, lead-in and first item one unit.
+		if endsWithColon(p.Runs) {
+			p.Props.KeepNext = docx.ToggleOn
+		}
+		*out = append(*out, p)
 
 	case ir.List:
 		e.list(v, out, depth, "")
@@ -1253,6 +1262,72 @@ func (e *emitter) ruledDiv(d ir.Div, out *[]docx.Block, depth int, style, lineSt
 	}
 }
 
+// amountLine lays out one amount: the description, the currency at the line
+// style's first tab stop, the figure right-aligned at its second.
+//
+// With two stops it is a borderless table row — description, currency,
+// figure — rather than one tabbed paragraph. A description longer than its
+// column then wraps inside the column, and the figure stands beside its last
+// line; tabbed, the first line ran across the amount column and the figure
+// dropped below it. A right indent cannot hold the text back instead: both
+// WordCraft and LibreOffice drop a tab set beyond it to the next line. The
+// columns are the stops themselves, so a theme moving them moves the table.
+// The description column ends amountGap short of the currency, which is the
+// white space that keeps prose and figures apart.
+func (e *emitter) amountLine(style string, pp docx.ParaProps, description []docx.Run, amount docx.RunProps, currency, figure string) docx.Block {
+	stops := e.tabStops(style)
+	width := e.theme.Page.TextWidth()
+	if len(stops) < 2 {
+		runs := append(description, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+		runs = append(runs, docx.Run{Props: amount, Items: []docx.Inline{docx.Text(currency)}})
+		runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
+		runs = append(runs, docx.Run{Props: amount, Items: []docx.Inline{docx.Text(figure)}})
+		return docx.Paragraph{Props: pp, Runs: runs}
+	}
+	currencyAt, figureEnd := stops[0].Twips(width), stops[1].Twips(width)
+	descCol := currencyAt
+	currencyCol := docx.Mm(10)
+	figureCol := figureEnd - currencyAt - currencyCol
+
+	cellPara := func(props docx.ParaProps, runs []docx.Run) []docx.Block {
+		return []docx.Block{docx.Paragraph{Props: props, Runs: runs}}
+	}
+	plain := docx.ParaProps{Style: style}
+	right := docx.ParaProps{Style: style, Align: docx.AlignRight}
+	noMargin := &docx.CellMargins{}
+	return docx.Table{
+		Widths: []docx.Twips{descCol, currencyCol, figureCol},
+		Rows: []docx.TableRow{{
+			CantSplit: true,
+			Cells: []docx.TableCell{
+				{Blocks: cellPara(pp, description), VAlign: docx.VAlignBottom, Margins: &docx.CellMargins{Right: amountGap}},
+				{Blocks: cellPara(plain, []docx.Run{{Props: amount, Items: []docx.Inline{docx.Text(currency)}}}), VAlign: docx.VAlignBottom, Margins: noMargin},
+				{Blocks: cellPara(right, []docx.Run{{Props: amount, Items: []docx.Inline{docx.Text(figure)}}}), VAlign: docx.VAlignBottom, Margins: noMargin},
+			},
+		}},
+	}
+}
+
+// amountGap is the white space between an amount's description and its
+// currency.
+var amountGap = docx.Mm(5)
+
+// endsWithColon reports whether a paragraph's text ends with a colon.
+func endsWithColon(runs []docx.Run) bool {
+	for i := len(runs) - 1; i >= 0; i-- {
+		for j := len(runs[i].Items) - 1; j >= 0; j-- {
+			t, ok := runs[i].Items[j].(docx.Text)
+			if !ok {
+				return false
+			}
+			if s := strings.TrimRight(string(t), " \u00a0"); s != "" {
+				return strings.HasSuffix(s, ":")
+			}
+		}
+	}
+	return false
+}
+
 // keepLeadIn keeps the paragraph just written with the block about to follow.
 // "Der Kaufpreis beträgt" before the amounts, "Baden, den ___" before the
 // signatures: a lead-in left alone at the foot of a page while what it
@@ -1276,11 +1351,23 @@ func keepLeadIn(out []docx.Block) {
 // the page and the renderer broke it at the chapter heading instead, leaving
 // "III. Kaufpreis" alone at the foot of a half-empty page.
 func releaseTail(block []docx.Block) {
-	for i := len(block) - 1; i >= 0; i-- {
-		if p, ok := block[i].(docx.Paragraph); ok {
-			p.Props.KeepNext = docx.ToggleOff
-			block[i] = p
-			return
+	if len(block) == 0 {
+		return
+	}
+	switch v := block[len(block)-1].(type) {
+	case docx.Paragraph:
+		v.Props.KeepNext = docx.ToggleOff
+		block[len(block)-1] = v
+	case docx.Table:
+		// A row keeps with what follows through its cells' paragraphs.
+		last := v.Rows[len(v.Rows)-1]
+		for c := range last.Cells {
+			for b, blk := range last.Cells[c].Blocks {
+				if p, ok := blk.(docx.Paragraph); ok {
+					p.Props.KeepNext = docx.ToggleOff
+					last.Cells[c].Blocks[b] = p
+				}
+			}
 		}
 	}
 }
@@ -1431,12 +1518,6 @@ func (e *emitter) amountDiv(d ir.Div, out *[]docx.Block, depth int, style, amoun
 						props.Style = totalAmount
 					}
 				}
-				runs := e.runs(description, docx.RunProps{})
-				runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
-				runs = append(runs, docx.Run{Props: props, Items: []docx.Inline{docx.Text(currency)}})
-				runs = append(runs, docx.Run{Items: []docx.Inline{docx.Tab{}}})
-				runs = append(runs, docx.Run{Props: props, Items: []docx.Inline{docx.Text(figure)}})
-
 				paraStyle := style
 				if isTotal && totalStyle != "" {
 					paraStyle = totalStyle
@@ -1445,7 +1526,7 @@ func (e *emitter) amountDiv(d ir.Div, out *[]docx.Block, depth int, style, amoun
 				if partMarker != 0 && !isTotal {
 					props2.Numbering = &docx.NumRef{ID: partMarker, Level: depth}
 				}
-				*out = append(*out, docx.Paragraph{Props: props2, Runs: runs})
+				*out = append(*out, e.amountLine(paraStyle, props2, e.runs(description, docx.RunProps{}), props, currency, figure))
 
 				// The amount in words, when the schema asks for it. It is
 				// rendered from the figure rather than authored, so the two
