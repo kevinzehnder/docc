@@ -257,6 +257,7 @@ styles:
 | `borders` | map | `top`, `bottom`, `left`, `right`, each with `style` (`none`, `single`, `double`, `dotted`, `dashed`), `width` (points), `space` (length), `color`. A bottom border alone is how a rule is drawn under a letterhead. |
 | `shading` | colour | Background fill. |
 | `outline_level` | int | Heading depth for the navigation pane and PDF bookmarks. `1` is the top level; omit for body text. |
+| `blank_lines_before` | int | Writes that many empty paragraphs before each paragraph of the style instead of space before it — lines a user can see and delete or add to with Enter, as one moves a signature part. They keep with what follows. |
 | `keep_next` | bool | Stops a heading being stranded at the foot of a page. |
 | `keep_lines` | bool | Keeps the paragraph's lines together. |
 | `page_break_before` | bool | Starts a new page. |

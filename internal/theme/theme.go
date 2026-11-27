@@ -164,6 +164,12 @@ type Style struct {
 	// page decides where it goes, such as "Es folgt die Beurkundung." at the
 	// foot of the signature page.
 	Frame *Frame `yaml:"frame"`
+	// BlankLinesBefore writes that many empty paragraphs before each
+	// paragraph of this style, instead of space before it. Space in the
+	// format cannot be seen or deleted; an empty line can — which is how a
+	// signature part gets moved up or down by someone who adjusts a page
+	// with the Enter key. The empty lines keep with what follows.
+	BlankLinesBefore int `yaml:"blank_lines_before"`
 	// KeepNext stops a heading being stranded at the foot of a page.
 	KeepNext          bool `yaml:"keep_next"`
 	KeepLines         bool `yaml:"keep_lines"`

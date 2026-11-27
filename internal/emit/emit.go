@@ -98,6 +98,7 @@ func Build(doc *ir.Document, sc *schema.Schema, th *theme.Theme, opts Options) (
 	if err := e.buildFurniture(th.Epilogue, &e.out.Body); err != nil {
 		return nil, fmt.Errorf("epilogue: %w", err)
 	}
+	e.out.Body = e.blankLinesBefore(e.out.Body)
 	e.frameStyledParagraphs(e.out.Body)
 
 	e.out.Numbering = e.numbering
@@ -2076,6 +2077,41 @@ func (e *emitter) frameStyledParagraphs(blocks []docx.Block) {
 			blocks[i] = p
 		}
 	}
+}
+
+// blankLinesBefore puts the empty paragraphs a style asks for
+// (`blank_lines_before`) in front of each paragraph of that style. They are
+// default-style lines with no space of their own, kept with what follows, so
+// a side of a signature block still moves to a new page as a whole.
+func (e *emitter) blankLinesBefore(blocks []docx.Block) []docx.Block {
+	var out []docx.Block
+	for _, b := range blocks {
+		if p, ok := b.(docx.Paragraph); ok {
+			for range e.styleBlankLines(p.Props.Style) {
+				out = append(out, docx.Paragraph{Props: docx.ParaProps{
+					Spacing:  docx.Spacing{ExplicitBefore: true, ExplicitAfter: true},
+					KeepNext: docx.ToggleOn,
+				}})
+			}
+		}
+		out = append(out, b)
+	}
+	return out
+}
+
+// styleBlankLines returns a style's blank_lines_before, following based_on.
+func (e *emitter) styleBlankLines(styleID string) int {
+	for i := 0; i < 16 && styleID != ""; i++ {
+		st, ok := e.theme.Styles[styleID]
+		if !ok {
+			return 0
+		}
+		if st.BlankLinesBefore > 0 {
+			return st.BlankLinesBefore
+		}
+		styleID = st.BasedOn
+	}
+	return 0
 }
 
 // framePr converts a theme frame; nil stays nil.

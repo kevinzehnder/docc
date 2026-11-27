@@ -1274,6 +1274,42 @@ func TestPairedSignatureBlock(t *testing.T) {
 	}
 }
 
+// blank_lines_before writes real empty lines a user can delete or add to,
+// kept with what follows; the page may still turn only between two sides.
+func TestBlankLinesBefore(t *testing.T) {
+	th := testTheme()
+	th.Styles["Rolle"] = theme.Style{Name: "Rolle", BasedOn: "Standard", KeepNext: true, BlankLinesBefore: 2}
+	th.Styles["Linie"] = theme.Style{Name: "Linie", BasedOn: "Standard", KeepNext: true, BlankLinesBefore: 3,
+		Tabs: []theme.Tab{{To: theme.TabEnd, Leader: "dot", Align: "right"}}}
+	sc := testSchema()
+	sc.Styles["div.sig"] = "Rolle"
+	sc.Styles["div.sig.line"] = "Linie"
+	f, _ := parse.Parse("t.md", []byte("::: sig\nVerkäufer:\n\n- Anna\n\nKäufer:\n\n- Beat\n:::\n"))
+	built, err := Build(ir.Build(f, "test", map[string]any{}), sc, th, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, b := range built.Body {
+		p := b.(docx.Paragraph)
+		s := p.Props.Style
+		if s == "" {
+			s = "_"
+			if p.Props.KeepNext != docx.ToggleOn {
+				t.Errorf("an empty line does not keep with what follows")
+			}
+		}
+		if p.Props.KeepNext == docx.ToggleOff {
+			s += "|"
+		}
+		got = append(got, s)
+	}
+	want := "_ _ Rolle _ _ _ Linie| _ _ Rolle _ _ _ Linie"
+	if strings.Join(got, " ") != want {
+		t.Errorf("got  %s\nwant %s", strings.Join(got, " "), want)
+	}
+}
+
 // A style with a frame places every body paragraph written in it.
 func TestStyleFramePlacesItsParagraphs(t *testing.T) {
 	th := testTheme()
