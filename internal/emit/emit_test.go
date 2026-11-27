@@ -1279,8 +1279,10 @@ func TestPairedSignatureBlock(t *testing.T) {
 func TestBlankLinesBefore(t *testing.T) {
 	th := testTheme()
 	th.Styles["Rolle"] = theme.Style{Name: "Rolle", BasedOn: "Standard", KeepNext: true, BlankLinesBefore: 2}
-	th.Styles["Linie"] = theme.Style{Name: "Linie", BasedOn: "Standard", KeepNext: true, BlankLinesBefore: 3,
-		Tabs: []theme.Tab{{To: theme.TabEnd, Leader: "dot", Align: "right"}}}
+	th.Styles["Linie"] = theme.Style{
+		Name: "Linie", BasedOn: "Standard", KeepNext: true, BlankLinesBefore: 3,
+		Tabs: []theme.Tab{{To: theme.TabEnd, Leader: "dot", Align: "right"}},
+	}
 	sc := testSchema()
 	sc.Styles["div.sig"] = "Rolle"
 	sc.Styles["div.sig.line"] = "Linie"
