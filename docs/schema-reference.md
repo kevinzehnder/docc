@@ -404,4 +404,5 @@ declares. Broadly:
 | `DOC038`–`DOC041` | `fields:` blanks |
 | `DOC042` | A required span type appears nowhere in the document |
 | `DOC043` | `docc doctor`: render numbering names the default style, so paragraphs added in Word go unnumbered |
+| `DOC044` | Warning: a numbered list starts with a leading zero (`01. April 2027`) — almost always a date read as a list; escape it as `01\.` |
 | `DOC099` | A rule fired but its schema gave it no `id` |

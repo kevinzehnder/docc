@@ -1227,6 +1227,13 @@ func TestPairedSignatureBlock(t *testing.T) {
 			t.Errorf("without {.pair} a name rendered as %s, want the ruled Linie", p.Props.Style)
 		}
 	}
+	// Two sides stay on one sheet: no line lets the page turn before the
+	// next side's role — the keep comes from the line style, untouched.
+	for i, p := range render("::: sig\nVerkäufer:\n\n- Anna\n\nKäufer:\n\n- Beat\n:::\n") {
+		if p.Props.KeepNext == docx.ToggleOff {
+			t.Errorf("paragraph %d %q lets the page turn inside the signature block", i, text(p))
+		}
+	}
 	// A block mapping only `.pair` has nothing else to be: paired without
 	// the class.
 	delete(sc.Styles, "div.sig.line")
