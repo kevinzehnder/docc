@@ -1250,15 +1250,22 @@ func (e *emitter) tabStops(styleID string) []theme.Tab {
 // line is not content the author should be typing, and a document whose dots
 // are literal text cannot have its signatories checked or reordered.
 func (e *emitter) ruledDiv(d ir.Div, out *[]docx.Block, depth int, style, lineStyle string) {
-	// The whole block keeps together, every side on one sheet: the line
-	// style keeps each line with the next. Letting the page turn between the
-	// sellers and the buyers was tried (09a0dfd) on the claim that the
-	// office's deeds turn there; 38 executed Kaufverträge of 2026 set the
-	// signature part on one page without exception, starting a fresh page
-	// rather than splitting it.
+	// A side's lines keep together and with their role, but the page may
+	// turn between one side and the next: the sellers sign at the foot of
+	// one page, the buyers on the next, rather than the whole block moving
+	// on and leaving a gap in the deed. (v0.15.0 kept the whole block
+	// together; the office prefers the turn to the gap.)
+	lastLine := -1
 	for _, block := range d.Blocks {
 		list, isList := block.(ir.List)
 		if !isList {
+			if lastLine >= 0 {
+				if p, ok := (*out)[lastLine].(docx.Paragraph); ok {
+					p.Props.KeepNext = docx.ToggleOff
+					(*out)[lastLine] = p
+				}
+				lastLine = -1
+			}
 			var inner []docx.Block
 			e.blockTo(block, &inner, depth)
 			for _, blk := range inner {
@@ -1287,6 +1294,7 @@ func (e *emitter) ruledDiv(d ir.Div, out *[]docx.Block, depth int, style, lineSt
 					Props: docx.ParaProps{Style: lineStyle},
 					Runs:  runs,
 				})
+				lastLine = len(*out) - 1
 			}
 		}
 	}
@@ -1589,8 +1597,12 @@ func (e *emitter) amountDiv(d ir.Div, out *[]docx.Block, depth int, style, amoun
 				// wherever the block itself was styled, so a document type that
 				// inherits a deed's theme could not switch it off. A deed is
 				// read aloud and wants it; a registry form does not.
+				//
+				// In a sum only the total is spelled out: the parts are read
+				// as figures, the price the parties agree on is read in full,
+				// as the office's deeds write it.
 				wordsStyle := e.style("div." + d.Name + ".words")
-				if e.theme.Formats.AmountWords == "" || wordsStyle == "" {
+				if e.theme.Formats.AmountWords == "" || wordsStyle == "" || (partMarker != 0 && !isTotal) {
 					continue
 				}
 				value, parsed := parseMoney(figure)

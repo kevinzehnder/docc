@@ -1040,6 +1040,36 @@ func TestAmountBlockProseStyle(t *testing.T) {
 	}
 }
 
+// In a sum only the total is spelled out; a block without a total spells out
+// its amount.
+func TestAmountWordsOnlyForTheTotal(t *testing.T) {
+	source := "---\nx: 1\n---\n\n::: betraege\n- [Fr. 800'000.00] Wohnung\n- [Fr. 50'000.00] Parkplatz\n- [= Fr. 850'000.00] total\n:::\n\n::: betraege\n- [Fr. 100'000.00] Der Betrag von\n:::\n"
+	sc := testSchema()
+	sc.Styles["div.betraege"] = "Formularzeile"
+	sc.Styles["div.betraege.amount"] = "Firma"
+	sc.Styles["div.betraege.words"] = "Listenabsatz"
+	th := testTheme()
+	th.Formats.AmountWords = "(Franken %s)"
+	f, ds := parse.Parse("t.md", []byte(source))
+	if ds.HasErrors() {
+		t.Fatalf("parse: %+v", ds)
+	}
+	built, err := Build(ir.Build(f, "test", map[string]any{}), sc, th, Options{})
+	if err != nil {
+		t.Fatalf("build: %v", err)
+	}
+	var words []string
+	for _, blk := range built.Body {
+		if p, ok := blk.(docx.Paragraph); ok && p.Props.Style == "Listenabsatz" {
+			words = append(words, text(p))
+		}
+	}
+	want := []string{"(Franken achthundertfünfzigtausend)", "(Franken einhunderttausend)"}
+	if strings.Join(words, "|") != strings.Join(want, "|") {
+		t.Errorf("words = %q, want %q", words, want)
+	}
+}
+
 // Render numbering lives in the styles its definition names, so a heading or
 // a Randziffer paragraph added later in Word or WordCraft is numbered by
 // applying the style. Before this, every number was written onto its
@@ -1227,11 +1257,13 @@ func TestPairedSignatureBlock(t *testing.T) {
 			t.Errorf("without {.pair} a name rendered as %s, want the ruled Linie", p.Props.Style)
 		}
 	}
-	// Two sides stay on one sheet: no line lets the page turn before the
-	// next side's role — the keep comes from the line style, untouched.
-	for i, p := range render("::: sig\nVerkäufer:\n\n- Anna\n\nKäufer:\n\n- Beat\n:::\n") {
-		if p.Props.KeepNext == docx.ToggleOff {
-			t.Errorf("paragraph %d %q lets the page turn inside the signature block", i, text(p))
+	// The page may turn between two sides, and only there: the last line of
+	// the sellers lets go, every other line keeps with the next.
+	sides := render("::: sig\nVerkäufer:\n\n- Anna\n- Beat\n\nKäufer:\n\n- Clara\n:::\n")
+	for i, p := range sides {
+		released := p.Props.KeepNext == docx.ToggleOff
+		if want := text(p) == "Beat"; released != want {
+			t.Errorf("paragraph %d %q: page may turn after it = %v, want %v", i, text(p), released, want)
 		}
 	}
 	// A block mapping only `.pair` has nothing else to be: paired without

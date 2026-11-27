@@ -339,14 +339,6 @@
 </w:tc>
 </w:tr>
 </w:tbl>
-<w:p>
-<w:pPr>
-<w:pStyle w:val="BetragWorte"/>
-</w:pPr>
-<w:r>
-<w:t xml:space="preserve">(Franken achthundertzwanzigtausend)</w:t>
-</w:r>
-</w:p>
 <w:tbl>
 <w:tblPr>
 <w:tblW w:w="8504" w:type="dxa"/>
@@ -436,14 +428,6 @@
 </w:tc>
 </w:tr>
 </w:tbl>
-<w:p>
-<w:pPr>
-<w:pStyle w:val="BetragWorte"/>
-</w:pPr>
-<w:r>
-<w:t xml:space="preserve">(Franken fünfundvierzigtausend)</w:t>
-</w:r>
-</w:p>
 <w:tbl>
 <w:tblPr>
 <w:tblW w:w="8504" w:type="dxa"/>
@@ -1107,6 +1091,7 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="Unterschriftslinie"/>
+<w:keepNext w:val="0"/>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Herr </w:t>
